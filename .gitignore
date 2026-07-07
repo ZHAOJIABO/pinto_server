@@ -1,0 +1,29 @@
+# Binaries
+bin/
+*.exe
+bobobeads
+main
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.env.local
+
+# Logs
+logs/
+*.log
+
+# Dependencies
+vendor/
+
+# Config with secrets
+conf/server.prod.yaml
+conf/server.dev.yaml

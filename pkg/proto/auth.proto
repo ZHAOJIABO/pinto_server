@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service AuthService {
+  rpc GuestLogin(GuestLoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/guest"
+      body: "*"
+    };
+  }
+
+  rpc PhoneLogin(PhoneLoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/phone"
+      body: "*"
+    };
+  }
+
+  rpc SendSmsCode(SendSmsCodeRequest) returns (SendSmsCodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/sms/send"
+      body: "*"
+    };
+  }
+
+  rpc WechatLogin(WechatLoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/wechat"
+      body: "*"
+    };
+  }
+
+  rpc AppleLogin(AppleLoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/apple"
+      body: "*"
+    };
+  }
+
+  rpc RefreshToken(RefreshTokenRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+  }
+}
+
+message GuestLoginRequest {
+  RequestHeader header = 1;
+  string device_id = 2;
+}
+
+message PhoneLoginRequest {
+  RequestHeader header = 1;
+  string phone = 2;
+  string code = 3;
+}
+
+message SendSmsCodeRequest {
+  RequestHeader header = 1;
+  string phone = 2;
+}
+
+message SendSmsCodeResponse {
+  ResponseHeader header = 1;
+}
+
+message WechatLoginRequest {
+  RequestHeader header = 1;
+  string code = 2;
+  Platform platform = 3;
+}
+
+message AppleLoginRequest {
+  RequestHeader header = 1;
+  string identity_token = 2;
+  string authorization_code = 3;
+  string full_name = 4;
+}
+
+message RefreshTokenRequest {
+  RequestHeader header = 1;
+  string refresh_token = 2;
+}
+
+message LoginResponse {
+  ResponseHeader header = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  int64 expires_in = 4;
+  UserInfo user = 5;
+}
+
+message UserInfo {
+  string user_id = 1;
+  string nickname = 2;
+  string avatar_url = 3;
+  string phone = 4;
+  bool is_vip = 5;
+}

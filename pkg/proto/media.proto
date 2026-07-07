@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service MediaService {
+  rpc GetUploadToken(GetUploadTokenRequest) returns (GetUploadTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/media/upload-token"
+      body: "*"
+    };
+  }
+
+  rpc ReportUpload(ReportUploadRequest) returns (ReportUploadResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/media/report-upload"
+      body: "*"
+    };
+  }
+
+  rpc GetFileUrl(GetFileUrlRequest) returns (GetFileUrlResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/media/url"
+    };
+  }
+}
+
+message GetUploadTokenRequest {
+  RequestHeader header = 1;
+  string file_name = 2;
+  string content_type = 3;
+  string purpose = 4;
+}
+
+message GetUploadTokenResponse {
+  ResponseHeader header = 1;
+  string upload_url = 2;
+  string file_key = 3;
+  map<string, string> form_data = 4;
+  int64 expires_at = 5;
+  map<string, string> headers = 6;
+  string upload_method = 7;
+  string public_url = 8;
+  int64 max_file_size = 9;
+}
+
+message ReportUploadRequest {
+  RequestHeader header = 1;
+  string file_key = 2;
+  int64 file_size = 3;
+}
+
+message ReportUploadResponse {
+  ResponseHeader header = 1;
+  string file_url = 2;
+}
+
+message GetFileUrlRequest {
+  RequestHeader header = 1;
+  string file_key = 2;
+}
+
+message GetFileUrlResponse {
+  ResponseHeader header = 1;
+  string url = 2;
+  int64 expires_at = 3;
+}

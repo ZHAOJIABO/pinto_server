@@ -1,0 +1,249 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "auth.proto";
+import "google/api/annotations.proto";
+
+service CommunityService {
+  rpc PublishWork(PublishWorkRequest) returns (PublishWorkResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/posts"
+      body: "*"
+    };
+  }
+
+  rpc UnpublishWork(UnpublishWorkRequest) returns (UnpublishWorkResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/community/posts/{post_id}"
+    };
+  }
+
+  rpc GetFeed(GetFeedRequest) returns (GetFeedResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/community/feed"
+    };
+  }
+
+  rpc GetPostDetail(GetPostDetailRequest) returns (GetPostDetailResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/community/posts/{post_id}"
+    };
+  }
+
+  rpc LikePost(LikePostRequest) returns (LikePostResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/posts/{post_id}/like"
+      body: "*"
+    };
+  }
+
+  rpc UnlikePost(UnlikePostRequest) returns (UnlikePostResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/community/posts/{post_id}/like"
+    };
+  }
+
+  rpc FavoritePost(FavoritePostRequest) returns (FavoritePostResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/posts/{post_id}/favorite"
+      body: "*"
+    };
+  }
+
+  rpc UnfavoritePost(UnfavoritePostRequest) returns (UnfavoritePostResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/community/posts/{post_id}/favorite"
+    };
+  }
+
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/posts/{post_id}/comments"
+      body: "*"
+    };
+  }
+
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/community/posts/{post_id}/comments"
+    };
+  }
+
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/users/{user_id}/follow"
+      body: "*"
+    };
+  }
+
+  rpc UnfollowUser(UnfollowUserRequest) returns (UnfollowUserResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/community/users/{user_id}/follow"
+    };
+  }
+
+  rpc ReportContent(ReportContentRequest) returns (ReportContentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/community/report"
+      body: "*"
+    };
+  }
+}
+
+message PostItem {
+  string post_id = 1;
+  UserInfo author = 2;
+  string work_id = 3;
+  string title = 4;
+  string description = 5;
+  string pattern_image_url = 6;
+  int32 like_count = 7;
+  int32 favorite_count = 8;
+  int32 comment_count = 9;
+  bool is_liked = 10;
+  bool is_favorited = 11;
+  int64 created_at = 12;
+}
+
+message CommentItem {
+  string comment_id = 1;
+  UserInfo author = 2;
+  string content = 3;
+  string parent_id = 4;
+  int64 created_at = 5;
+}
+
+message PublishWorkRequest {
+  RequestHeader header = 1;
+  string work_id = 2;
+  string description = 3;
+}
+
+message PublishWorkResponse {
+  ResponseHeader header = 1;
+  string post_id = 2;
+}
+
+message UnpublishWorkRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message UnpublishWorkResponse {
+  ResponseHeader header = 1;
+}
+
+message GetFeedRequest {
+  RequestHeader header = 1;
+  string feed_type = 2;  // hot, latest, following
+  PageRequest page = 3;
+}
+
+message GetFeedResponse {
+  ResponseHeader header = 1;
+  repeated PostItem posts = 2;
+  PageResponse page = 3;
+}
+
+message GetPostDetailRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message GetPostDetailResponse {
+  ResponseHeader header = 1;
+  PostItem post = 2;
+}
+
+message LikePostRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message LikePostResponse {
+  ResponseHeader header = 1;
+}
+
+message UnlikePostRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message UnlikePostResponse {
+  ResponseHeader header = 1;
+}
+
+message FavoritePostRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message FavoritePostResponse {
+  ResponseHeader header = 1;
+}
+
+message UnfavoritePostRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+}
+
+message UnfavoritePostResponse {
+  ResponseHeader header = 1;
+}
+
+message AddCommentRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+  string content = 3;
+  string parent_id = 4;
+}
+
+message AddCommentResponse {
+  ResponseHeader header = 1;
+  string comment_id = 2;
+}
+
+message ListCommentsRequest {
+  RequestHeader header = 1;
+  string post_id = 2;
+  PageRequest page = 3;
+}
+
+message ListCommentsResponse {
+  ResponseHeader header = 1;
+  repeated CommentItem comments = 2;
+  PageResponse page = 3;
+}
+
+message FollowUserRequest {
+  RequestHeader header = 1;
+  string user_id = 2;
+}
+
+message FollowUserResponse {
+  ResponseHeader header = 1;
+}
+
+message UnfollowUserRequest {
+  RequestHeader header = 1;
+  string user_id = 2;
+}
+
+message UnfollowUserResponse {
+  ResponseHeader header = 1;
+}
+
+message ReportContentRequest {
+  RequestHeader header = 1;
+  string target_type = 2;  // post, comment
+  string target_id = 3;
+  string reason = 4;
+}
+
+message ReportContentResponse {
+  ResponseHeader header = 1;
+}

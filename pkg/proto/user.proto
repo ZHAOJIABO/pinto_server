@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "auth.proto";
+import "google/api/annotations.proto";
+
+service UserService {
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/user/info"
+    };
+  }
+
+  rpc UpdateUserInfo(UpdateUserInfoRequest) returns (UpdateUserInfoResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/user/info"
+      body: "*"
+    };
+  }
+
+  rpc BindPhone(BindPhoneRequest) returns (BindPhoneResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user/bind-phone"
+      body: "*"
+    };
+  }
+
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/user/account"
+    };
+  }
+}
+
+message GetUserInfoRequest {
+  RequestHeader header = 1;
+}
+
+message GetUserInfoResponse {
+  ResponseHeader header = 1;
+  UserInfo user = 2;
+  int32 credit_balance = 3;
+  int32 daily_free_remaining = 4;
+}
+
+message UpdateUserInfoRequest {
+  RequestHeader header = 1;
+  string nickname = 2;
+  string avatar_url = 3;
+}
+
+message UpdateUserInfoResponse {
+  ResponseHeader header = 1;
+}
+
+message BindPhoneRequest {
+  RequestHeader header = 1;
+  string phone = 2;
+  string code = 3;
+}
+
+message BindPhoneResponse {
+  ResponseHeader header = 1;
+}
+
+message DeleteAccountRequest {
+  RequestHeader header = 1;
+}
+
+message DeleteAccountResponse {
+  ResponseHeader header = 1;
+}

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service CreditService {
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/credits/balance"
+    };
+  }
+
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/credits/transactions"
+    };
+  }
+}
+
+message GetBalanceRequest {
+  RequestHeader header = 1;
+}
+
+message GetBalanceResponse {
+  ResponseHeader header = 1;
+  int32 balance = 2;
+  int32 daily_free_remaining = 3;
+  int32 daily_free_total = 4;
+}
+
+message TransactionItem {
+  string transaction_id = 1;
+  int32 amount = 2;
+  int32 balance_after = 3;
+  string type = 4;
+  string description = 5;
+  int64 created_at = 6;
+}
+
+message ListTransactionsRequest {
+  RequestHeader header = 1;
+  PageRequest page = 2;
+}
+
+message ListTransactionsResponse {
+  ResponseHeader header = 1;
+  repeated TransactionItem transactions = 2;
+  PageResponse page = 3;
+}

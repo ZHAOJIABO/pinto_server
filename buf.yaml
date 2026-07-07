@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: pkg/proto
+    name: buf.build/zhaojiabo/bobobeads
+deps:
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - STANDARD
+  except:
+    - FIELD_NOT_REQUIRED
+    - PACKAGE_NO_IMPORT_CYCLE
+breaking:
+  use:
+    - FILE

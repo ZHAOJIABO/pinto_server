@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "work.proto";
+import "google/api/annotations.proto";
+
+service TemplateService {
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/categories"
+    };
+  }
+
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates"
+    };
+  }
+
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/{template_id}"
+    };
+  }
+}
+
+message CategoryItem {
+  int32 category_id = 1;
+  string name = 2;
+  string icon_url = 3;
+  int32 template_count = 4;
+}
+
+message TemplateItem {
+  string template_id = 1;
+  string title = 2;
+  string preview_url = 3;
+  string board_spec = 4;
+  int32 color_count = 5;
+  bool is_free = 6;
+  int32 credit_cost = 7;
+  int32 download_count = 8;
+}
+
+message ListCategoriesRequest {
+  RequestHeader header = 1;
+}
+
+message ListCategoriesResponse {
+  ResponseHeader header = 1;
+  repeated CategoryItem categories = 2;
+}
+
+message ListTemplatesRequest {
+  RequestHeader header = 1;
+  int32 category_id = 2;
+  PageRequest page = 3;
+}
+
+message ListTemplatesResponse {
+  ResponseHeader header = 1;
+  repeated TemplateItem templates = 2;
+  PageResponse page = 3;
+}
+
+message GetTemplateRequest {
+  RequestHeader header = 1;
+  string template_id = 2;
+}
+
+message GetTemplateResponse {
+  ResponseHeader header = 1;
+  TemplateItem template = 2;
+  PatternData pattern_data = 3;
+}

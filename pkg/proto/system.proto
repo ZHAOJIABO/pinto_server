@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "work.proto";
+import "google/api/annotations.proto";
+
+service SystemService {
+  rpc GetAppConfig(GetAppConfigRequest) returns (GetAppConfigResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/system/config"
+    };
+  }
+
+  rpc CheckUpdate(CheckUpdateRequest) returns (CheckUpdateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/system/update"
+    };
+  }
+
+  rpc GetBanners(GetBannersRequest) returns (GetBannersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/system/banners"
+    };
+  }
+
+  rpc GetBeadColors(GetBeadColorsRequest) returns (GetBeadColorsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/system/bead-colors"
+    };
+  }
+
+  rpc GetBoardSpecs(GetBoardSpecsRequest) returns (GetBoardSpecsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/system/board-specs"
+    };
+  }
+}
+
+message GetAppConfigRequest {
+  RequestHeader header = 1;
+}
+
+message GetAppConfigResponse {
+  ResponseHeader header = 1;
+  map<string, string> configs = 2;
+}
+
+message CheckUpdateRequest {
+  RequestHeader header = 1;
+  string current_version = 2;
+}
+
+message CheckUpdateResponse {
+  ResponseHeader header = 1;
+  bool has_update = 2;
+  bool force_update = 3;
+  string latest_version = 4;
+  string download_url = 5;
+  string release_notes = 6;
+}
+
+message BannerItem {
+  string banner_id = 1;
+  string image_url = 2;
+  string link_type = 3;
+  string link_value = 4;
+  int32 sort_order = 5;
+}
+
+message GetBannersRequest {
+  RequestHeader header = 1;
+}
+
+message GetBannersResponse {
+  ResponseHeader header = 1;
+  repeated BannerItem banners = 2;
+}
+
+message BeadBrand {
+  string brand = 1;
+  string display_name = 2;
+  repeated BeadColor colors = 3;
+}
+
+message BeadColor {
+  string code = 1;
+  string name = 2;
+  string hex = 3;
+}
+
+message GetBeadColorsRequest {
+  RequestHeader header = 1;
+  string brand = 2;
+}
+
+message GetBeadColorsResponse {
+  ResponseHeader header = 1;
+  repeated BeadBrand brands = 2;
+}
+
+message BoardSpec {
+  string spec_id = 1;
+  string name = 2;
+  string shape = 3;
+  int32 width = 4;
+  int32 height = 5;
+  string bead_size = 6;
+}
+
+message GetBoardSpecsRequest {
+  RequestHeader header = 1;
+}
+
+message GetBoardSpecsResponse {
+  ResponseHeader header = 1;
+  repeated BoardSpec specs = 2;
+}

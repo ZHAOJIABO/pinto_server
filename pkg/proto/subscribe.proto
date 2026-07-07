@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service SubscribeService {
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/subscribe/products"
+    };
+  }
+
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/subscribe/orders"
+      body: "*"
+    };
+  }
+
+  rpc GetPaymentParams(GetPaymentParamsRequest) returns (GetPaymentParamsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/subscribe/orders/{order_no}/payment"
+    };
+  }
+
+  rpc PaymentCallback(PaymentCallbackRequest) returns (PaymentCallbackResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/subscribe/callback"
+      body: "*"
+    };
+  }
+
+  rpc RestorePurchase(RestorePurchaseRequest) returns (RestorePurchaseResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/subscribe/restore"
+      body: "*"
+    };
+  }
+
+  rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/subscribe/status"
+    };
+  }
+
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/subscribe/orders"
+    };
+  }
+}
+
+message ProductItem {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  string description = 4;
+  int32 price_cents = 5;
+  string currency = 6;
+  int32 duration_days = 7;
+  string apple_product_id = 8;
+  repeated string features = 9;
+}
+
+message OrderItem {
+  string order_no = 1;
+  string product_name = 2;
+  int32 amount_cents = 3;
+  string currency = 4;
+  string payment_method = 5;
+  int32 status = 6;
+  int64 created_at = 7;
+  int64 paid_at = 8;
+}
+
+message ListProductsRequest {
+  RequestHeader header = 1;
+}
+
+message ListProductsResponse {
+  ResponseHeader header = 1;
+  repeated ProductItem products = 2;
+}
+
+message CreateOrderRequest {
+  RequestHeader header = 1;
+  string product_id = 2;
+  string payment_method = 3;
+}
+
+message CreateOrderResponse {
+  ResponseHeader header = 1;
+  string order_no = 2;
+}
+
+message GetPaymentParamsRequest {
+  RequestHeader header = 1;
+  string order_no = 2;
+}
+
+message GetPaymentParamsResponse {
+  ResponseHeader header = 1;
+  string payment_method = 2;
+  map<string, string> params = 3;
+}
+
+message PaymentCallbackRequest {
+  RequestHeader header = 1;
+  string payment_method = 2;
+  string raw_data = 3;
+}
+
+message PaymentCallbackResponse {
+  ResponseHeader header = 1;
+  bool success = 2;
+}
+
+message RestorePurchaseRequest {
+  RequestHeader header = 1;
+  string receipt_data = 2;
+}
+
+message RestorePurchaseResponse {
+  ResponseHeader header = 1;
+  bool is_vip = 2;
+  int64 expire_at = 3;
+}
+
+message GetSubscriptionRequest {
+  RequestHeader header = 1;
+}
+
+message GetSubscriptionResponse {
+  ResponseHeader header = 1;
+  bool is_vip = 2;
+  string plan_name = 3;
+  int64 expire_at = 4;
+  bool auto_renew = 5;
+}
+
+message ListOrdersRequest {
+  RequestHeader header = 1;
+  PageRequest page = 2;
+}
+
+message ListOrdersResponse {
+  ResponseHeader header = 1;
+  repeated OrderItem orders = 2;
+  PageResponse page = 3;
+}

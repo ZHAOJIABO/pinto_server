@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service WorkService {
+  rpc SaveWork(SaveWorkRequest) returns (SaveWorkResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/works"
+      body: "*"
+    };
+  }
+
+  rpc GetWork(GetWorkRequest) returns (GetWorkResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/works/{work_id}"
+    };
+  }
+
+  rpc ListWorks(ListWorksRequest) returns (ListWorksResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/works"
+    };
+  }
+
+  rpc DeleteWork(DeleteWorkRequest) returns (DeleteWorkResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/works/{work_id}"
+    };
+  }
+
+  rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/works/drafts"
+      body: "*"
+    };
+  }
+
+  rpc ListDrafts(ListDraftsRequest) returns (ListDraftsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/works/drafts"
+    };
+  }
+}
+
+message PatternData {
+  int32 width = 1;
+  int32 height = 2;
+  string board_spec = 3;
+  repeated bytes pixel_rows = 4;
+  repeated ColorEntry color_palette = 5;
+  repeated int32 pixels = 6;
+  int32 schema_version = 7;
+}
+
+message ColorEntry {
+  int32 index = 1;
+  string hex = 2;
+  string brand = 3;
+  string code = 4;
+  string name = 5;
+}
+
+message WorkItem {
+  string work_id = 1;
+  string title = 2;
+  string original_image_url = 3;
+  string pattern_image_url = 4;
+  string board_spec = 5;
+  int32 width = 6;
+  int32 height = 7;
+  int32 bead_count = 8;
+  int32 color_count = 9;
+  int32 status = 10;
+  int64 created_at = 11;
+  string thumbnail_url = 12;
+  int64 updated_at = 13;
+}
+
+message SaveWorkRequest {
+  RequestHeader header = 1;
+  string title = 2;
+  string original_image_url = 3;
+  string pattern_image_url = 4;
+  PatternData pattern_data = 5;
+  int32 bead_count = 6;
+  int32 color_count = 7;
+}
+
+message SaveWorkResponse {
+  ResponseHeader header = 1;
+  string work_id = 2;
+}
+
+message GetWorkRequest {
+  RequestHeader header = 1;
+  string work_id = 2;
+}
+
+message GetWorkResponse {
+  ResponseHeader header = 1;
+  WorkItem work = 2;
+  PatternData pattern_data = 3;
+}
+
+message ListWorksRequest {
+  RequestHeader header = 1;
+  PageRequest page = 2;
+}
+
+message ListWorksResponse {
+  ResponseHeader header = 1;
+  repeated WorkItem works = 2;
+  PageResponse page = 3;
+}
+
+message DeleteWorkRequest {
+  RequestHeader header = 1;
+  string work_id = 2;
+}
+
+message DeleteWorkResponse {
+  ResponseHeader header = 1;
+}
+
+message SaveDraftRequest {
+  RequestHeader header = 1;
+  string title = 2;
+  string original_image_url = 3;
+  string pattern_image_url = 4;
+  PatternData pattern_data = 5;
+  string draft_id = 6;
+}
+
+message SaveDraftResponse {
+  ResponseHeader header = 1;
+  string draft_id = 2;
+}
+
+message ListDraftsRequest {
+  RequestHeader header = 1;
+  PageRequest page = 2;
+}
+
+message ListDraftsResponse {
+  ResponseHeader header = 1;
+  repeated WorkItem drafts = 2;
+  PageResponse page = 3;
+}

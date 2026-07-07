@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+message RequestHeader {
+  string token = 1;
+  string platform = 2;       // ios, android, miniprogram, web
+  string app_version = 3;
+  string device_id = 4;
+  string language = 5;
+}
+
+message ResponseHeader {
+  int32 code = 1;
+  string message = 2;
+  string trace_id = 3;
+}
+
+message PageRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message PageResponse {
+  int32 total = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  bool has_more = 4;
+}
+
+enum Platform {
+  PLATFORM_UNKNOWN = 0;
+  PLATFORM_IOS = 1;
+  PLATFORM_ANDROID = 2;
+  PLATFORM_MINIPROGRAM = 3;
+  PLATFORM_WEB = 4;
+}

@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "work.proto";
+import "google/api/annotations.proto";
+
+service GenerationService {
+  rpc CreateGeneration(CreateGenerationRequest) returns (CreateGenerationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/generation/create"
+      body: "*"
+    };
+  }
+
+  rpc CompleteGeneration(CompleteGenerationRequest) returns (CompleteGenerationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/generation/{generation_id}/complete"
+      body: "*"
+    };
+  }
+
+  rpc CancelGeneration(CancelGenerationRequest) returns (CancelGenerationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/generation/{generation_id}/cancel"
+      body: "*"
+    };
+  }
+
+  rpc GetGenerationStatus(GetGenerationStatusRequest) returns (GetGenerationStatusResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/generation/{generation_id}"
+    };
+  }
+}
+
+message CreateGenerationRequest {
+  RequestHeader header = 1;
+  string board_spec = 2;
+  string source_type = 3;    // photo, album, template
+  string source_id = 4;      // template_id if source_type=template
+  string client_request_id = 5;
+}
+
+message CreateGenerationResponse {
+  ResponseHeader header = 1;
+  string generation_id = 2;
+  int32 credits_deducted = 3;
+  int32 remaining_balance = 4;
+  int64 expires_at = 5;
+  bool duplicated = 6;
+}
+
+message CompleteGenerationRequest {
+  RequestHeader header = 1;
+  string generation_id = 2;
+  string title = 3;
+  string original_image_url = 4;
+  string pattern_image_url = 5;
+  PatternData pattern_data = 6;
+  int32 bead_count = 7;
+  int32 color_count = 8;
+}
+
+message CompleteGenerationResponse {
+  ResponseHeader header = 1;
+  string work_id = 2;
+  bool duplicated = 3;
+}
+
+message CancelGenerationRequest {
+  RequestHeader header = 1;
+  string generation_id = 2;
+  string reason = 3;
+}
+
+message CancelGenerationResponse {
+  ResponseHeader header = 1;
+  int32 credits_refunded = 2;
+}
+
+message GetGenerationStatusRequest {
+  RequestHeader header = 1;
+  string generation_id = 2;
+}
+
+message GetGenerationStatusResponse {
+  ResponseHeader header = 1;
+  int32 status = 2;             // 0:pending 1:completed 2:cancelled 3:expired
+  int32 credits_deducted = 3;
+  string work_id = 4;
+}

@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+service InviteService {
+  rpc GetInviteCode(GetInviteCodeRequest) returns (GetInviteCodeResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/invite/code"
+    };
+  }
+
+  rpc BindInviteCode(BindInviteCodeRequest) returns (BindInviteCodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/invite/bind"
+      body: "*"
+    };
+  }
+
+  rpc GetInviteStats(GetInviteStatsRequest) returns (GetInviteStatsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/invite/stats"
+    };
+  }
+
+  rpc ListInviteRecords(ListInviteRecordsRequest) returns (ListInviteRecordsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/invite/records"
+    };
+  }
+}
+
+message GetInviteCodeRequest {
+  RequestHeader header = 1;
+}
+
+message GetInviteCodeResponse {
+  ResponseHeader header = 1;
+  string invite_code = 2;
+  string share_url = 3;
+}
+
+message BindInviteCodeRequest {
+  RequestHeader header = 1;
+  string invite_code = 2;
+}
+
+message BindInviteCodeResponse {
+  ResponseHeader header = 1;
+  int32 reward_credits = 2;
+}
+
+message GetInviteStatsRequest {
+  RequestHeader header = 1;
+}
+
+message GetInviteStatsResponse {
+  ResponseHeader header = 1;
+  int32 total_invites = 2;
+  int32 total_rewards = 3;
+}
+
+message InviteRecord {
+  string invitee_nickname = 1;
+  string invitee_avatar = 2;
+  int32 reward_credits = 3;
+  int64 created_at = 4;
+}
+
+message ListInviteRecordsRequest {
+  RequestHeader header = 1;
+  PageRequest page = 2;
+}
+
+message ListInviteRecordsResponse {
+  ResponseHeader header = 1;
+  repeated InviteRecord records = 2;
+  PageResponse page = 3;
+}
