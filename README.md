@@ -11,13 +11,10 @@
 - **认证**: JWT (access + refresh token)
 - **Proto 管理**: buf
 
-## 快速启动
+## 本地开发
 
 ```bash
-# 启动依赖服务
-docker-compose up -d
-
-# 运行
+# 请先按 conf/server.yaml（及未提交的 conf/server.local.yaml）准备 MySQL、Redis 和 OSS 凭证。
 make run
 
 # 或编译后运行
@@ -28,6 +25,68 @@ make build
 服务启动后：
 - gRPC: `:9090`（移动端）
 - HTTP REST: `:8080`（小程序 / Web）
+
+## ECS Docker 部署（IP 试运行）
+
+根目录的 `docker-compose.yml` 会启动 MySQL、Redis、`backend` 和
+`admin-web` 四个服务。只有 Nginx 的 `80` 端口对外发布；`/api/` 会在
+Docker 内部转发给后端的 `8080` 端口，MySQL、Redis 和 gRPC 都不暴露到公网。
+
+### 1. 在 ECS 准备未提交的凭证配置
+
+```bash
+cd /opt/bobobeads_server
+cp .env.production.example .env.production
+cp conf/server.production.local.yaml.example conf/server.production.local.yaml
+chmod 600 .env.production conf/server.production.local.yaml
+```
+
+编辑 `.env.production`，填写两个随机的 MySQL 密码；其中
+`MYSQL_PASSWORD` 必须与 `conf/server.production.local.yaml` 中的
+`mysql.password` 完全一致。然后在后一个文件填写 OSS RAM 凭证、用户 JWT
+密钥、管理端 JWT 密钥和管理员密码哈希。配置文件中的明文密钥不可提交 Git。
+
+管理员密码哈希可在本地项目根目录执行下面的命令生成，再复制到生产配置中：
+
+```bash
+go run ./cmd/admin-password-hash
+```
+
+### 2. 构建并上传 Flutter 管理端
+
+在 Flutter 客户端项目中构建。IP 试运行必须把 API 地址指向 Nginx 的公网
+地址（后续启用 HTTPS 域名时，将此值改为 `https://你的域名` 后重新构建）。
+
+```bash
+cd /Users/zhaojiabo/app_project/bobobeads
+flutter build web --release --target lib/admin_main.dart \
+  --dart-define=BOBOBEADS_API_BASE_URL=http://123.57.175.126
+
+scp -r build root@123.57.175.126:/opt/bobobeads_server/admin-web/
+```
+
+上传完成后，ECS 上应存在 `admin-web/build/index.html`。
+
+### 3. 启动与验证
+
+```bash
+cd /opt/bobobeads_server
+docker compose --env-file .env.production up -d --build
+docker compose ps
+docker compose logs --tail=100 backend admin-web
+curl -I http://127.0.0.1
+```
+
+在阿里云安全组中仅开放 TCP `80`（IP 试运行可以先限制为你的办公公网 IP）。
+浏览器访问 `http://123.57.175.126` 即可打开管理端。不要开放 `3306`、`6379`、
+`8080` 或 `9090`。
+
+更新版本时，先重新构建并上传 `admin-web/build`，再在 ECS 仓库目录执行：
+
+```bash
+git pull
+docker compose --env-file .env.production up -d --build
+```
 
 ## 项目结构
 
@@ -50,7 +109,8 @@ make build
 ├── doc/                        设计文档
 ├── Makefile                    构建命令
 ├── Dockerfile                  容器镜像
-└── docker-compose.yml          本地开发环境
+├── docker-compose.yml          ECS Docker 服务编排
+└── admin-web/nginx.conf        管理端静态站点与 API 反向代理
 ```
 
 ## 对接文档

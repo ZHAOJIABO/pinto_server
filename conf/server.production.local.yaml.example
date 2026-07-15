@@ -1,0 +1,21 @@
+# Copy this file to server.production.local.yaml on the ECS host, fill in the
+# values, then restrict it with: chmod 600 conf/server.production.local.yaml
+# This file is intentionally excluded from Git and the Docker build context.
+
+mysql:
+  # Must match MYSQL_PASSWORD in .env.production.
+  password: "replace-with-a-long-random-mysql-password"
+
+oss:
+  access_key_id: "replace-with-ram-access-key-id"
+  access_key_secret: "replace-with-ram-access-key-secret"
+
+jwt:
+  secret: "replace-with-a-random-user-jwt-secret"
+
+admin:
+  jwt_secret: "replace-with-a-random-admin-jwt-secret"
+  accounts:
+    - username: "admin"
+      # Generate locally with: go run ./cmd/admin-password-hash
+      password_hash: "pbkdf2-sha256$600000$replace-salt$replace-hash"

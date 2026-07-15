@@ -1,0 +1,60 @@
+server:
+  name: bobobeads-server
+  mode: prod
+  # gRPC remains internal to the backend container. Only Nginx publishes HTTP.
+  grpc_port: 9090
+  http_port: 8080
+
+mysql:
+  host: mysql
+  port: 3306
+  user: bobobeads
+  password: ""
+  dbname: bobobeads
+
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+
+oss:
+  endpoint: https://oss-cn-beijing.aliyuncs.com
+  region: cn-beijing
+  bucket: pinto-test
+  public_base_url: https://pinto-test.oss-cn-beijing.aliyuncs.com
+  access_key_id: ""
+  access_key_secret: ""
+
+jwt:
+  secret: ""
+  access_expire_h: 72
+  refresh_expire_h: 720
+
+log:
+  level: info
+  path: /app/logs
+  max_size: 100
+  max_age: 7
+
+generation:
+  daily_free_limit: 3
+  credit_cost: 1
+  expire_minutes: 30
+
+pattern:
+  max_width: 200
+  max_height: 200
+  max_pixels: 40000
+  max_colors: 128
+
+ai_generation:
+  task_expire_minutes: 30
+  worker_interval: 30
+  fake_provider: true
+  provider_name: fake
+
+admin:
+  jwt_secret: ""
+  access_expire_m: 480
+  accounts: []
