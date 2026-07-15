@@ -3,6 +3,11 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
+# proxy.golang.org is often unreachable from mainland-China ECS instances.
+# Use Alibaba Cloud's Go module mirror for the image build, then fall back to
+# direct module downloads only when the mirror reports a module as missing.
+ENV GOPROXY=https://mirrors.aliyun.com/goproxy/,direct
+
 COPY go.mod go.sum ./
 RUN go mod download
 
