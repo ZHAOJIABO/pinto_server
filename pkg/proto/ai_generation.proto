@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+// AI 风格生成服务。
+service AIGenerationService {
+  // 获取可用 AI 风格列表。
+  rpc ListAIStyles(ListAIStylesRequest) returns (ListAIStylesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/ai/styles"
+    };
+  }
+
+  // 创建 AI 风格转换任务。
+  rpc CreateStyleGeneration(CreateStyleGenerationRequest) returns (CreateStyleGenerationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/ai/style-generations"
+      body: "*"
+    };
+  }
+
+  // 获取 AI 风格转换任务详情。
+  rpc GetStyleGeneration(GetStyleGenerationRequest) returns (GetStyleGenerationResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/ai/style-generations/{task_id}"
+    };
+  }
+
+  // 获取 AI 风格转换任务列表。
+  rpc ListStyleGenerations(ListStyleGenerationsRequest) returns (ListStyleGenerationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/ai/style-generations"
+    };
+  }
+}
+
+message AIStyleItem {
+  // AI 风格 ID。
+  string style_id = 1;
+  // AI 风格唯一键。
+  string style_key = 2;
+  // 风格名称。
+  string name = 3;
+  // 风格描述。
+  string description = 4;
+  // 风格封面地址。
+  string cover_url = 5;
+  // 示例图片地址。
+  string example_url = 6;
+  // 生成消耗积分。
+  int32 cost_credits = 7;
+}
+
+message AIGenerationItem {
+  // AI 生成任务 ID。
+  string task_id = 1;
+  // AI 风格 ID。
+  string style_id = 2;
+  // AI 风格名称。
+  string style_name = 3;
+  // 输入图片地址。
+  string input_image_url = 4;
+  // 输出图片地址。
+  string output_image_url = 5;
+  // 任务状态。
+  int32 status = 6;
+  // 已扣除积分。
+  int32 credits_deducted = 7;
+  // 错误信息。
+  string error_message = 8;
+  // 创建时间戳。
+  int64 created_at = 9;
+  // 完成时间戳。
+  int64 completed_at = 10;
+}
+
+message ListAIStylesRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 分页参数。
+  PageRequest page = 2;
+}
+
+message ListAIStylesResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // AI 风格列表。
+  repeated AIStyleItem styles = 2;
+}
+
+message CreateStyleGenerationRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // AI 风格 ID。
+  string style_id = 2;
+  // 输入文件 key。
+  string input_file_key = 3;
+  // 客户端请求幂等 ID。
+  string client_request_id = 4;
+}
+
+message CreateStyleGenerationResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // AI 生成任务 ID。
+  string task_id = 2;
+  // 任务状态。
+  int32 status = 3;
+  // 本次扣除积分。
+  int32 credits_deducted = 4;
+  // 剩余积分余额。
+  int32 remaining_balance = 5;
+  // 是否命中重复请求。
+  bool duplicated = 6;
+}
+
+message GetStyleGenerationRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // AI 生成任务 ID。
+  string task_id = 2;
+}
+
+message GetStyleGenerationResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // AI 生成任务详情。
+  AIGenerationItem task = 2;
+}
+
+message ListStyleGenerationsRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 分页参数。
+  PageRequest page = 2;
+}
+
+message ListStyleGenerationsResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // AI 生成任务列表。
+  repeated AIGenerationItem tasks = 2;
+  // 分页信息。
+  PageResponse page = 3;
+}

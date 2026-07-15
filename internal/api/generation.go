@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
@@ -45,22 +44,9 @@ func (h *GenerationHandler) CompleteGeneration(ctx context.Context, req *pb.Comp
 		Title:            req.Title,
 		OriginalImageURL: req.OriginalImageUrl,
 		PatternImageURL:  req.PatternImageUrl,
-		BeadCount:        int(req.BeadCount),
-		ColorCount:       int(req.ColorCount),
 	}
 
-	if req.PatternData == nil {
-		return &pb.CompleteGenerationResponse{Header: errHeaderCtx(ctx, apperr.InvalidArgument("pattern_data required"))}, nil
-	}
-	if err := work.ValidatePatternData(req.PatternData); err != nil {
-		return &pb.CompleteGenerationResponse{Header: errHeaderCtx(ctx, err)}, nil
-	}
 	workData.PatternData = work.PatternDataToJSONMap(req.PatternData)
-	workData.Width = int(req.PatternData.Width)
-	workData.Height = int(req.PatternData.Height)
-	if req.PatternData.BoardSpec != "" {
-		workData.BoardSpec = req.PatternData.BoardSpec
-	}
 
 	result, err := h.generationService.CompleteGeneration(ctx, userID, req.GenerationId, workData)
 	if err != nil {
@@ -86,7 +72,8 @@ func (h *GenerationHandler) CancelGeneration(ctx context.Context, req *pb.Cancel
 }
 
 func (h *GenerationHandler) GetGenerationStatus(ctx context.Context, req *pb.GetGenerationStatusRequest) (*pb.GetGenerationStatusResponse, error) {
-	gen, err := h.generationService.GetStatus(ctx, req.GenerationId)
+	userID := middleware.GetUserID(ctx)
+	gen, err := h.generationService.GetStatus(ctx, userID, req.GenerationId)
 	if err != nil {
 		return &pb.GetGenerationStatusResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}

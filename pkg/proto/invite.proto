@@ -7,13 +7,16 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 邀请码与邀请奖励服务。
 service InviteService {
+  // 获取当前用户邀请码。
   rpc GetInviteCode(GetInviteCodeRequest) returns (GetInviteCodeResponse) {
     option (google.api.http) = {
       get: "/api/v1/invite/code"
     };
   }
 
+  // 绑定邀请码。
   rpc BindInviteCode(BindInviteCodeRequest) returns (BindInviteCodeResponse) {
     option (google.api.http) = {
       post: "/api/v1/invite/bind"
@@ -21,12 +24,14 @@ service InviteService {
     };
   }
 
+  // 获取邀请统计。
   rpc GetInviteStats(GetInviteStatsRequest) returns (GetInviteStatsResponse) {
     option (google.api.http) = {
       get: "/api/v1/invite/stats"
     };
   }
 
+  // 获取邀请记录列表。
   rpc ListInviteRecords(ListInviteRecordsRequest) returns (ListInviteRecordsResponse) {
     option (google.api.http) = {
       get: "/api/v1/invite/records"
@@ -35,49 +40,70 @@ service InviteService {
 }
 
 message GetInviteCodeRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetInviteCodeResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 邀请码。
   string invite_code = 2;
+  // 分享链接。
   string share_url = 3;
 }
 
 message BindInviteCodeRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 邀请码。
   string invite_code = 2;
 }
 
 message BindInviteCodeResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 绑定奖励积分。
   int32 reward_credits = 2;
 }
 
 message GetInviteStatsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetInviteStatsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 累计邀请人数。
   int32 total_invites = 2;
+  // 累计奖励积分。
   int32 total_rewards = 3;
 }
 
 message InviteRecord {
+  // 被邀请人昵称。
   string invitee_nickname = 1;
+  // 被邀请人头像。
   string invitee_avatar = 2;
+  // 本次奖励积分。
   int32 reward_credits = 3;
+  // 创建时间戳。
   int64 created_at = 4;
 }
 
 message ListInviteRecordsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分页参数。
   PageRequest page = 2;
 }
 
 message ListInviteRecordsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 邀请记录列表。
   repeated InviteRecord records = 2;
+  // 分页信息。
   PageResponse page = 3;
 }

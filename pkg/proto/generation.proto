@@ -8,7 +8,9 @@ import "common.proto";
 import "work.proto";
 import "google/api/annotations.proto";
 
+// 图纸生成扣费与确认服务。
 service GenerationService {
+  // 创建图纸生成记录并预扣积分。
   rpc CreateGeneration(CreateGenerationRequest) returns (CreateGenerationResponse) {
     option (google.api.http) = {
       post: "/api/v1/generation/create"
@@ -16,6 +18,7 @@ service GenerationService {
     };
   }
 
+  // 完成图纸生成并保存作品。
   rpc CompleteGeneration(CompleteGenerationRequest) returns (CompleteGenerationResponse) {
     option (google.api.http) = {
       post: "/api/v1/generation/{generation_id}/complete"
@@ -23,6 +26,7 @@ service GenerationService {
     };
   }
 
+  // 取消图纸生成并退回积分。
   rpc CancelGeneration(CancelGenerationRequest) returns (CancelGenerationResponse) {
     option (google.api.http) = {
       post: "/api/v1/generation/{generation_id}/cancel"
@@ -30,6 +34,7 @@ service GenerationService {
     };
   }
 
+  // 查询图纸生成状态。
   rpc GetGenerationStatus(GetGenerationStatusRequest) returns (GetGenerationStatusResponse) {
     option (google.api.http) = {
       get: "/api/v1/generation/{generation_id}"
@@ -38,58 +43,91 @@ service GenerationService {
 }
 
 message CreateGenerationRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 豆板规格。
   string board_spec = 2;
-  string source_type = 3;    // photo, album, template
-  string source_id = 4;      // template_id if source_type=template
+  // 生成来源类型：photo、album、template。
+  string source_type = 3;
+  // 来源 ID，模板来源时为 template_id。
+  string source_id = 4;
+  // 客户端请求幂等 ID。
   string client_request_id = 5;
 }
 
 message CreateGenerationResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 生成记录 ID。
   string generation_id = 2;
+  // 本次扣除积分。
   int32 credits_deducted = 3;
+  // 剩余积分余额。
   int32 remaining_balance = 4;
+  // 生成记录过期时间戳。
   int64 expires_at = 5;
+  // 是否命中重复请求。
   bool duplicated = 6;
 }
 
 message CompleteGenerationRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 生成记录 ID。
   string generation_id = 2;
+  // 作品标题。
   string title = 3;
+  // 原图地址。
   string original_image_url = 4;
+  // 图纸图片地址。
   string pattern_image_url = 5;
+  // 图纸数据。
   PatternData pattern_data = 6;
+  // 客户端展示用统计值；服务端会按 pattern_data 的非零 pixels 重算并忽略该值。
   int32 bead_count = 7;
+  // 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
   int32 color_count = 8;
 }
 
 message CompleteGenerationResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 生成后的作品 ID。
   string work_id = 2;
+  // 是否命中重复请求。
   bool duplicated = 3;
 }
 
 message CancelGenerationRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 生成记录 ID。
   string generation_id = 2;
+  // 取消原因。
   string reason = 3;
 }
 
 message CancelGenerationResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 退回积分数量。
   int32 credits_refunded = 2;
 }
 
 message GetGenerationStatusRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 生成记录 ID。
   string generation_id = 2;
 }
 
 message GetGenerationStatusResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
-  int32 status = 2;             // 0:pending 1:completed 2:cancelled 3:expired
+  // 生成状态：0 待完成，1 已完成，2 已取消，3 已过期。
+  int32 status = 2;
+  // 已扣除积分。
   int32 credits_deducted = 3;
+  // 关联作品 ID。
   string work_id = 4;
 }

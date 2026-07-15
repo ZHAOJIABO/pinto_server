@@ -8,6 +8,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func validPatternData(width, height int32) *pb.PatternData {
@@ -20,7 +21,7 @@ func validPatternData(width, height int32) *pb.PatternData {
 	return &pb.PatternData{
 		Width:         width,
 		Height:        height,
-		BoardSpec:     "test",
+		BoardSpec:     "29x29",
 		SchemaVersion: 1,
 		Pixels:        pixels,
 		ColorPalette:  []*pb.ColorEntry{{Index: 1, Hex: "#FFFFFF", Brand: "hama", Code: "H-01", Name: "White"}},
@@ -82,26 +83,57 @@ func TestSaveWork(t *testing.T) {
 }
 
 func TestSaveWork_PatternDataValidation(t *testing.T) {
-	SetupTestDB(t)
-	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
-
-	ctx := context.Background()
-	w := &model.Work{Title: "test"}
-
-	// pixels length mismatch
-	badPattern := &pb.PatternData{
-		Width:         10,
-		Height:        10,
-		Pixels:        make([]int32, 50), // should be 100
-		ColorPalette:  []*pb.ColorEntry{{Index: 1, Hex: "#000"}},
-		SchemaVersion: 1,
+	tests := []struct {
+		name   string
+		mutate func(*pb.PatternData)
+	}{
+		{
+			name: "pixels length mismatch",
+			mutate: func(p *pb.PatternData) {
+				p.Pixels = p.Pixels[:3]
+			},
+		},
+		{
+			name: "missing board spec",
+			mutate: func(p *pb.PatternData) {
+				p.BoardSpec = ""
+			},
+		},
+		{
+			name: "unsupported schema version",
+			mutate: func(p *pb.PatternData) {
+				p.SchemaVersion = 2
+			},
+		},
+		{
+			name: "duplicate palette index",
+			mutate: func(p *pb.PatternData) {
+				p.ColorPalette = append(p.ColorPalette, &pb.ColorEntry{Index: 1, Hex: "#000000"})
+			},
+		},
+		{
+			name: "invalid color hex",
+			mutate: func(p *pb.PatternData) {
+				p.ColorPalette[0].Hex = "#FFF"
+			},
+		},
+		{
+			name: "pixel references missing color",
+			mutate: func(p *pb.PatternData) {
+				p.Pixels[0] = 2
+			},
+		},
 	}
-	_, err := workService.SaveWork(ctx, 1, w, badPattern)
-	if err == nil {
-		t.Error("expected validation error for pixels length mismatch")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pattern := validPatternData(2, 2)
+			tt.mutate(pattern)
+			if err := work.ValidatePatternData(pattern); err == nil {
+				t.Fatal("expected validation error")
+			}
+		})
 	}
-	t.Log("PatternData validation works correctly")
 }
 
 func TestSaveWork_RequiresPatternData(t *testing.T) {
@@ -134,7 +166,7 @@ func TestListWorks(t *testing.T) {
 		}
 	}
 
-	works, total, err := workService.ListWorks(ctx, userID, 1, 10)
+	works, total, err := workService.ListWorks(ctx, userID, 1, 10, "")
 	if err != nil {
 		t.Fatalf("ListWorks failed: %v", err)
 	}
@@ -165,7 +197,7 @@ func TestDeleteWork(t *testing.T) {
 		t.Fatalf("DeleteWork failed: %v", err)
 	}
 
-	works, total, _ := workService.ListWorks(ctx, userID, 1, 10)
+	works, total, _ := workService.ListWorks(ctx, userID, 1, 10, "")
 	if total != 0 {
 		t.Errorf("expected total=0 after delete, got %d", total)
 	}
@@ -206,7 +238,7 @@ func TestDrafts(t *testing.T) {
 	}
 
 	// Works should not contain drafts
-	works, workTotal, _ := workService.ListWorks(ctx, userID, 1, 10)
+	works, workTotal, _ := workService.ListWorks(ctx, userID, 1, 10, "")
 	if workTotal != 0 {
 		t.Errorf("expected 0 completed works, got %d", workTotal)
 	}
@@ -306,6 +338,76 @@ func TestSaveWork_PatternDataRoundTrip(t *testing.T) {
 	t.Log("PatternData round-trip success")
 }
 
+func TestSaveWork_RecalculatesPatternStatistics(t *testing.T) {
+	SetupTestDB(t)
+	workService := work.NewService(dao.NewWorkDAO())
+
+	pattern := validPatternData(3, 3)
+	workID, err := workService.SaveWork(context.Background(), 1, &model.Work{
+		Title:      "server-derived stats",
+		BeadCount:  999,
+		ColorCount: 999,
+	}, pattern)
+	if err != nil {
+		t.Fatalf("SaveWork failed: %v", err)
+	}
+
+	saved, err := workService.GetWork(context.Background(), 1, workID)
+	if err != nil {
+		t.Fatalf("GetWork failed: %v", err)
+	}
+	if saved.BeadCount != 5 || saved.ColorCount != 1 {
+		t.Fatalf("expected derived stats 5 beads and 1 color, got %d beads and %d colors", saved.BeadCount, saved.ColorCount)
+	}
+}
+
+func TestDecodePatternData_ReadsLegacyStorageWithoutSchemaVersion(t *testing.T) {
+	pattern := validPatternData(2, 2)
+	stored := work.PatternDataToJSONMap(pattern)
+	delete(stored, "schema_version")
+
+	decoded, err := work.DecodePatternData(stored)
+	if err != nil {
+		t.Fatalf("DecodePatternData failed: %v", err)
+	}
+	if decoded.SchemaVersion != 1 {
+		t.Fatalf("expected legacy storage to be read as schema version 1, got %d", decoded.SchemaVersion)
+	}
+}
+
+func TestDecodePatternData_RejectsExplicitUnsupportedSchemaVersion(t *testing.T) {
+	stored := work.PatternDataToJSONMap(validPatternData(2, 2))
+	stored["schema_version"] = int32(0)
+
+	if _, err := work.DecodePatternData(stored); err == nil {
+		t.Fatal("expected an explicit schema version of 0 to be rejected")
+	}
+}
+
+func TestPatternDataProtoJSONAcceptsOnlyContractFields(t *testing.T) {
+	var pattern pb.PatternData
+	if err := protojson.Unmarshal([]byte(`{
+  "width": 3,
+  "height": 3,
+  "boardSpec": "29x29",
+  "pixels": [1, 1, 0, 1, 2, 1, 0, 1, 1],
+  "colorPalette": [
+    {"index": 1, "hex": "#FF0000"},
+    {"index": 2, "hex": "#FFFFFF"}
+  ],
+  "schemaVersion": 1
+}`), &pattern); err != nil {
+		t.Fatalf("expected lowerCamelCase PatternData to decode: %v", err)
+	}
+	if err := work.ValidatePatternData(&pattern); err != nil {
+		t.Fatalf("expected decoded PatternData to validate: %v", err)
+	}
+
+	if err := protojson.Unmarshal([]byte(`{"pixelRows": []}`), &pb.PatternData{}); err == nil {
+		t.Fatal("expected removed pixelRows field to be rejected")
+	}
+}
+
 func TestValidatePatternData_RequiresPixels(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
@@ -313,7 +415,7 @@ func TestValidatePatternData_RequiresPixels(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Empty pixels and pixel_rows should fail
+	// An empty pixels array should fail.
 	badPattern := &pb.PatternData{
 		Width:         5,
 		Height:        5,

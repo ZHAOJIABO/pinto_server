@@ -53,6 +53,11 @@ make build
 └── docker-compose.yml          本地开发环境
 ```
 
+## 对接文档
+
+- [Flutter 客户端后端接口对接文档](docs/flutter-client-api-integration.md)
+- [官方图纸与 AI 风格转换执行计划](docs/plans/2026-07-07-001-feat-pattern-ai-api-plan.md)
+
 ## 功能模块
 
 | 模块 | Proto | 说明 |
@@ -63,7 +68,8 @@ make build
 | Work | `work.proto` | 作品保存/列表/删除、草稿管理 |
 | Media | `media.proto` | OSS 上传凭证、文件 URL |
 | Community | `community.proto` | 社区发布、信息流、点赞/收藏/评论/关注 |
-| Template | `template.proto` | 模板分类、模板列表/详情 |
+| Template | `template.proto` | 官方图纸分类、列表/详情、收藏 |
+| AI Generation | `ai_generation.proto` | AI 风格列表、风格转换任务、任务记录 |
 | Subscribe | `subscribe.proto` | 商品列表、订单、支付、订阅状态 |
 | Credit | `credit.proto` | 积分余额、流水查询 |
 | Invite | `invite.proto` | 邀请码、绑定、统计 |

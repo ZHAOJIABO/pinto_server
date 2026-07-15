@@ -30,12 +30,20 @@ const (
 // WorkServiceClient is the client API for WorkService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 作品与草稿服务。
 type WorkServiceClient interface {
+	// 保存作品。
 	SaveWork(ctx context.Context, in *SaveWorkRequest, opts ...grpc.CallOption) (*SaveWorkResponse, error)
+	// 获取作品详情。
 	GetWork(ctx context.Context, in *GetWorkRequest, opts ...grpc.CallOption) (*GetWorkResponse, error)
+	// 获取作品列表。
 	ListWorks(ctx context.Context, in *ListWorksRequest, opts ...grpc.CallOption) (*ListWorksResponse, error)
+	// 删除作品。
 	DeleteWork(ctx context.Context, in *DeleteWorkRequest, opts ...grpc.CallOption) (*DeleteWorkResponse, error)
+	// 保存草稿。
 	SaveDraft(ctx context.Context, in *SaveDraftRequest, opts ...grpc.CallOption) (*SaveDraftResponse, error)
+	// 获取草稿列表。
 	ListDrafts(ctx context.Context, in *ListDraftsRequest, opts ...grpc.CallOption) (*ListDraftsResponse, error)
 }
 
@@ -110,12 +118,20 @@ func (c *workServiceClient) ListDrafts(ctx context.Context, in *ListDraftsReques
 // WorkServiceServer is the server API for WorkService service.
 // All implementations must embed UnimplementedWorkServiceServer
 // for forward compatibility.
+//
+// 作品与草稿服务。
 type WorkServiceServer interface {
+	// 保存作品。
 	SaveWork(context.Context, *SaveWorkRequest) (*SaveWorkResponse, error)
+	// 获取作品详情。
 	GetWork(context.Context, *GetWorkRequest) (*GetWorkResponse, error)
+	// 获取作品列表。
 	ListWorks(context.Context, *ListWorksRequest) (*ListWorksResponse, error)
+	// 删除作品。
 	DeleteWork(context.Context, *DeleteWorkRequest) (*DeleteWorkResponse, error)
+	// 保存草稿。
 	SaveDraft(context.Context, *SaveDraftRequest) (*SaveDraftResponse, error)
+	// 获取草稿列表。
 	ListDrafts(context.Context, *ListDraftsRequest) (*ListDraftsResponse, error)
 	mustEmbedUnimplementedWorkServiceServer()
 }

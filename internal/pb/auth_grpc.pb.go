@@ -30,12 +30,20 @@ const (
 // AuthServiceClient is the client API for AuthService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 认证与登录服务。
 type AuthServiceClient interface {
+	// 游客登录并获取访问令牌。
 	GuestLogin(ctx context.Context, in *GuestLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// 手机号验证码登录。
 	PhoneLogin(ctx context.Context, in *PhoneLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// 发送短信验证码。
 	SendSmsCode(ctx context.Context, in *SendSmsCodeRequest, opts ...grpc.CallOption) (*SendSmsCodeResponse, error)
+	// 微信授权登录。
 	WechatLogin(ctx context.Context, in *WechatLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// Apple 授权登录。
 	AppleLogin(ctx context.Context, in *AppleLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// 刷新访问令牌。
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 }
 
@@ -110,12 +118,20 @@ func (c *authServiceClient) RefreshToken(ctx context.Context, in *RefreshTokenRe
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
+//
+// 认证与登录服务。
 type AuthServiceServer interface {
+	// 游客登录并获取访问令牌。
 	GuestLogin(context.Context, *GuestLoginRequest) (*LoginResponse, error)
+	// 手机号验证码登录。
 	PhoneLogin(context.Context, *PhoneLoginRequest) (*LoginResponse, error)
+	// 发送短信验证码。
 	SendSmsCode(context.Context, *SendSmsCodeRequest) (*SendSmsCodeResponse, error)
+	// 微信授权登录。
 	WechatLogin(context.Context, *WechatLoginRequest) (*LoginResponse, error)
+	// Apple 授权登录。
 	AppleLogin(context.Context, *AppleLoginRequest) (*LoginResponse, error)
+	// 刷新访问令牌。
 	RefreshToken(context.Context, *RefreshTokenRequest) (*LoginResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }

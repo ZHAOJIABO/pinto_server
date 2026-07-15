@@ -23,8 +23,9 @@ const (
 )
 
 type GetAppConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,9 +68,11 @@ func (x *GetAppConfigRequest) GetHeader() *RequestHeader {
 }
 
 type GetAppConfigResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Configs       map[string]string      `protobuf:"bytes,2,rep,name=configs,proto3" json:"configs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 应用配置键值。
+	Configs       map[string]string `protobuf:"bytes,2,rep,name=configs,proto3" json:"configs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,9 +122,11 @@ func (x *GetAppConfigResponse) GetConfigs() map[string]string {
 }
 
 type CheckUpdateRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Header         *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	CurrentVersion string                 `protobuf:"bytes,2,opt,name=current_version,json=currentVersion,proto3" json:"current_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 当前应用版本。
+	CurrentVersion string `protobuf:"bytes,2,opt,name=current_version,json=currentVersion,proto3" json:"current_version,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -171,13 +176,19 @@ func (x *CheckUpdateRequest) GetCurrentVersion() string {
 }
 
 type CheckUpdateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	HasUpdate     bool                   `protobuf:"varint,2,opt,name=has_update,json=hasUpdate,proto3" json:"has_update,omitempty"`
-	ForceUpdate   bool                   `protobuf:"varint,3,opt,name=force_update,json=forceUpdate,proto3" json:"force_update,omitempty"`
-	LatestVersion string                 `protobuf:"bytes,4,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
-	DownloadUrl   string                 `protobuf:"bytes,5,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
-	ReleaseNotes  string                 `protobuf:"bytes,6,opt,name=release_notes,json=releaseNotes,proto3" json:"release_notes,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 是否有新版本。
+	HasUpdate bool `protobuf:"varint,2,opt,name=has_update,json=hasUpdate,proto3" json:"has_update,omitempty"`
+	// 是否强制更新。
+	ForceUpdate bool `protobuf:"varint,3,opt,name=force_update,json=forceUpdate,proto3" json:"force_update,omitempty"`
+	// 最新版本号。
+	LatestVersion string `protobuf:"bytes,4,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
+	// 下载地址。
+	DownloadUrl string `protobuf:"bytes,5,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
+	// 更新说明。
+	ReleaseNotes  string `protobuf:"bytes,6,opt,name=release_notes,json=releaseNotes,proto3" json:"release_notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -255,12 +266,17 @@ func (x *CheckUpdateResponse) GetReleaseNotes() string {
 }
 
 type BannerItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BannerId      string                 `protobuf:"bytes,1,opt,name=banner_id,json=bannerId,proto3" json:"banner_id,omitempty"`
-	ImageUrl      string                 `protobuf:"bytes,2,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	LinkType      string                 `protobuf:"bytes,3,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
-	LinkValue     string                 `protobuf:"bytes,4,opt,name=link_value,json=linkValue,proto3" json:"link_value,omitempty"`
-	SortOrder     int32                  `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Banner ID。
+	BannerId string `protobuf:"bytes,1,opt,name=banner_id,json=bannerId,proto3" json:"banner_id,omitempty"`
+	// Banner 图片地址。
+	ImageUrl string `protobuf:"bytes,2,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	// 跳转类型。
+	LinkType string `protobuf:"bytes,3,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	// 跳转目标。
+	LinkValue string `protobuf:"bytes,4,opt,name=link_value,json=linkValue,proto3" json:"link_value,omitempty"`
+	// 排序值。
+	SortOrder     int32 `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,8 +347,9 @@ func (x *BannerItem) GetSortOrder() int32 {
 }
 
 type GetBannersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -375,9 +392,11 @@ func (x *GetBannersRequest) GetHeader() *RequestHeader {
 }
 
 type GetBannersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Banners       []*BannerItem          `protobuf:"bytes,2,rep,name=banners,proto3" json:"banners,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// Banner 列表。
+	Banners       []*BannerItem `protobuf:"bytes,2,rep,name=banners,proto3" json:"banners,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -427,10 +446,13 @@ func (x *GetBannersResponse) GetBanners() []*BannerItem {
 }
 
 type BeadBrand struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Brand         string                 `protobuf:"bytes,1,opt,name=brand,proto3" json:"brand,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Colors        []*BeadColor           `protobuf:"bytes,3,rep,name=colors,proto3" json:"colors,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 品牌标识。
+	Brand string `protobuf:"bytes,1,opt,name=brand,proto3" json:"brand,omitempty"`
+	// 品牌展示名。
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// 品牌颜色列表。
+	Colors        []*BeadColor `protobuf:"bytes,3,rep,name=colors,proto3" json:"colors,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -487,10 +509,13 @@ func (x *BeadBrand) GetColors() []*BeadColor {
 }
 
 type BeadColor struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Hex           string                 `protobuf:"bytes,3,opt,name=hex,proto3" json:"hex,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 色号编码。
+	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	// 颜色名称。
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 颜色十六进制值。
+	Hex           string `protobuf:"bytes,3,opt,name=hex,proto3" json:"hex,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -547,9 +572,11 @@ func (x *BeadColor) GetHex() string {
 }
 
 type GetBeadColorsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Brand         string                 `protobuf:"bytes,2,opt,name=brand,proto3" json:"brand,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 品牌筛选。
+	Brand         string `protobuf:"bytes,2,opt,name=brand,proto3" json:"brand,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -599,9 +626,11 @@ func (x *GetBeadColorsRequest) GetBrand() string {
 }
 
 type GetBeadColorsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Brands        []*BeadBrand           `protobuf:"bytes,2,rep,name=brands,proto3" json:"brands,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 品牌颜色分组列表。
+	Brands        []*BeadBrand `protobuf:"bytes,2,rep,name=brands,proto3" json:"brands,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -651,13 +680,19 @@ func (x *GetBeadColorsResponse) GetBrands() []*BeadBrand {
 }
 
 type BoardSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SpecId        string                 `protobuf:"bytes,1,opt,name=spec_id,json=specId,proto3" json:"spec_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Shape         string                 `protobuf:"bytes,3,opt,name=shape,proto3" json:"shape,omitempty"`
-	Width         int32                  `protobuf:"varint,4,opt,name=width,proto3" json:"width,omitempty"`
-	Height        int32                  `protobuf:"varint,5,opt,name=height,proto3" json:"height,omitempty"`
-	BeadSize      string                 `protobuf:"bytes,6,opt,name=bead_size,json=beadSize,proto3" json:"bead_size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 豆板规格 ID。
+	SpecId string `protobuf:"bytes,1,opt,name=spec_id,json=specId,proto3" json:"spec_id,omitempty"`
+	// 豆板名称。
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 豆板形状。
+	Shape string `protobuf:"bytes,3,opt,name=shape,proto3" json:"shape,omitempty"`
+	// 豆板宽度。
+	Width int32 `protobuf:"varint,4,opt,name=width,proto3" json:"width,omitempty"`
+	// 豆板高度。
+	Height int32 `protobuf:"varint,5,opt,name=height,proto3" json:"height,omitempty"`
+	// 拼豆尺寸。
+	BeadSize      string `protobuf:"bytes,6,opt,name=bead_size,json=beadSize,proto3" json:"bead_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -735,8 +770,9 @@ func (x *BoardSpec) GetBeadSize() string {
 }
 
 type GetBoardSpecsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -779,9 +815,11 @@ func (x *GetBoardSpecsRequest) GetHeader() *RequestHeader {
 }
 
 type GetBoardSpecsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Specs         []*BoardSpec           `protobuf:"bytes,2,rep,name=specs,proto3" json:"specs,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 豆板规格列表。
+	Specs         []*BoardSpec `protobuf:"bytes,2,rep,name=specs,proto3" json:"specs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

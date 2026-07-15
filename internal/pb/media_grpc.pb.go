@@ -27,9 +27,14 @@ const (
 // MediaServiceClient is the client API for MediaService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 媒体上传与访问服务。
 type MediaServiceClient interface {
+	// 获取文件上传凭证。
 	GetUploadToken(ctx context.Context, in *GetUploadTokenRequest, opts ...grpc.CallOption) (*GetUploadTokenResponse, error)
+	// 上报文件上传完成。
 	ReportUpload(ctx context.Context, in *ReportUploadRequest, opts ...grpc.CallOption) (*ReportUploadResponse, error)
+	// 获取文件访问地址。
 	GetFileUrl(ctx context.Context, in *GetFileUrlRequest, opts ...grpc.CallOption) (*GetFileUrlResponse, error)
 }
 
@@ -74,9 +79,14 @@ func (c *mediaServiceClient) GetFileUrl(ctx context.Context, in *GetFileUrlReque
 // MediaServiceServer is the server API for MediaService service.
 // All implementations must embed UnimplementedMediaServiceServer
 // for forward compatibility.
+//
+// 媒体上传与访问服务。
 type MediaServiceServer interface {
+	// 获取文件上传凭证。
 	GetUploadToken(context.Context, *GetUploadTokenRequest) (*GetUploadTokenResponse, error)
+	// 上报文件上传完成。
 	ReportUpload(context.Context, *ReportUploadRequest) (*ReportUploadResponse, error)
+	// 获取文件访问地址。
 	GetFileUrl(context.Context, *GetFileUrlRequest) (*GetFileUrlResponse, error)
 	mustEmbedUnimplementedMediaServiceServer()
 }

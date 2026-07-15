@@ -19,14 +19,8 @@ func NewService(workDAO *dao.WorkDAO) *Service {
 }
 
 func (s *Service) SaveWork(ctx context.Context, userID uint64, work *model.Work, patternData *pb.PatternData) (uint64, error) {
-	if err := ValidatePatternData(patternData); err != nil {
+	if err := ApplyPatternData(work, patternData); err != nil {
 		return 0, err
-	}
-	work.PatternData = PatternDataToJSONMap(patternData)
-	work.Width = int(patternData.Width)
-	work.Height = int(patternData.Height)
-	if patternData.BoardSpec != "" {
-		work.BoardSpec = patternData.BoardSpec
 	}
 
 	work.UserID = userID
@@ -49,8 +43,11 @@ func (s *Service) GetWork(ctx context.Context, userID, workID uint64) (*model.Wo
 	return w, nil
 }
 
-func (s *Service) ListWorks(ctx context.Context, userID uint64, page, pageSize int) ([]*model.Work, int64, error) {
+func (s *Service) ListWorks(ctx context.Context, userID uint64, page, pageSize int, sourceType string) ([]*model.Work, int64, error) {
 	offset := (page - 1) * pageSize
+	if sourceType != "" {
+		return s.workDAO.ListByUserIDAndSource(ctx, userID, 2, sourceType, offset, pageSize)
+	}
 	return s.workDAO.ListByUserID(ctx, userID, 2, offset, pageSize)
 }
 
@@ -60,14 +57,8 @@ func (s *Service) DeleteWork(ctx context.Context, userID, workID uint64) error {
 
 func (s *Service) SaveDraft(ctx context.Context, userID uint64, work *model.Work, patternData *pb.PatternData) (uint64, error) {
 	if patternData != nil {
-		if err := ValidatePatternData(patternData); err != nil {
+		if err := ApplyPatternData(work, patternData); err != nil {
 			return 0, err
-		}
-		work.PatternData = PatternDataToJSONMap(patternData)
-		work.Width = int(patternData.Width)
-		work.Height = int(patternData.Height)
-		if patternData.BoardSpec != "" {
-			work.BoardSpec = patternData.BoardSpec
 		}
 	}
 

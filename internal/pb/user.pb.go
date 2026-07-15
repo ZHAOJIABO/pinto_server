@@ -23,8 +23,9 @@ const (
 )
 
 type GetUserInfoRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,11 +68,15 @@ func (x *GetUserInfoRequest) GetHeader() *RequestHeader {
 }
 
 type GetUserInfoResponse struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Header             *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	User               *UserInfo              `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
-	CreditBalance      int32                  `protobuf:"varint,3,opt,name=credit_balance,json=creditBalance,proto3" json:"credit_balance,omitempty"`
-	DailyFreeRemaining int32                  `protobuf:"varint,4,opt,name=daily_free_remaining,json=dailyFreeRemaining,proto3" json:"daily_free_remaining,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 用户信息。
+	User *UserInfo `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
+	// 当前积分余额。
+	CreditBalance int32 `protobuf:"varint,3,opt,name=credit_balance,json=creditBalance,proto3" json:"credit_balance,omitempty"`
+	// 今日剩余免费次数。
+	DailyFreeRemaining int32 `protobuf:"varint,4,opt,name=daily_free_remaining,json=dailyFreeRemaining,proto3" json:"daily_free_remaining,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -135,10 +140,13 @@ func (x *GetUserInfoResponse) GetDailyFreeRemaining() int32 {
 }
 
 type UpdateUserInfoRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Nickname      string                 `protobuf:"bytes,2,opt,name=nickname,proto3" json:"nickname,omitempty"`
-	AvatarUrl     string                 `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 用户昵称。
+	Nickname string `protobuf:"bytes,2,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	// 头像地址。
+	AvatarUrl     string `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -195,8 +203,9 @@ func (x *UpdateUserInfoRequest) GetAvatarUrl() string {
 }
 
 type UpdateUserInfoResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header        *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,10 +248,13 @@ func (x *UpdateUserInfoResponse) GetHeader() *ResponseHeader {
 }
 
 type BindPhoneRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Phone         string                 `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone,omitempty"`
-	Code          string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 手机号。
+	Phone string `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone,omitempty"`
+	// 短信验证码。
+	Code          string `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,8 +311,9 @@ func (x *BindPhoneRequest) GetCode() string {
 }
 
 type BindPhoneResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header        *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -343,8 +356,9 @@ func (x *BindPhoneResponse) GetHeader() *ResponseHeader {
 }
 
 type DeleteAccountRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -387,8 +401,9 @@ func (x *DeleteAccountRequest) GetHeader() *RequestHeader {
 }
 
 type DeleteAccountResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header        *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

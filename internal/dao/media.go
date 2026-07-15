@@ -43,3 +43,13 @@ func (d *MediaDAO) MarkUploaded(ctx context.Context, fileKey string, fileSize in
 			"uploaded_at": &now,
 		}).Error
 }
+
+func (d *MediaDAO) GetUploadedAsset(ctx context.Context, fileKey string, userID uint64, purpose string) (*model.MediaAsset, error) {
+	var asset model.MediaAsset
+	err := d.DB(ctx).Where("file_key = ? AND user_id = ? AND purpose = ? AND status = ?",
+		fileKey, userID, purpose, model.MediaStatusUploaded).First(&asset).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &asset, err
+}

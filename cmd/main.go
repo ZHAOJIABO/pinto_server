@@ -54,6 +54,7 @@ func main() {
 		&model.Follow{},
 		&model.Template{},
 		&model.TemplateCategory{},
+		&model.TemplateFavorite{},
 		&model.Order{},
 		&model.Product{},
 		&model.Subscription{},
@@ -66,6 +67,9 @@ func main() {
 		&model.Feedback{},
 		&model.Generation{},
 		&model.MediaAsset{},
+		&model.AIStyle{},
+		&model.AIGeneration{},
+		&model.TemplatePublishRecord{},
 	); err != nil {
 		zap.L().Fatal("failed to auto migrate", zap.Error(err))
 	}
@@ -80,6 +84,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			middleware.TraceInterceptor(),
+			middleware.ServiceAuthInterceptor(),
 			middleware.PlatformInterceptor(),
 			middleware.AuthInterceptor(sp.AuthService),
 			middleware.RateLimitInterceptor(30),
@@ -98,6 +103,8 @@ func main() {
 	pb.RegisterSystemServiceServer(grpcServer, sp.SystemHandler)
 	pb.RegisterReportServiceServer(grpcServer, sp.ReportHandler)
 	pb.RegisterGenerationServiceServer(grpcServer, sp.GenerationHandler)
+	pb.RegisterAIGenerationServiceServer(grpcServer, sp.AIGenerationHandler)
+	pb.RegisterAdminTemplateServiceServer(grpcServer, sp.AdminTemplateHandler)
 
 	if !conf.IsProd() {
 		reflection.Register(grpcServer)
@@ -136,11 +143,16 @@ func main() {
 	pb.RegisterSystemServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
 	pb.RegisterReportServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
 	pb.RegisterGenerationServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
+	pb.RegisterAIGenerationServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
+
+	rootMux := http.NewServeMux()
+	rootMux.Handle("/api/v1/admin/", sp.AdminPortalHandler)
+	rootMux.Handle("/", mux)
 
 	httpPort := conf.GlobalConfig.Server.HTTPPort
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
-		Handler: corsMiddleware(mux),
+		Handler: corsMiddleware(rootMux),
 	}
 
 	go func() {
@@ -154,6 +166,9 @@ func main() {
 	genTimeoutProcessor := task.NewGenerationTimeoutProcessor(sp.GenerationService)
 	genTimeoutProcessor.Start()
 
+	aiProcessor := task.NewAIGenerationProcessor(sp.AIGenerationService)
+	aiProcessor.Start()
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -161,6 +176,7 @@ func main() {
 
 	zap.L().Info("shutting down...")
 	genTimeoutProcessor.Stop()
+	aiProcessor.Stop()
 	grpcServer.GracefulStop()
 	httpServer.Shutdown(ctx)
 	zap.L().Info("server stopped")

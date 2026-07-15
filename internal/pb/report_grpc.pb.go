@@ -27,9 +27,14 @@ const (
 // ReportServiceClient is the client API for ReportService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 埋点、错误与反馈上报服务。
 type ReportServiceClient interface {
+	// 上报客户端事件。
 	ReportEvent(ctx context.Context, in *ReportEventRequest, opts ...grpc.CallOption) (*ReportEventResponse, error)
+	// 上报客户端错误。
 	ReportError(ctx context.Context, in *ReportErrorRequest, opts ...grpc.CallOption) (*ReportErrorResponse, error)
+	// 提交用户反馈。
 	SubmitFeedback(ctx context.Context, in *SubmitFeedbackRequest, opts ...grpc.CallOption) (*SubmitFeedbackResponse, error)
 }
 
@@ -74,9 +79,14 @@ func (c *reportServiceClient) SubmitFeedback(ctx context.Context, in *SubmitFeed
 // ReportServiceServer is the server API for ReportService service.
 // All implementations must embed UnimplementedReportServiceServer
 // for forward compatibility.
+//
+// 埋点、错误与反馈上报服务。
 type ReportServiceServer interface {
+	// 上报客户端事件。
 	ReportEvent(context.Context, *ReportEventRequest) (*ReportEventResponse, error)
+	// 上报客户端错误。
 	ReportError(context.Context, *ReportErrorRequest) (*ReportErrorResponse, error)
+	// 提交用户反馈。
 	SubmitFeedback(context.Context, *SubmitFeedbackRequest) (*SubmitFeedbackResponse, error)
 	mustEmbedUnimplementedReportServiceServer()
 }

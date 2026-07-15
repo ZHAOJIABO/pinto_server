@@ -28,10 +28,16 @@ const (
 // GenerationServiceClient is the client API for GenerationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 图纸生成扣费与确认服务。
 type GenerationServiceClient interface {
+	// 创建图纸生成记录并预扣积分。
 	CreateGeneration(ctx context.Context, in *CreateGenerationRequest, opts ...grpc.CallOption) (*CreateGenerationResponse, error)
+	// 完成图纸生成并保存作品。
 	CompleteGeneration(ctx context.Context, in *CompleteGenerationRequest, opts ...grpc.CallOption) (*CompleteGenerationResponse, error)
+	// 取消图纸生成并退回积分。
 	CancelGeneration(ctx context.Context, in *CancelGenerationRequest, opts ...grpc.CallOption) (*CancelGenerationResponse, error)
+	// 查询图纸生成状态。
 	GetGenerationStatus(ctx context.Context, in *GetGenerationStatusRequest, opts ...grpc.CallOption) (*GetGenerationStatusResponse, error)
 }
 
@@ -86,10 +92,16 @@ func (c *generationServiceClient) GetGenerationStatus(ctx context.Context, in *G
 // GenerationServiceServer is the server API for GenerationService service.
 // All implementations must embed UnimplementedGenerationServiceServer
 // for forward compatibility.
+//
+// 图纸生成扣费与确认服务。
 type GenerationServiceServer interface {
+	// 创建图纸生成记录并预扣积分。
 	CreateGeneration(context.Context, *CreateGenerationRequest) (*CreateGenerationResponse, error)
+	// 完成图纸生成并保存作品。
 	CompleteGeneration(context.Context, *CompleteGenerationRequest) (*CompleteGenerationResponse, error)
+	// 取消图纸生成并退回积分。
 	CancelGeneration(context.Context, *CancelGenerationRequest) (*CancelGenerationResponse, error)
+	// 查询图纸生成状态。
 	GetGenerationStatus(context.Context, *GetGenerationStatusRequest) (*GetGenerationStatusResponse, error)
 	mustEmbedUnimplementedGenerationServiceServer()
 }

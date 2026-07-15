@@ -8,17 +8,19 @@ import (
 
 type Work struct {
 	BaseModel
-	UserID          uint64      `gorm:"not null;index" json:"user_id"`
-	Title           string      `gorm:"type:varchar(128)" json:"title"`
-	OriginalImageURL string    `gorm:"type:varchar(512)" json:"original_image_url"`
-	PatternImageURL string     `gorm:"type:varchar(512)" json:"pattern_image_url"`
-	PatternData     JSONMap     `gorm:"type:json" json:"pattern_data"`
-	BoardSpec       string      `gorm:"type:varchar(32)" json:"board_spec"`
-	Width           int         `gorm:"type:int" json:"width"`
-	Height          int         `gorm:"type:int" json:"height"`
-	BeadCount       int         `gorm:"type:int" json:"bead_count"`
-	ColorCount      int         `gorm:"type:int" json:"color_count"`
-	Status          int8        `gorm:"type:tinyint;default:1" json:"status"` // 1:草稿 2:已完成
+	UserID           uint64  `gorm:"not null;index" json:"user_id"`
+	Title            string  `gorm:"type:varchar(128)" json:"title"`
+	OriginalImageURL string  `gorm:"type:varchar(512)" json:"original_image_url"`
+	PatternImageURL  string  `gorm:"type:varchar(512)" json:"pattern_image_url"`
+	PatternData      JSONMap `gorm:"type:json" json:"pattern_data"`
+	BoardSpec        string  `gorm:"type:varchar(32)" json:"board_spec"`
+	Width            int     `gorm:"type:int" json:"width"`
+	Height           int     `gorm:"type:int" json:"height"`
+	BeadCount        int     `gorm:"type:int" json:"bead_count"`
+	ColorCount       int     `gorm:"type:int" json:"color_count"`
+	SourceType       string  `gorm:"type:varchar(16)" json:"source_type"`
+	SourceID         string  `gorm:"type:varchar(64)" json:"source_id"`
+	Status           int8    `gorm:"type:tinyint;default:1" json:"status"` // 1:草稿 2:已完成
 }
 
 func (Work) TableName() string { return "bb_work" }
@@ -97,16 +99,32 @@ type Template struct {
 	CategoryID    int    `gorm:"not null" json:"category_id"`
 	Title         string `gorm:"type:varchar(128)" json:"title"`
 	PreviewURL    string `gorm:"type:varchar(512)" json:"preview_url"`
+	ThumbnailURL  string `gorm:"type:varchar(512)" json:"thumbnail_url"`
+	Description   string `gorm:"type:varchar(512)" json:"description"`
 	PatternData   JSONMap `gorm:"type:json" json:"pattern_data"`
 	BoardSpec     string `gorm:"type:varchar(32)" json:"board_spec"`
+	Tags          string `gorm:"type:varchar(512)" json:"tags"`
+	Difficulty    int8   `gorm:"type:tinyint;default:1" json:"difficulty"`
+	Width         int    `gorm:"default:0" json:"width"`
+	Height        int    `gorm:"default:0" json:"height"`
+	ColorCount    int    `gorm:"default:0" json:"color_count"`
 	IsFree        bool   `gorm:"default:true" json:"is_free"`
 	CreditCost    int    `gorm:"default:0" json:"credit_cost"`
 	DownloadCount int    `gorm:"default:0" json:"download_count"`
+	FavoriteCount int    `gorm:"default:0" json:"favorite_count"`
 	SortOrder     int    `gorm:"default:0" json:"sort_order"`
 	Status        int8   `gorm:"type:tinyint;default:1" json:"status"`
 }
 
 func (Template) TableName() string { return "bb_template" }
+
+type TemplateFavorite struct {
+	BaseModel
+	UserID     uint64 `gorm:"not null;uniqueIndex:uk_template_fav_user_tpl;index:idx_template_fav_user_created" json:"user_id"`
+	TemplateID uint64 `gorm:"not null;uniqueIndex:uk_template_fav_user_tpl;index:idx_template_fav_template" json:"template_id"`
+}
+
+func (TemplateFavorite) TableName() string { return "bb_template_favorite" }
 
 type TemplateCategory struct {
 	ID       int       `gorm:"primaryKey;autoIncrement" json:"id"`

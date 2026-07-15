@@ -23,12 +23,17 @@ const (
 )
 
 type CreateGenerationRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Header          *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	BoardSpec       string                 `protobuf:"bytes,2,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
-	SourceType      string                 `protobuf:"bytes,3,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"` // photo, album, template
-	SourceId        string                 `protobuf:"bytes,4,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`       // template_id if source_type=template
-	ClientRequestId string                 `protobuf:"bytes,5,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 豆板规格。
+	BoardSpec string `protobuf:"bytes,2,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
+	// 生成来源类型：photo、album、template。
+	SourceType string `protobuf:"bytes,3,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
+	// 来源 ID，模板来源时为 template_id。
+	SourceId string `protobuf:"bytes,4,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	// 客户端请求幂等 ID。
+	ClientRequestId string `protobuf:"bytes,5,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -99,15 +104,21 @@ func (x *CreateGenerationRequest) GetClientRequestId() string {
 }
 
 type CreateGenerationResponse struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Header           *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	GenerationId     string                 `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
-	CreditsDeducted  int32                  `protobuf:"varint,3,opt,name=credits_deducted,json=creditsDeducted,proto3" json:"credits_deducted,omitempty"`
-	RemainingBalance int32                  `protobuf:"varint,4,opt,name=remaining_balance,json=remainingBalance,proto3" json:"remaining_balance,omitempty"`
-	ExpiresAt        int64                  `protobuf:"varint,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	Duplicated       bool                   `protobuf:"varint,6,opt,name=duplicated,proto3" json:"duplicated,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成记录 ID。
+	GenerationId string `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	// 本次扣除积分。
+	CreditsDeducted int32 `protobuf:"varint,3,opt,name=credits_deducted,json=creditsDeducted,proto3" json:"credits_deducted,omitempty"`
+	// 剩余积分余额。
+	RemainingBalance int32 `protobuf:"varint,4,opt,name=remaining_balance,json=remainingBalance,proto3" json:"remaining_balance,omitempty"`
+	// 生成记录过期时间戳。
+	ExpiresAt int64 `protobuf:"varint,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	// 是否命中重复请求。
+	Duplicated    bool `protobuf:"varint,6,opt,name=duplicated,proto3" json:"duplicated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateGenerationResponse) Reset() {
@@ -183,17 +194,25 @@ func (x *CreateGenerationResponse) GetDuplicated() bool {
 }
 
 type CompleteGenerationRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Header           *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	GenerationId     string                 `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
-	Title            string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	OriginalImageUrl string                 `protobuf:"bytes,4,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
-	PatternImageUrl  string                 `protobuf:"bytes,5,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
-	PatternData      *PatternData           `protobuf:"bytes,6,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
-	BeadCount        int32                  `protobuf:"varint,7,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
-	ColorCount       int32                  `protobuf:"varint,8,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成记录 ID。
+	GenerationId string `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	// 作品标题。
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// 原图地址。
+	OriginalImageUrl string `protobuf:"bytes,4,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
+	// 图纸图片地址。
+	PatternImageUrl string `protobuf:"bytes,5,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
+	// 图纸数据。
+	PatternData *PatternData `protobuf:"bytes,6,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	// 客户端展示用统计值；服务端会按 pattern_data 的非零 pixels 重算并忽略该值。
+	BeadCount int32 `protobuf:"varint,7,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
+	// 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
+	ColorCount    int32 `protobuf:"varint,8,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CompleteGenerationRequest) Reset() {
@@ -283,10 +302,13 @@ func (x *CompleteGenerationRequest) GetColorCount() int32 {
 }
 
 type CompleteGenerationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	WorkId        string                 `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
-	Duplicated    bool                   `protobuf:"varint,3,opt,name=duplicated,proto3" json:"duplicated,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成后的作品 ID。
+	WorkId string `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	// 是否命中重复请求。
+	Duplicated    bool `protobuf:"varint,3,opt,name=duplicated,proto3" json:"duplicated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -343,10 +365,13 @@ func (x *CompleteGenerationResponse) GetDuplicated() bool {
 }
 
 type CancelGenerationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	GenerationId  string                 `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成记录 ID。
+	GenerationId string `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	// 取消原因。
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -403,9 +428,11 @@ func (x *CancelGenerationRequest) GetReason() string {
 }
 
 type CancelGenerationResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Header          *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	CreditsRefunded int32                  `protobuf:"varint,2,opt,name=credits_refunded,json=creditsRefunded,proto3" json:"credits_refunded,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 退回积分数量。
+	CreditsRefunded int32 `protobuf:"varint,2,opt,name=credits_refunded,json=creditsRefunded,proto3" json:"credits_refunded,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -455,9 +482,11 @@ func (x *CancelGenerationResponse) GetCreditsRefunded() int32 {
 }
 
 type GetGenerationStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	GenerationId  string                 `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成记录 ID。
+	GenerationId  string `protobuf:"bytes,2,opt,name=generation_id,json=generationId,proto3" json:"generation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -507,13 +536,17 @@ func (x *GetGenerationStatusRequest) GetGenerationId() string {
 }
 
 type GetGenerationStatusResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Header          *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Status          int32                  `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"` // 0:pending 1:completed 2:cancelled 3:expired
-	CreditsDeducted int32                  `protobuf:"varint,3,opt,name=credits_deducted,json=creditsDeducted,proto3" json:"credits_deducted,omitempty"`
-	WorkId          string                 `protobuf:"bytes,4,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 生成状态：0 待完成，1 已完成，2 已取消，3 已过期。
+	Status int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	// 已扣除积分。
+	CreditsDeducted int32 `protobuf:"varint,3,opt,name=credits_deducted,json=creditsDeducted,proto3" json:"credits_deducted,omitempty"`
+	// 关联作品 ID。
+	WorkId        string `protobuf:"bytes,4,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetGenerationStatusResponse) Reset() {

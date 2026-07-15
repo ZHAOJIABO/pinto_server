@@ -23,11 +23,15 @@ const (
 )
 
 type CategoryItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CategoryId    int32                  `protobuf:"varint,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IconUrl       string                 `protobuf:"bytes,3,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
-	TemplateCount int32                  `protobuf:"varint,4,opt,name=template_count,json=templateCount,proto3" json:"template_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 分类 ID。
+	CategoryId int32 `protobuf:"varint,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	// 分类名称。
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 分类图标地址。
+	IconUrl string `protobuf:"bytes,3,opt,name=icon_url,json=iconUrl,proto3" json:"icon_url,omitempty"`
+	// 分类下图纸数量。
+	TemplateCount int32 `protobuf:"varint,4,opt,name=template_count,json=templateCount,proto3" json:"template_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -91,15 +95,39 @@ func (x *CategoryItem) GetTemplateCount() int32 {
 }
 
 type TemplateItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	PreviewUrl    string                 `protobuf:"bytes,3,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
-	BoardSpec     string                 `protobuf:"bytes,4,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
-	ColorCount    int32                  `protobuf:"varint,5,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
-	IsFree        bool                   `protobuf:"varint,6,opt,name=is_free,json=isFree,proto3" json:"is_free,omitempty"`
-	CreditCost    int32                  `protobuf:"varint,7,opt,name=credit_cost,json=creditCost,proto3" json:"credit_cost,omitempty"`
-	DownloadCount int32                  `protobuf:"varint,8,opt,name=download_count,json=downloadCount,proto3" json:"download_count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 图纸 ID。
+	TemplateId string `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	// 图纸标题。
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// 预览图地址。
+	PreviewUrl string `protobuf:"bytes,3,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
+	// 豆板规格。
+	BoardSpec string `protobuf:"bytes,4,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
+	// 颜色数量。
+	ColorCount int32 `protobuf:"varint,5,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	// 是否免费。
+	IsFree bool `protobuf:"varint,6,opt,name=is_free,json=isFree,proto3" json:"is_free,omitempty"`
+	// 兑换所需积分。
+	CreditCost int32 `protobuf:"varint,7,opt,name=credit_cost,json=creditCost,proto3" json:"credit_cost,omitempty"`
+	// 下载次数。
+	DownloadCount int32 `protobuf:"varint,8,opt,name=download_count,json=downloadCount,proto3" json:"download_count,omitempty"`
+	// 缩略图地址。
+	ThumbnailUrl string `protobuf:"bytes,9,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
+	// 图纸描述。
+	Description string `protobuf:"bytes,10,opt,name=description,proto3" json:"description,omitempty"`
+	// 标签列表。
+	Tags []string `protobuf:"bytes,11,rep,name=tags,proto3" json:"tags,omitempty"`
+	// 难度等级。
+	Difficulty int32 `protobuf:"varint,12,opt,name=difficulty,proto3" json:"difficulty,omitempty"`
+	// 收藏数量。
+	FavoriteCount int32 `protobuf:"varint,13,opt,name=favorite_count,json=favoriteCount,proto3" json:"favorite_count,omitempty"`
+	// 当前用户是否已收藏。
+	IsFavorited bool `protobuf:"varint,14,opt,name=is_favorited,json=isFavorited,proto3" json:"is_favorited,omitempty"`
+	// 图纸宽度。
+	Width int32 `protobuf:"varint,15,opt,name=width,proto3" json:"width,omitempty"`
+	// 图纸高度。
+	Height        int32 `protobuf:"varint,16,opt,name=height,proto3" json:"height,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -190,9 +218,66 @@ func (x *TemplateItem) GetDownloadCount() int32 {
 	return 0
 }
 
+func (x *TemplateItem) GetThumbnailUrl() string {
+	if x != nil {
+		return x.ThumbnailUrl
+	}
+	return ""
+}
+
+func (x *TemplateItem) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *TemplateItem) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *TemplateItem) GetDifficulty() int32 {
+	if x != nil {
+		return x.Difficulty
+	}
+	return 0
+}
+
+func (x *TemplateItem) GetFavoriteCount() int32 {
+	if x != nil {
+		return x.FavoriteCount
+	}
+	return 0
+}
+
+func (x *TemplateItem) GetIsFavorited() bool {
+	if x != nil {
+		return x.IsFavorited
+	}
+	return false
+}
+
+func (x *TemplateItem) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *TemplateItem) GetHeight() int32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
 type ListCategoriesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -235,9 +320,11 @@ func (x *ListCategoriesRequest) GetHeader() *RequestHeader {
 }
 
 type ListCategoriesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Categories    []*CategoryItem        `protobuf:"bytes,2,rep,name=categories,proto3" json:"categories,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分类列表。
+	Categories    []*CategoryItem `protobuf:"bytes,2,rep,name=categories,proto3" json:"categories,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -287,10 +374,17 @@ func (x *ListCategoriesResponse) GetCategories() []*CategoryItem {
 }
 
 type ListTemplatesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	CategoryId    int32                  `protobuf:"varint,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Page          *PageRequest           `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分类 ID。
+	CategoryId int32 `protobuf:"varint,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	// 分页参数。
+	Page *PageRequest `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	// 场景筛选。
+	Scene string `protobuf:"bytes,4,opt,name=scene,proto3" json:"scene,omitempty"`
+	// 搜索关键词。
+	Keyword       string `protobuf:"bytes,5,opt,name=keyword,proto3" json:"keyword,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -346,11 +440,28 @@ func (x *ListTemplatesRequest) GetPage() *PageRequest {
 	return nil
 }
 
+func (x *ListTemplatesRequest) GetScene() string {
+	if x != nil {
+		return x.Scene
+	}
+	return ""
+}
+
+func (x *ListTemplatesRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
 type ListTemplatesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Templates     []*TemplateItem        `protobuf:"bytes,2,rep,name=templates,proto3" json:"templates,omitempty"`
-	Page          *PageResponse          `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 图纸列表。
+	Templates []*TemplateItem `protobuf:"bytes,2,rep,name=templates,proto3" json:"templates,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -407,9 +518,11 @@ func (x *ListTemplatesResponse) GetPage() *PageResponse {
 }
 
 type GetTemplateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	TemplateId    string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 图纸 ID。
+	TemplateId    string `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,10 +572,13 @@ func (x *GetTemplateRequest) GetTemplateId() string {
 }
 
 type GetTemplateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Template      *TemplateItem          `protobuf:"bytes,2,opt,name=template,proto3" json:"template,omitempty"`
-	PatternData   *PatternData           `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 图纸信息。
+	Template *TemplateItem `protobuf:"bytes,2,opt,name=template,proto3" json:"template,omitempty"`
+	// 图纸数据。
+	PatternData   *PatternData `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -518,6 +634,357 @@ func (x *GetTemplateResponse) GetPatternData() *PatternData {
 	return nil
 }
 
+type FavoriteTemplateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 图纸 ID。
+	TemplateId    string `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FavoriteTemplateRequest) Reset() {
+	*x = FavoriteTemplateRequest{}
+	mi := &file_template_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FavoriteTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FavoriteTemplateRequest) ProtoMessage() {}
+
+func (x *FavoriteTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FavoriteTemplateRequest.ProtoReflect.Descriptor instead.
+func (*FavoriteTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *FavoriteTemplateRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *FavoriteTemplateRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+type FavoriteTemplateResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 当前是否已收藏。
+	IsFavorited bool `protobuf:"varint,2,opt,name=is_favorited,json=isFavorited,proto3" json:"is_favorited,omitempty"`
+	// 收藏数量。
+	FavoriteCount int32 `protobuf:"varint,3,opt,name=favorite_count,json=favoriteCount,proto3" json:"favorite_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FavoriteTemplateResponse) Reset() {
+	*x = FavoriteTemplateResponse{}
+	mi := &file_template_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FavoriteTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FavoriteTemplateResponse) ProtoMessage() {}
+
+func (x *FavoriteTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FavoriteTemplateResponse.ProtoReflect.Descriptor instead.
+func (*FavoriteTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *FavoriteTemplateResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *FavoriteTemplateResponse) GetIsFavorited() bool {
+	if x != nil {
+		return x.IsFavorited
+	}
+	return false
+}
+
+func (x *FavoriteTemplateResponse) GetFavoriteCount() int32 {
+	if x != nil {
+		return x.FavoriteCount
+	}
+	return 0
+}
+
+type UnfavoriteTemplateRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 图纸 ID。
+	TemplateId    string `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnfavoriteTemplateRequest) Reset() {
+	*x = UnfavoriteTemplateRequest{}
+	mi := &file_template_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnfavoriteTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnfavoriteTemplateRequest) ProtoMessage() {}
+
+func (x *UnfavoriteTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnfavoriteTemplateRequest.ProtoReflect.Descriptor instead.
+func (*UnfavoriteTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UnfavoriteTemplateRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *UnfavoriteTemplateRequest) GetTemplateId() string {
+	if x != nil {
+		return x.TemplateId
+	}
+	return ""
+}
+
+type UnfavoriteTemplateResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 当前是否已收藏。
+	IsFavorited bool `protobuf:"varint,2,opt,name=is_favorited,json=isFavorited,proto3" json:"is_favorited,omitempty"`
+	// 收藏数量。
+	FavoriteCount int32 `protobuf:"varint,3,opt,name=favorite_count,json=favoriteCount,proto3" json:"favorite_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnfavoriteTemplateResponse) Reset() {
+	*x = UnfavoriteTemplateResponse{}
+	mi := &file_template_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnfavoriteTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnfavoriteTemplateResponse) ProtoMessage() {}
+
+func (x *UnfavoriteTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnfavoriteTemplateResponse.ProtoReflect.Descriptor instead.
+func (*UnfavoriteTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UnfavoriteTemplateResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *UnfavoriteTemplateResponse) GetIsFavorited() bool {
+	if x != nil {
+		return x.IsFavorited
+	}
+	return false
+}
+
+func (x *UnfavoriteTemplateResponse) GetFavoriteCount() int32 {
+	if x != nil {
+		return x.FavoriteCount
+	}
+	return 0
+}
+
+type ListFavoriteTemplatesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分页参数。
+	Page          *PageRequest `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFavoriteTemplatesRequest) Reset() {
+	*x = ListFavoriteTemplatesRequest{}
+	mi := &file_template_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFavoriteTemplatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFavoriteTemplatesRequest) ProtoMessage() {}
+
+func (x *ListFavoriteTemplatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFavoriteTemplatesRequest.ProtoReflect.Descriptor instead.
+func (*ListFavoriteTemplatesRequest) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListFavoriteTemplatesRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *ListFavoriteTemplatesRequest) GetPage() *PageRequest {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type ListFavoriteTemplatesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 收藏图纸列表。
+	Templates []*TemplateItem `protobuf:"bytes,2,rep,name=templates,proto3" json:"templates,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFavoriteTemplatesResponse) Reset() {
+	*x = ListFavoriteTemplatesResponse{}
+	mi := &file_template_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFavoriteTemplatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFavoriteTemplatesResponse) ProtoMessage() {}
+
+func (x *ListFavoriteTemplatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFavoriteTemplatesResponse.ProtoReflect.Descriptor instead.
+func (*ListFavoriteTemplatesResponse) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ListFavoriteTemplatesResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *ListFavoriteTemplatesResponse) GetTemplates() []*TemplateItem {
+	if x != nil {
+		return x.Templates
+	}
+	return nil
+}
+
+func (x *ListFavoriteTemplatesResponse) GetPage() *PageResponse {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
 var File_template_proto protoreflect.FileDescriptor
 
 const file_template_proto_rawDesc = "" +
@@ -529,7 +996,7 @@ const file_template_proto_rawDesc = "" +
 	"categoryId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
 	"\bicon_url\x18\x03 \x01(\tR\aiconUrl\x12%\n" +
-	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\x87\x02\n" +
+	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\xfa\x03\n" +
 	"\fTemplateItem\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -543,19 +1010,32 @@ const file_template_proto_rawDesc = "" +
 	"\ais_free\x18\x06 \x01(\bR\x06isFree\x12\x1f\n" +
 	"\vcredit_cost\x18\a \x01(\x05R\n" +
 	"creditCost\x12%\n" +
-	"\x0edownload_count\x18\b \x01(\x05R\rdownloadCount\"L\n" +
+	"\x0edownload_count\x18\b \x01(\x05R\rdownloadCount\x12#\n" +
+	"\rthumbnail_url\x18\t \x01(\tR\fthumbnailUrl\x12 \n" +
+	"\vdescription\x18\n" +
+	" \x01(\tR\vdescription\x12\x12\n" +
+	"\x04tags\x18\v \x03(\tR\x04tags\x12\x1e\n" +
+	"\n" +
+	"difficulty\x18\f \x01(\x05R\n" +
+	"difficulty\x12%\n" +
+	"\x0efavorite_count\x18\r \x01(\x05R\rfavoriteCount\x12!\n" +
+	"\fis_favorited\x18\x0e \x01(\bR\visFavorited\x12\x14\n" +
+	"\x05width\x18\x0f \x01(\x05R\x05width\x12\x16\n" +
+	"\x06height\x18\x10 \x01(\x05R\x06height\"L\n" +
 	"\x15ListCategoriesRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\x8a\x01\n" +
 	"\x16ListCategoriesResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12:\n" +
 	"\n" +
 	"categories\x18\x02 \x03(\v2\x1a.bobobeads.v1.CategoryItemR\n" +
-	"categories\"\x9b\x01\n" +
+	"categories\"\xcb\x01\n" +
 	"\x14ListTemplatesRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\x05R\n" +
 	"categoryId\x12-\n" +
-	"\x04page\x18\x03 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\"\xb7\x01\n" +
+	"\x04page\x18\x03 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\x12\x14\n" +
+	"\x05scene\x18\x04 \x01(\tR\x05scene\x12\x18\n" +
+	"\akeyword\x18\x05 \x01(\tR\akeyword\"\xb7\x01\n" +
 	"\x15ListTemplatesResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x128\n" +
 	"\ttemplates\x18\x02 \x03(\v2\x1a.bobobeads.v1.TemplateItemR\ttemplates\x12.\n" +
@@ -567,11 +1047,37 @@ const file_template_proto_rawDesc = "" +
 	"\x13GetTemplateResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x126\n" +
 	"\btemplate\x18\x02 \x01(\v2\x1a.bobobeads.v1.TemplateItemR\btemplate\x12<\n" +
-	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData2\x87\x03\n" +
-	"\x0fTemplateService\x12\x81\x01\n" +
-	"\x0eListCategories\x12#.bobobeads.v1.ListCategoriesRequest\x1a$.bobobeads.v1.ListCategoriesResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/v1/templates/categories\x12s\n" +
-	"\rListTemplates\x12\".bobobeads.v1.ListTemplatesRequest\x1a#.bobobeads.v1.ListTemplatesResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v1/templates\x12{\n" +
-	"\vGetTemplate\x12 .bobobeads.v1.GetTemplateRequest\x1a!.bobobeads.v1.GetTemplateResponse\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/templates/{template_id}B\xa5\x01\n" +
+	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\"o\n" +
+	"\x17FavoriteTemplateRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\"\x9a\x01\n" +
+	"\x18FavoriteTemplateResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12!\n" +
+	"\fis_favorited\x18\x02 \x01(\bR\visFavorited\x12%\n" +
+	"\x0efavorite_count\x18\x03 \x01(\x05R\rfavoriteCount\"q\n" +
+	"\x19UnfavoriteTemplateRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\"\x9c\x01\n" +
+	"\x1aUnfavoriteTemplateResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12!\n" +
+	"\fis_favorited\x18\x02 \x01(\bR\visFavorited\x12%\n" +
+	"\x0efavorite_count\x18\x03 \x01(\x05R\rfavoriteCount\"\x82\x01\n" +
+	"\x1cListFavoriteTemplatesRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12-\n" +
+	"\x04page\x18\x02 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\"\xbf\x01\n" +
+	"\x1dListFavoriteTemplatesResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x128\n" +
+	"\ttemplates\x18\x02 \x03(\v2\x1a.bobobeads.v1.TemplateItemR\ttemplates\x12.\n" +
+	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\xd4\x06\n" +
+	"\x0fTemplateService\x12{\n" +
+	"\vGetTemplate\x12 .bobobeads.v1.GetTemplateRequest\x1a!.bobobeads.v1.GetTemplateResponse\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/templates/{template_id}\x12s\n" +
+	"\rListTemplates\x12\".bobobeads.v1.ListTemplatesRequest\x1a#.bobobeads.v1.ListTemplatesResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v1/templates\x12\x81\x01\n" +
+	"\x0eListCategories\x12#.bobobeads.v1.ListCategoriesRequest\x1a$.bobobeads.v1.ListCategoriesResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/v1/templates/categories\x12\x95\x01\n" +
+	"\x15ListFavoriteTemplates\x12*.bobobeads.v1.ListFavoriteTemplatesRequest\x1a+.bobobeads.v1.ListFavoriteTemplatesResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/api/v1/templates/favorites\x12\x96\x01\n" +
+	"\x10FavoriteTemplate\x12%.bobobeads.v1.FavoriteTemplateRequest\x1a&.bobobeads.v1.FavoriteTemplateResponse\"3\x82\xd3\xe4\x93\x02-:\x01*\"(/api/v1/templates/{template_id}/favorite\x12\x99\x01\n" +
+	"\x12UnfavoriteTemplate\x12'.bobobeads.v1.UnfavoriteTemplateRequest\x1a(.bobobeads.v1.UnfavoriteTemplateResponse\"0\x82\xd3\xe4\x93\x02**(/api/v1/templates/{template_id}/favoriteB\xa5\x01\n" +
 	"\x10com.bobobeads.v1B\rTemplateProtoP\x01Z1github.com/zhaojiabo/bobobeads_server/internal/pb\xa2\x02\x03BXX\xaa\x02\fBobobeads.V1\xca\x02\fBobobeads\\V1\xe2\x02\x18Bobobeads\\V1\\GPBMetadata\xea\x02\rBobobeads::V1b\x06proto3"
 
 var (
@@ -586,46 +1092,67 @@ func file_template_proto_rawDescGZIP() []byte {
 	return file_template_proto_rawDescData
 }
 
-var file_template_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_template_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_template_proto_goTypes = []any{
-	(*CategoryItem)(nil),           // 0: bobobeads.v1.CategoryItem
-	(*TemplateItem)(nil),           // 1: bobobeads.v1.TemplateItem
-	(*ListCategoriesRequest)(nil),  // 2: bobobeads.v1.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil), // 3: bobobeads.v1.ListCategoriesResponse
-	(*ListTemplatesRequest)(nil),   // 4: bobobeads.v1.ListTemplatesRequest
-	(*ListTemplatesResponse)(nil),  // 5: bobobeads.v1.ListTemplatesResponse
-	(*GetTemplateRequest)(nil),     // 6: bobobeads.v1.GetTemplateRequest
-	(*GetTemplateResponse)(nil),    // 7: bobobeads.v1.GetTemplateResponse
-	(*RequestHeader)(nil),          // 8: bobobeads.v1.RequestHeader
-	(*ResponseHeader)(nil),         // 9: bobobeads.v1.ResponseHeader
-	(*PageRequest)(nil),            // 10: bobobeads.v1.PageRequest
-	(*PageResponse)(nil),           // 11: bobobeads.v1.PageResponse
-	(*PatternData)(nil),            // 12: bobobeads.v1.PatternData
+	(*CategoryItem)(nil),                  // 0: bobobeads.v1.CategoryItem
+	(*TemplateItem)(nil),                  // 1: bobobeads.v1.TemplateItem
+	(*ListCategoriesRequest)(nil),         // 2: bobobeads.v1.ListCategoriesRequest
+	(*ListCategoriesResponse)(nil),        // 3: bobobeads.v1.ListCategoriesResponse
+	(*ListTemplatesRequest)(nil),          // 4: bobobeads.v1.ListTemplatesRequest
+	(*ListTemplatesResponse)(nil),         // 5: bobobeads.v1.ListTemplatesResponse
+	(*GetTemplateRequest)(nil),            // 6: bobobeads.v1.GetTemplateRequest
+	(*GetTemplateResponse)(nil),           // 7: bobobeads.v1.GetTemplateResponse
+	(*FavoriteTemplateRequest)(nil),       // 8: bobobeads.v1.FavoriteTemplateRequest
+	(*FavoriteTemplateResponse)(nil),      // 9: bobobeads.v1.FavoriteTemplateResponse
+	(*UnfavoriteTemplateRequest)(nil),     // 10: bobobeads.v1.UnfavoriteTemplateRequest
+	(*UnfavoriteTemplateResponse)(nil),    // 11: bobobeads.v1.UnfavoriteTemplateResponse
+	(*ListFavoriteTemplatesRequest)(nil),  // 12: bobobeads.v1.ListFavoriteTemplatesRequest
+	(*ListFavoriteTemplatesResponse)(nil), // 13: bobobeads.v1.ListFavoriteTemplatesResponse
+	(*RequestHeader)(nil),                 // 14: bobobeads.v1.RequestHeader
+	(*ResponseHeader)(nil),                // 15: bobobeads.v1.ResponseHeader
+	(*PageRequest)(nil),                   // 16: bobobeads.v1.PageRequest
+	(*PageResponse)(nil),                  // 17: bobobeads.v1.PageResponse
+	(*PatternData)(nil),                   // 18: bobobeads.v1.PatternData
 }
 var file_template_proto_depIdxs = []int32{
-	8,  // 0: bobobeads.v1.ListCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	9,  // 1: bobobeads.v1.ListCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	14, // 0: bobobeads.v1.ListCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	15, // 1: bobobeads.v1.ListCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	0,  // 2: bobobeads.v1.ListCategoriesResponse.categories:type_name -> bobobeads.v1.CategoryItem
-	8,  // 3: bobobeads.v1.ListTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	10, // 4: bobobeads.v1.ListTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
-	9,  // 5: bobobeads.v1.ListTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	14, // 3: bobobeads.v1.ListTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	16, // 4: bobobeads.v1.ListTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
+	15, // 5: bobobeads.v1.ListTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 6: bobobeads.v1.ListTemplatesResponse.templates:type_name -> bobobeads.v1.TemplateItem
-	11, // 7: bobobeads.v1.ListTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
-	8,  // 8: bobobeads.v1.GetTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
-	9,  // 9: bobobeads.v1.GetTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	17, // 7: bobobeads.v1.ListTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
+	14, // 8: bobobeads.v1.GetTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	15, // 9: bobobeads.v1.GetTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 10: bobobeads.v1.GetTemplateResponse.template:type_name -> bobobeads.v1.TemplateItem
-	12, // 11: bobobeads.v1.GetTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
-	2,  // 12: bobobeads.v1.TemplateService.ListCategories:input_type -> bobobeads.v1.ListCategoriesRequest
-	4,  // 13: bobobeads.v1.TemplateService.ListTemplates:input_type -> bobobeads.v1.ListTemplatesRequest
-	6,  // 14: bobobeads.v1.TemplateService.GetTemplate:input_type -> bobobeads.v1.GetTemplateRequest
-	3,  // 15: bobobeads.v1.TemplateService.ListCategories:output_type -> bobobeads.v1.ListCategoriesResponse
-	5,  // 16: bobobeads.v1.TemplateService.ListTemplates:output_type -> bobobeads.v1.ListTemplatesResponse
-	7,  // 17: bobobeads.v1.TemplateService.GetTemplate:output_type -> bobobeads.v1.GetTemplateResponse
-	15, // [15:18] is the sub-list for method output_type
-	12, // [12:15] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	18, // 11: bobobeads.v1.GetTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
+	14, // 12: bobobeads.v1.FavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	15, // 13: bobobeads.v1.FavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	14, // 14: bobobeads.v1.UnfavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	15, // 15: bobobeads.v1.UnfavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	14, // 16: bobobeads.v1.ListFavoriteTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	16, // 17: bobobeads.v1.ListFavoriteTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
+	15, // 18: bobobeads.v1.ListFavoriteTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	1,  // 19: bobobeads.v1.ListFavoriteTemplatesResponse.templates:type_name -> bobobeads.v1.TemplateItem
+	17, // 20: bobobeads.v1.ListFavoriteTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
+	6,  // 21: bobobeads.v1.TemplateService.GetTemplate:input_type -> bobobeads.v1.GetTemplateRequest
+	4,  // 22: bobobeads.v1.TemplateService.ListTemplates:input_type -> bobobeads.v1.ListTemplatesRequest
+	2,  // 23: bobobeads.v1.TemplateService.ListCategories:input_type -> bobobeads.v1.ListCategoriesRequest
+	12, // 24: bobobeads.v1.TemplateService.ListFavoriteTemplates:input_type -> bobobeads.v1.ListFavoriteTemplatesRequest
+	8,  // 25: bobobeads.v1.TemplateService.FavoriteTemplate:input_type -> bobobeads.v1.FavoriteTemplateRequest
+	10, // 26: bobobeads.v1.TemplateService.UnfavoriteTemplate:input_type -> bobobeads.v1.UnfavoriteTemplateRequest
+	7,  // 27: bobobeads.v1.TemplateService.GetTemplate:output_type -> bobobeads.v1.GetTemplateResponse
+	5,  // 28: bobobeads.v1.TemplateService.ListTemplates:output_type -> bobobeads.v1.ListTemplatesResponse
+	3,  // 29: bobobeads.v1.TemplateService.ListCategories:output_type -> bobobeads.v1.ListCategoriesResponse
+	13, // 30: bobobeads.v1.TemplateService.ListFavoriteTemplates:output_type -> bobobeads.v1.ListFavoriteTemplatesResponse
+	9,  // 31: bobobeads.v1.TemplateService.FavoriteTemplate:output_type -> bobobeads.v1.FavoriteTemplateResponse
+	11, // 32: bobobeads.v1.TemplateService.UnfavoriteTemplate:output_type -> bobobeads.v1.UnfavoriteTemplateResponse
+	27, // [27:33] is the sub-list for method output_type
+	21, // [21:27] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_template_proto_init() }
@@ -641,7 +1168,7 @@ func file_template_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_template_proto_rawDesc), len(file_template_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

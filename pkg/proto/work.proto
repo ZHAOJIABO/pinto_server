@@ -7,7 +7,9 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 作品与草稿服务。
 service WorkService {
+  // 保存作品。
   rpc SaveWork(SaveWorkRequest) returns (SaveWorkResponse) {
     option (google.api.http) = {
       post: "/api/v1/works"
@@ -15,24 +17,28 @@ service WorkService {
     };
   }
 
+  // 获取作品详情。
   rpc GetWork(GetWorkRequest) returns (GetWorkResponse) {
     option (google.api.http) = {
       get: "/api/v1/works/{work_id}"
     };
   }
 
+  // 获取作品列表。
   rpc ListWorks(ListWorksRequest) returns (ListWorksResponse) {
     option (google.api.http) = {
       get: "/api/v1/works"
     };
   }
 
+  // 删除作品。
   rpc DeleteWork(DeleteWorkRequest) returns (DeleteWorkResponse) {
     option (google.api.http) = {
       delete: "/api/v1/works/{work_id}"
     };
   }
 
+  // 保存草稿。
   rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse) {
     option (google.api.http) = {
       post: "/api/v1/works/drafts"
@@ -40,6 +46,7 @@ service WorkService {
     };
   }
 
+  // 获取草稿列表。
   rpc ListDrafts(ListDraftsRequest) returns (ListDraftsResponse) {
     option (google.api.http) = {
       get: "/api/v1/works/drafts"
@@ -48,106 +55,173 @@ service WorkService {
 }
 
 message PatternData {
+  // 图纸宽度。
   int32 width = 1;
+  // 图纸高度。
   int32 height = 2;
+  // 豆板规格。
   string board_spec = 3;
-  repeated bytes pixel_rows = 4;
+  // 4 曾用于 pixel_rows。REST 契约只接受展平的 pixels，保留字段号避免复用。
+  reserved 4;
+  reserved "pixel_rows";
+  // 图纸颜色表。
   repeated ColorEntry color_palette = 5;
+  // 展平后的像素索引。
   repeated int32 pixels = 6;
+  // 图纸数据结构版本。
   int32 schema_version = 7;
 }
 
 message ColorEntry {
+  // 颜色索引。
   int32 index = 1;
+  // 颜色十六进制值。
   string hex = 2;
+  // 色号品牌。
   string brand = 3;
+  // 品牌色号。
   string code = 4;
+  // 颜色名称。
   string name = 5;
 }
 
 message WorkItem {
+  // 作品 ID。
   string work_id = 1;
+  // 作品标题。
   string title = 2;
+  // 原图地址。
   string original_image_url = 3;
+  // 图纸图片地址。
   string pattern_image_url = 4;
+  // 豆板规格。
   string board_spec = 5;
+  // 图纸宽度。
   int32 width = 6;
+  // 图纸高度。
   int32 height = 7;
+  // 拼豆总数。
   int32 bead_count = 8;
+  // 颜色数量。
   int32 color_count = 9;
+  // 作品状态。
   int32 status = 10;
+  // 创建时间戳。
   int64 created_at = 11;
+  // 缩略图地址。
   string thumbnail_url = 12;
+  // 更新时间戳。
   int64 updated_at = 13;
+  // 作品来源类型。
+  string source_type = 14;
+  // 作品来源 ID。
+  string source_id = 15;
 }
 
 message SaveWorkRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 作品标题。
   string title = 2;
+  // 原图地址。
   string original_image_url = 3;
+  // 图纸图片地址。
   string pattern_image_url = 4;
+  // 图纸数据。
   PatternData pattern_data = 5;
+  // 客户端展示用统计值；服务端会按 pattern_data 的非零 pixels 重算并忽略该值。
   int32 bead_count = 6;
+  // 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
   int32 color_count = 7;
 }
 
 message SaveWorkResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 新保存的作品 ID。
   string work_id = 2;
 }
 
 message GetWorkRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 作品 ID。
   string work_id = 2;
 }
 
 message GetWorkResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 作品信息。
   WorkItem work = 2;
+  // 图纸数据。
   PatternData pattern_data = 3;
 }
 
 message ListWorksRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分页参数。
   PageRequest page = 2;
+  // 作品来源类型筛选。
+  string source_type = 3;
 }
 
 message ListWorksResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 作品列表。
   repeated WorkItem works = 2;
+  // 分页信息。
   PageResponse page = 3;
 }
 
 message DeleteWorkRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 作品 ID。
   string work_id = 2;
 }
 
 message DeleteWorkResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message SaveDraftRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 草稿标题。
   string title = 2;
+  // 原图地址。
   string original_image_url = 3;
+  // 图纸图片地址。
   string pattern_image_url = 4;
+  // 图纸数据。
   PatternData pattern_data = 5;
+  // 草稿 ID，更新时传入。
   string draft_id = 6;
 }
 
 message SaveDraftResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 保存后的草稿 ID。
   string draft_id = 2;
 }
 
 message ListDraftsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分页参数。
   PageRequest page = 2;
 }
 
 message ListDraftsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 草稿列表。
   repeated WorkItem drafts = 2;
+  // 分页信息。
   PageResponse page = 3;
 }

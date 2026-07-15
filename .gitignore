@@ -27,3 +27,4 @@ vendor/
 # Config with secrets
 conf/server.prod.yaml
 conf/server.dev.yaml
+conf/server.local.yaml

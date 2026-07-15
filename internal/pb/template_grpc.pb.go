@@ -19,18 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TemplateService_ListCategories_FullMethodName = "/bobobeads.v1.TemplateService/ListCategories"
-	TemplateService_ListTemplates_FullMethodName  = "/bobobeads.v1.TemplateService/ListTemplates"
-	TemplateService_GetTemplate_FullMethodName    = "/bobobeads.v1.TemplateService/GetTemplate"
+	TemplateService_GetTemplate_FullMethodName           = "/bobobeads.v1.TemplateService/GetTemplate"
+	TemplateService_ListTemplates_FullMethodName         = "/bobobeads.v1.TemplateService/ListTemplates"
+	TemplateService_ListCategories_FullMethodName        = "/bobobeads.v1.TemplateService/ListCategories"
+	TemplateService_ListFavoriteTemplates_FullMethodName = "/bobobeads.v1.TemplateService/ListFavoriteTemplates"
+	TemplateService_FavoriteTemplate_FullMethodName      = "/bobobeads.v1.TemplateService/FavoriteTemplate"
+	TemplateService_UnfavoriteTemplate_FullMethodName    = "/bobobeads.v1.TemplateService/UnfavoriteTemplate"
 )
 
 // TemplateServiceClient is the client API for TemplateService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 官方图纸模板服务。
 type TemplateServiceClient interface {
-	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
-	ListTemplates(ctx context.Context, in *ListTemplatesRequest, opts ...grpc.CallOption) (*ListTemplatesResponse, error)
+	// 获取图纸模板详情。
 	GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error)
+	// 获取图纸模板列表。
+	ListTemplates(ctx context.Context, in *ListTemplatesRequest, opts ...grpc.CallOption) (*ListTemplatesResponse, error)
+	// 获取图纸分类列表。
+	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
+	// 获取当前用户收藏的图纸模板。
+	ListFavoriteTemplates(ctx context.Context, in *ListFavoriteTemplatesRequest, opts ...grpc.CallOption) (*ListFavoriteTemplatesResponse, error)
+	// 收藏图纸模板。
+	FavoriteTemplate(ctx context.Context, in *FavoriteTemplateRequest, opts ...grpc.CallOption) (*FavoriteTemplateResponse, error)
+	// 取消收藏图纸模板。
+	UnfavoriteTemplate(ctx context.Context, in *UnfavoriteTemplateRequest, opts ...grpc.CallOption) (*UnfavoriteTemplateResponse, error)
 }
 
 type templateServiceClient struct {
@@ -41,10 +55,10 @@ func NewTemplateServiceClient(cc grpc.ClientConnInterface) TemplateServiceClient
 	return &templateServiceClient{cc}
 }
 
-func (c *templateServiceClient) ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error) {
+func (c *templateServiceClient) GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListCategoriesResponse)
-	err := c.cc.Invoke(ctx, TemplateService_ListCategories_FullMethodName, in, out, cOpts...)
+	out := new(GetTemplateResponse)
+	err := c.cc.Invoke(ctx, TemplateService_GetTemplate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,10 +75,40 @@ func (c *templateServiceClient) ListTemplates(ctx context.Context, in *ListTempl
 	return out, nil
 }
 
-func (c *templateServiceClient) GetTemplate(ctx context.Context, in *GetTemplateRequest, opts ...grpc.CallOption) (*GetTemplateResponse, error) {
+func (c *templateServiceClient) ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetTemplateResponse)
-	err := c.cc.Invoke(ctx, TemplateService_GetTemplate_FullMethodName, in, out, cOpts...)
+	out := new(ListCategoriesResponse)
+	err := c.cc.Invoke(ctx, TemplateService_ListCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *templateServiceClient) ListFavoriteTemplates(ctx context.Context, in *ListFavoriteTemplatesRequest, opts ...grpc.CallOption) (*ListFavoriteTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFavoriteTemplatesResponse)
+	err := c.cc.Invoke(ctx, TemplateService_ListFavoriteTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *templateServiceClient) FavoriteTemplate(ctx context.Context, in *FavoriteTemplateRequest, opts ...grpc.CallOption) (*FavoriteTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FavoriteTemplateResponse)
+	err := c.cc.Invoke(ctx, TemplateService_FavoriteTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *templateServiceClient) UnfavoriteTemplate(ctx context.Context, in *UnfavoriteTemplateRequest, opts ...grpc.CallOption) (*UnfavoriteTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnfavoriteTemplateResponse)
+	err := c.cc.Invoke(ctx, TemplateService_UnfavoriteTemplate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +118,21 @@ func (c *templateServiceClient) GetTemplate(ctx context.Context, in *GetTemplate
 // TemplateServiceServer is the server API for TemplateService service.
 // All implementations must embed UnimplementedTemplateServiceServer
 // for forward compatibility.
+//
+// 官方图纸模板服务。
 type TemplateServiceServer interface {
-	ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error)
-	ListTemplates(context.Context, *ListTemplatesRequest) (*ListTemplatesResponse, error)
+	// 获取图纸模板详情。
 	GetTemplate(context.Context, *GetTemplateRequest) (*GetTemplateResponse, error)
+	// 获取图纸模板列表。
+	ListTemplates(context.Context, *ListTemplatesRequest) (*ListTemplatesResponse, error)
+	// 获取图纸分类列表。
+	ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error)
+	// 获取当前用户收藏的图纸模板。
+	ListFavoriteTemplates(context.Context, *ListFavoriteTemplatesRequest) (*ListFavoriteTemplatesResponse, error)
+	// 收藏图纸模板。
+	FavoriteTemplate(context.Context, *FavoriteTemplateRequest) (*FavoriteTemplateResponse, error)
+	// 取消收藏图纸模板。
+	UnfavoriteTemplate(context.Context, *UnfavoriteTemplateRequest) (*UnfavoriteTemplateResponse, error)
 	mustEmbedUnimplementedTemplateServiceServer()
 }
 
@@ -88,14 +143,23 @@ type TemplateServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedTemplateServiceServer struct{}
 
-func (UnimplementedTemplateServiceServer) ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
+func (UnimplementedTemplateServiceServer) GetTemplate(context.Context, *GetTemplateRequest) (*GetTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTemplate not implemented")
 }
 func (UnimplementedTemplateServiceServer) ListTemplates(context.Context, *ListTemplatesRequest) (*ListTemplatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTemplates not implemented")
 }
-func (UnimplementedTemplateServiceServer) GetTemplate(context.Context, *GetTemplateRequest) (*GetTemplateResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetTemplate not implemented")
+func (UnimplementedTemplateServiceServer) ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
+}
+func (UnimplementedTemplateServiceServer) ListFavoriteTemplates(context.Context, *ListFavoriteTemplatesRequest) (*ListFavoriteTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFavoriteTemplates not implemented")
+}
+func (UnimplementedTemplateServiceServer) FavoriteTemplate(context.Context, *FavoriteTemplateRequest) (*FavoriteTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FavoriteTemplate not implemented")
+}
+func (UnimplementedTemplateServiceServer) UnfavoriteTemplate(context.Context, *UnfavoriteTemplateRequest) (*UnfavoriteTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UnfavoriteTemplate not implemented")
 }
 func (UnimplementedTemplateServiceServer) mustEmbedUnimplementedTemplateServiceServer() {}
 func (UnimplementedTemplateServiceServer) testEmbeddedByValue()                         {}
@@ -118,20 +182,20 @@ func RegisterTemplateServiceServer(s grpc.ServiceRegistrar, srv TemplateServiceS
 	s.RegisterService(&TemplateService_ServiceDesc, srv)
 }
 
-func _TemplateService_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListCategoriesRequest)
+func _TemplateService_GetTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TemplateServiceServer).ListCategories(ctx, in)
+		return srv.(TemplateServiceServer).GetTemplate(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TemplateService_ListCategories_FullMethodName,
+		FullMethod: TemplateService_GetTemplate_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TemplateServiceServer).ListCategories(ctx, req.(*ListCategoriesRequest))
+		return srv.(TemplateServiceServer).GetTemplate(ctx, req.(*GetTemplateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -154,20 +218,74 @@ func _TemplateService_ListTemplates_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TemplateService_GetTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTemplateRequest)
+func _TemplateService_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCategoriesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TemplateServiceServer).GetTemplate(ctx, in)
+		return srv.(TemplateServiceServer).ListCategories(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TemplateService_GetTemplate_FullMethodName,
+		FullMethod: TemplateService_ListCategories_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TemplateServiceServer).GetTemplate(ctx, req.(*GetTemplateRequest))
+		return srv.(TemplateServiceServer).ListCategories(ctx, req.(*ListCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TemplateService_ListFavoriteTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFavoriteTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).ListFavoriteTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_ListFavoriteTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).ListFavoriteTemplates(ctx, req.(*ListFavoriteTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TemplateService_FavoriteTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FavoriteTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).FavoriteTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_FavoriteTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).FavoriteTemplate(ctx, req.(*FavoriteTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TemplateService_UnfavoriteTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnfavoriteTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).UnfavoriteTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_UnfavoriteTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).UnfavoriteTemplate(ctx, req.(*UnfavoriteTemplateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -180,16 +298,28 @@ var TemplateService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*TemplateServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListCategories",
-			Handler:    _TemplateService_ListCategories_Handler,
+			MethodName: "GetTemplate",
+			Handler:    _TemplateService_GetTemplate_Handler,
 		},
 		{
 			MethodName: "ListTemplates",
 			Handler:    _TemplateService_ListTemplates_Handler,
 		},
 		{
-			MethodName: "GetTemplate",
-			Handler:    _TemplateService_GetTemplate_Handler,
+			MethodName: "ListCategories",
+			Handler:    _TemplateService_ListCategories_Handler,
+		},
+		{
+			MethodName: "ListFavoriteTemplates",
+			Handler:    _TemplateService_ListFavoriteTemplates_Handler,
+		},
+		{
+			MethodName: "FavoriteTemplate",
+			Handler:    _TemplateService_FavoriteTemplate_Handler,
+		},
+		{
+			MethodName: "UnfavoriteTemplate",
+			Handler:    _TemplateService_UnfavoriteTemplate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

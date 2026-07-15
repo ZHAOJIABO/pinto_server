@@ -5,28 +5,42 @@ package bobobeads.v1;
 option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 
 message RequestHeader {
+  // 请求令牌。
   string token = 1;
-  string platform = 2;       // ios, android, miniprogram, web
+  // 客户端平台：ios、android、miniprogram、web。
+  string platform = 2;
+  // 客户端应用版本。
   string app_version = 3;
+  // 设备唯一标识。
   string device_id = 4;
+  // 客户端语言。
   string language = 5;
 }
 
 message ResponseHeader {
+  // 业务状态码。
   int32 code = 1;
+  // 响应提示信息。
   string message = 2;
+  // 请求链路追踪 ID。
   string trace_id = 3;
 }
 
 message PageRequest {
+  // 页码，从 1 开始。
   int32 page = 1;
+  // 每页数量。
   int32 page_size = 2;
 }
 
 message PageResponse {
+  // 总记录数。
   int32 total = 1;
+  // 当前页码。
   int32 page = 2;
+  // 每页数量。
   int32 page_size = 3;
+  // 是否还有下一页。
   bool has_more = 4;
 }
 

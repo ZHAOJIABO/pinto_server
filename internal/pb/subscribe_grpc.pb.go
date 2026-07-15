@@ -31,13 +31,22 @@ const (
 // SubscribeServiceClient is the client API for SubscribeService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 订阅、商品与订单服务。
 type SubscribeServiceClient interface {
+	// 获取订阅商品列表。
 	ListProducts(ctx context.Context, in *ListProductsRequest, opts ...grpc.CallOption) (*ListProductsResponse, error)
+	// 创建订阅订单。
 	CreateOrder(ctx context.Context, in *CreateOrderRequest, opts ...grpc.CallOption) (*CreateOrderResponse, error)
+	// 获取订单支付参数。
 	GetPaymentParams(ctx context.Context, in *GetPaymentParamsRequest, opts ...grpc.CallOption) (*GetPaymentParamsResponse, error)
+	// 处理支付回调。
 	PaymentCallback(ctx context.Context, in *PaymentCallbackRequest, opts ...grpc.CallOption) (*PaymentCallbackResponse, error)
+	// 恢复内购订阅。
 	RestorePurchase(ctx context.Context, in *RestorePurchaseRequest, opts ...grpc.CallOption) (*RestorePurchaseResponse, error)
+	// 获取当前订阅状态。
 	GetSubscription(ctx context.Context, in *GetSubscriptionRequest, opts ...grpc.CallOption) (*GetSubscriptionResponse, error)
+	// 获取订单列表。
 	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
 }
 
@@ -122,13 +131,22 @@ func (c *subscribeServiceClient) ListOrders(ctx context.Context, in *ListOrdersR
 // SubscribeServiceServer is the server API for SubscribeService service.
 // All implementations must embed UnimplementedSubscribeServiceServer
 // for forward compatibility.
+//
+// 订阅、商品与订单服务。
 type SubscribeServiceServer interface {
+	// 获取订阅商品列表。
 	ListProducts(context.Context, *ListProductsRequest) (*ListProductsResponse, error)
+	// 创建订阅订单。
 	CreateOrder(context.Context, *CreateOrderRequest) (*CreateOrderResponse, error)
+	// 获取订单支付参数。
 	GetPaymentParams(context.Context, *GetPaymentParamsRequest) (*GetPaymentParamsResponse, error)
+	// 处理支付回调。
 	PaymentCallback(context.Context, *PaymentCallbackRequest) (*PaymentCallbackResponse, error)
+	// 恢复内购订阅。
 	RestorePurchase(context.Context, *RestorePurchaseRequest) (*RestorePurchaseResponse, error)
+	// 获取当前订阅状态。
 	GetSubscription(context.Context, *GetSubscriptionRequest) (*GetSubscriptionResponse, error)
+	// 获取订单列表。
 	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 	mustEmbedUnimplementedSubscribeServiceServer()
 }

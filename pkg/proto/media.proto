@@ -7,7 +7,9 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 媒体上传与访问服务。
 service MediaService {
+  // 获取文件上传凭证。
   rpc GetUploadToken(GetUploadTokenRequest) returns (GetUploadTokenResponse) {
     option (google.api.http) = {
       post: "/api/v1/media/upload-token"
@@ -15,6 +17,7 @@ service MediaService {
     };
   }
 
+  // 上报文件上传完成。
   rpc ReportUpload(ReportUploadRequest) returns (ReportUploadResponse) {
     option (google.api.http) = {
       post: "/api/v1/media/report-upload"
@@ -22,6 +25,7 @@ service MediaService {
     };
   }
 
+  // 获取文件访问地址。
   rpc GetFileUrl(GetFileUrlRequest) returns (GetFileUrlResponse) {
     option (google.api.http) = {
       get: "/api/v1/media/url"
@@ -30,42 +34,65 @@ service MediaService {
 }
 
 message GetUploadTokenRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 文件名。
   string file_name = 2;
+  // 文件 MIME 类型。
   string content_type = 3;
+  // 上传用途。
   string purpose = 4;
 }
 
 message GetUploadTokenResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 上传地址。
   string upload_url = 2;
+  // 文件 key。
   string file_key = 3;
+  // 表单上传参数。
   map<string, string> form_data = 4;
+  // 上传凭证过期时间戳。
   int64 expires_at = 5;
+  // 上传请求头。
   map<string, string> headers = 6;
+  // 上传方法。
   string upload_method = 7;
+  // 文件公开访问地址。
   string public_url = 8;
+  // 最大允许文件大小。
   int64 max_file_size = 9;
 }
 
 message ReportUploadRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 文件 key。
   string file_key = 2;
+  // 文件大小。
   int64 file_size = 3;
 }
 
 message ReportUploadResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 文件访问地址。
   string file_url = 2;
 }
 
 message GetFileUrlRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 文件 key。
   string file_key = 2;
 }
 
 message GetFileUrlResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 文件临时访问地址。
   string url = 2;
+  // 访问地址过期时间戳。
   int64 expires_at = 3;
 }

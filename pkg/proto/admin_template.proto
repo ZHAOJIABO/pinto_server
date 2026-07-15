@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package bobobeads;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+// Internal admin template service - no HTTP gateway annotation.
+// Authenticated only by service-to-service mTLS + scoped token.
+service AdminTemplateService {
+  rpc PublishTemplate(PublishTemplateRequest) returns (PublishTemplateResponse);
+  rpc UnpublishTemplate(UnpublishTemplateRequest) returns (UnpublishTemplateResponse);
+  rpc GetPublishStatus(GetPublishStatusRequest) returns (GetPublishStatusResponse);
+}
+
+message PublishTemplateRequest {
+  string idempotency_key = 1;
+  uint64 draft_revision_id = 2;
+  string title = 3;
+  string description = 4;
+  int32 category_id = 5;
+  string tags = 6;
+  int32 difficulty = 7;
+  string board_spec = 8;
+  string preview_url = 9;
+  string thumbnail_url = 10;
+  PatternData pattern_data = 11;
+  int32 width = 12;
+  int32 height = 13;
+  int32 color_count = 14;
+  int32 bead_count = 15;
+  string service_token = 16;
+}
+
+message PublishTemplateResponse {
+  uint64 template_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message UnpublishTemplateRequest {
+  uint64 template_id = 1;
+  string reason = 2;
+  string service_token = 3;
+}
+
+message UnpublishTemplateResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message GetPublishStatusRequest {
+  string idempotency_key = 1;
+  string service_token = 2;
+}
+
+message GetPublishStatusResponse {
+  bool found = 1;
+  uint64 template_id = 2;
+  string status = 3;
+}

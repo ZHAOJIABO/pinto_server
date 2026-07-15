@@ -8,7 +8,9 @@ import "common.proto";
 import "auth.proto";
 import "google/api/annotations.proto";
 
+// 社区内容服务。
 service CommunityService {
+  // 发布作品到社区。
   rpc PublishWork(PublishWorkRequest) returns (PublishWorkResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/posts"
@@ -16,24 +18,28 @@ service CommunityService {
     };
   }
 
+  // 从社区下架作品。
   rpc UnpublishWork(UnpublishWorkRequest) returns (UnpublishWorkResponse) {
     option (google.api.http) = {
       delete: "/api/v1/community/posts/{post_id}"
     };
   }
 
+  // 获取社区信息流。
   rpc GetFeed(GetFeedRequest) returns (GetFeedResponse) {
     option (google.api.http) = {
       get: "/api/v1/community/feed"
     };
   }
 
+  // 获取帖子详情。
   rpc GetPostDetail(GetPostDetailRequest) returns (GetPostDetailResponse) {
     option (google.api.http) = {
       get: "/api/v1/community/posts/{post_id}"
     };
   }
 
+  // 点赞帖子。
   rpc LikePost(LikePostRequest) returns (LikePostResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/posts/{post_id}/like"
@@ -41,12 +47,14 @@ service CommunityService {
     };
   }
 
+  // 取消点赞帖子。
   rpc UnlikePost(UnlikePostRequest) returns (UnlikePostResponse) {
     option (google.api.http) = {
       delete: "/api/v1/community/posts/{post_id}/like"
     };
   }
 
+  // 收藏帖子。
   rpc FavoritePost(FavoritePostRequest) returns (FavoritePostResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/posts/{post_id}/favorite"
@@ -54,12 +62,14 @@ service CommunityService {
     };
   }
 
+  // 取消收藏帖子。
   rpc UnfavoritePost(UnfavoritePostRequest) returns (UnfavoritePostResponse) {
     option (google.api.http) = {
       delete: "/api/v1/community/posts/{post_id}/favorite"
     };
   }
 
+  // 添加帖子评论。
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/posts/{post_id}/comments"
@@ -67,12 +77,14 @@ service CommunityService {
     };
   }
 
+  // 获取帖子评论列表。
   rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse) {
     option (google.api.http) = {
       get: "/api/v1/community/posts/{post_id}/comments"
     };
   }
 
+  // 关注用户。
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/users/{user_id}/follow"
@@ -80,12 +92,14 @@ service CommunityService {
     };
   }
 
+  // 取消关注用户。
   rpc UnfollowUser(UnfollowUserRequest) returns (UnfollowUserResponse) {
     option (google.api.http) = {
       delete: "/api/v1/community/users/{user_id}/follow"
     };
   }
 
+  // 举报社区内容。
   rpc ReportContent(ReportContentRequest) returns (ReportContentResponse) {
     option (google.api.http) = {
       post: "/api/v1/community/report"
@@ -95,155 +109,225 @@ service CommunityService {
 }
 
 message PostItem {
+  // 帖子 ID。
   string post_id = 1;
+  // 作者信息。
   UserInfo author = 2;
+  // 关联作品 ID。
   string work_id = 3;
+  // 帖子标题。
   string title = 4;
+  // 帖子描述。
   string description = 5;
+  // 图纸图片地址。
   string pattern_image_url = 6;
+  // 点赞数量。
   int32 like_count = 7;
+  // 收藏数量。
   int32 favorite_count = 8;
+  // 评论数量。
   int32 comment_count = 9;
+  // 当前用户是否已点赞。
   bool is_liked = 10;
+  // 当前用户是否已收藏。
   bool is_favorited = 11;
+  // 创建时间戳。
   int64 created_at = 12;
 }
 
 message CommentItem {
+  // 评论 ID。
   string comment_id = 1;
+  // 评论作者。
   UserInfo author = 2;
+  // 评论内容。
   string content = 3;
+  // 父评论 ID。
   string parent_id = 4;
+  // 创建时间戳。
   int64 created_at = 5;
 }
 
 message PublishWorkRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 作品 ID。
   string work_id = 2;
+  // 发布描述。
   string description = 3;
 }
 
 message PublishWorkResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 新发布的帖子 ID。
   string post_id = 2;
 }
 
 message UnpublishWorkRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message UnpublishWorkResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message GetFeedRequest {
+  // 请求公共头。
   RequestHeader header = 1;
-  string feed_type = 2;  // hot, latest, following
+  // 信息流类型：hot、latest、following。
+  string feed_type = 2;
+  // 分页参数。
   PageRequest page = 3;
 }
 
 message GetFeedResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 帖子列表。
   repeated PostItem posts = 2;
+  // 分页信息。
   PageResponse page = 3;
 }
 
 message GetPostDetailRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message GetPostDetailResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 帖子详情。
   PostItem post = 2;
 }
 
 message LikePostRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message LikePostResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message UnlikePostRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message UnlikePostResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message FavoritePostRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message FavoritePostResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message UnfavoritePostRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
 }
 
 message UnfavoritePostResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message AddCommentRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
+  // 评论内容。
   string content = 3;
+  // 父评论 ID。
   string parent_id = 4;
 }
 
 message AddCommentResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 新增评论 ID。
   string comment_id = 2;
 }
 
 message ListCommentsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 帖子 ID。
   string post_id = 2;
+  // 分页参数。
   PageRequest page = 3;
 }
 
 message ListCommentsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 评论列表。
   repeated CommentItem comments = 2;
+  // 分页信息。
   PageResponse page = 3;
 }
 
 message FollowUserRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 被关注用户 ID。
   string user_id = 2;
 }
 
 message FollowUserResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message UnfollowUserRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 被取消关注用户 ID。
   string user_id = 2;
 }
 
 message UnfollowUserResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message ReportContentRequest {
+  // 请求公共头。
   RequestHeader header = 1;
-  string target_type = 2;  // post, comment
+  // 举报目标类型：post、comment。
+  string target_type = 2;
+  // 举报目标 ID。
   string target_id = 3;
+  // 举报原因。
   string reason = 4;
 }
 
 message ReportContentResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }

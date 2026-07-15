@@ -8,31 +8,37 @@ import "common.proto";
 import "work.proto";
 import "google/api/annotations.proto";
 
+// 系统配置与基础数据服务。
 service SystemService {
+  // 获取应用配置。
   rpc GetAppConfig(GetAppConfigRequest) returns (GetAppConfigResponse) {
     option (google.api.http) = {
       get: "/api/v1/system/config"
     };
   }
 
+  // 检查应用版本更新。
   rpc CheckUpdate(CheckUpdateRequest) returns (CheckUpdateResponse) {
     option (google.api.http) = {
       get: "/api/v1/system/update"
     };
   }
 
+  // 获取首页 Banner 列表。
   rpc GetBanners(GetBannersRequest) returns (GetBannersResponse) {
     option (google.api.http) = {
       get: "/api/v1/system/banners"
     };
   }
 
+  // 获取拼豆颜色库。
   rpc GetBeadColors(GetBeadColorsRequest) returns (GetBeadColorsResponse) {
     option (google.api.http) = {
       get: "/api/v1/system/bead-colors"
     };
   }
 
+  // 获取豆板规格列表。
   rpc GetBoardSpecs(GetBoardSpecsRequest) returns (GetBoardSpecsResponse) {
     option (google.api.http) = {
       get: "/api/v1/system/board-specs"
@@ -41,81 +47,119 @@ service SystemService {
 }
 
 message GetAppConfigRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetAppConfigResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 应用配置键值。
   map<string, string> configs = 2;
 }
 
 message CheckUpdateRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 当前应用版本。
   string current_version = 2;
 }
 
 message CheckUpdateResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 是否有新版本。
   bool has_update = 2;
+  // 是否强制更新。
   bool force_update = 3;
+  // 最新版本号。
   string latest_version = 4;
+  // 下载地址。
   string download_url = 5;
+  // 更新说明。
   string release_notes = 6;
 }
 
 message BannerItem {
+  // Banner ID。
   string banner_id = 1;
+  // Banner 图片地址。
   string image_url = 2;
+  // 跳转类型。
   string link_type = 3;
+  // 跳转目标。
   string link_value = 4;
+  // 排序值。
   int32 sort_order = 5;
 }
 
 message GetBannersRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetBannersResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // Banner 列表。
   repeated BannerItem banners = 2;
 }
 
 message BeadBrand {
+  // 品牌标识。
   string brand = 1;
+  // 品牌展示名。
   string display_name = 2;
+  // 品牌颜色列表。
   repeated BeadColor colors = 3;
 }
 
 message BeadColor {
+  // 色号编码。
   string code = 1;
+  // 颜色名称。
   string name = 2;
+  // 颜色十六进制值。
   string hex = 3;
 }
 
 message GetBeadColorsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 品牌筛选。
   string brand = 2;
 }
 
 message GetBeadColorsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 品牌颜色分组列表。
   repeated BeadBrand brands = 2;
 }
 
 message BoardSpec {
+  // 豆板规格 ID。
   string spec_id = 1;
+  // 豆板名称。
   string name = 2;
+  // 豆板形状。
   string shape = 3;
+  // 豆板宽度。
   int32 width = 4;
+  // 豆板高度。
   int32 height = 5;
+  // 拼豆尺寸。
   string bead_size = 6;
 }
 
 message GetBoardSpecsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetBoardSpecsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 豆板规格列表。
   repeated BoardSpec specs = 2;
 }

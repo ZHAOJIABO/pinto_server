@@ -28,10 +28,16 @@ const (
 // InviteServiceClient is the client API for InviteService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 邀请码与邀请奖励服务。
 type InviteServiceClient interface {
+	// 获取当前用户邀请码。
 	GetInviteCode(ctx context.Context, in *GetInviteCodeRequest, opts ...grpc.CallOption) (*GetInviteCodeResponse, error)
+	// 绑定邀请码。
 	BindInviteCode(ctx context.Context, in *BindInviteCodeRequest, opts ...grpc.CallOption) (*BindInviteCodeResponse, error)
+	// 获取邀请统计。
 	GetInviteStats(ctx context.Context, in *GetInviteStatsRequest, opts ...grpc.CallOption) (*GetInviteStatsResponse, error)
+	// 获取邀请记录列表。
 	ListInviteRecords(ctx context.Context, in *ListInviteRecordsRequest, opts ...grpc.CallOption) (*ListInviteRecordsResponse, error)
 }
 
@@ -86,10 +92,16 @@ func (c *inviteServiceClient) ListInviteRecords(ctx context.Context, in *ListInv
 // InviteServiceServer is the server API for InviteService service.
 // All implementations must embed UnimplementedInviteServiceServer
 // for forward compatibility.
+//
+// 邀请码与邀请奖励服务。
 type InviteServiceServer interface {
+	// 获取当前用户邀请码。
 	GetInviteCode(context.Context, *GetInviteCodeRequest) (*GetInviteCodeResponse, error)
+	// 绑定邀请码。
 	BindInviteCode(context.Context, *BindInviteCodeRequest) (*BindInviteCodeResponse, error)
+	// 获取邀请统计。
 	GetInviteStats(context.Context, *GetInviteStatsRequest) (*GetInviteStatsResponse, error)
+	// 获取邀请记录列表。
 	ListInviteRecords(context.Context, *ListInviteRecordsRequest) (*ListInviteRecordsResponse, error)
 	mustEmbedUnimplementedInviteServiceServer()
 }

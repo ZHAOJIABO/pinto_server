@@ -228,12 +228,19 @@ func TestCompleteGeneration(t *testing.T) {
 	}
 
 	// Verify generation status
-	gen, _ := genService.GetStatus(ctx, result.GenerationID)
+	gen, _ := genService.GetStatus(ctx, userID, result.GenerationID)
 	if gen.Status != model.GenerationStatusCompleted {
 		t.Errorf("expected status=completed(1), got %d", gen.Status)
 	}
 	if gen.WorkID != completeResult.WorkID {
 		t.Errorf("expected work_id=%d, got %d", completeResult.WorkID, gen.WorkID)
+	}
+	savedWork, err := dao.NewWorkDAO().GetByID(ctx, completeResult.WorkID)
+	if err != nil {
+		t.Fatalf("load completed work failed: %v", err)
+	}
+	if savedWork.BeadCount != 421 || savedWork.ColorCount != 1 {
+		t.Fatalf("expected server-derived stats 421 beads and 1 color, got %d beads and %d colors", savedWork.BeadCount, savedWork.ColorCount)
 	}
 
 	_ = creditService
@@ -287,6 +294,27 @@ func TestCompleteGeneration_RequiresPatternData(t *testing.T) {
 	}
 }
 
+func TestCompleteGeneration_RejectsBoardSpecMismatch(t *testing.T) {
+	genService, _ := setupGenerationService(t)
+	ctx := context.Background()
+	userID := uint64(32)
+
+	result, err := genService.CreateGeneration(ctx, userID, "29x29", "photo", "", "wrong-board")
+	if err != nil {
+		t.Fatalf("CreateGeneration failed: %v", err)
+	}
+
+	pattern := validPatternData(3, 3)
+	pattern.BoardSpec = "15x15"
+	_, err = genService.CompleteGeneration(ctx, userID, result.GenerationID, &model.Work{
+		Title:       "wrong board",
+		PatternData: work.PatternDataToJSONMap(pattern),
+	})
+	if err == nil {
+		t.Fatal("expected board_spec mismatch to be rejected")
+	}
+}
+
 func TestCancelGeneration_WithRefund(t *testing.T) {
 	genService, creditService := setupGenerationService(t)
 	ctx := context.Background()
@@ -325,7 +353,7 @@ func TestCancelGeneration_WithRefund(t *testing.T) {
 	}
 
 	// Verify status
-	gen, _ := genService.GetStatus(ctx, result.GenerationID)
+	gen, _ := genService.GetStatus(ctx, userID, result.GenerationID)
 	if gen.Status != model.GenerationStatusCancelled {
 		t.Errorf("expected status=cancelled(2), got %d", gen.Status)
 	}
@@ -392,7 +420,7 @@ func TestExpireTimeoutGenerations(t *testing.T) {
 	}
 
 	// Verify status
-	gen, _ := genService.GetStatus(ctx, result.GenerationID)
+	gen, _ := genService.GetStatus(ctx, userID, result.GenerationID)
 	if gen.Status != model.GenerationStatusExpired {
 		t.Errorf("expected status=expired(3), got %d", gen.Status)
 	}

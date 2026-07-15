@@ -1,0 +1,19 @@
+# This file is merged after conf/server.yaml and must remain untracked.
+# Copy it to conf/server.local.yaml, then add the password hash created by:
+#   read -s ADMIN_PASSWORD
+#   printf '%s\n' "$ADMIN_PASSWORD" | go run ./cmd/admin-password-hash
+#   unset ADMIN_PASSWORD
+mysql:
+  password: "replace-with-local-mysql-password"
+
+oss:
+  # 阿里云 RAM 用户或角色凭据；至少授予目标 Bucket 的 oss:PutObject、oss:GetObject、oss:PutObjectACL。
+  access_key_id: "replace-with-ram-access-key-id"
+  access_key_secret: "replace-with-ram-access-key-secret"
+
+admin:
+  jwt_secret: "replace-with-a-random-local-secret"
+  access_expire_m: 480
+  accounts:
+    - username: "admin"
+      password_hash: "paste-pbkdf2-hash-here"

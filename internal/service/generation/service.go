@@ -21,11 +21,16 @@ import (
 
 var errDuplicateGeneration = errors.New("duplicate generation request")
 
+type AITaskValidator interface {
+	ValidateUserSucceededTask(ctx context.Context, userID uint64, taskID string) error
+}
+
 type Service struct {
 	generationDAO    *dao.GenerationDAO
 	creditService    *credit.Service
 	subscribeService *subscribe.Service
 	workService      *work.Service
+	aiValidator      AITaskValidator
 }
 
 func NewService(
@@ -42,6 +47,10 @@ func NewService(
 	}
 }
 
+func (s *Service) SetAIValidator(v AITaskValidator) {
+	s.aiValidator = v
+}
+
 type CreateResult struct {
 	GenerationID     string
 	CreditsDeducted  int
@@ -53,6 +62,20 @@ type CreateResult struct {
 func (s *Service) CreateGeneration(ctx context.Context, userID uint64, boardSpec, sourceType, sourceID, clientRequestID string) (*CreateResult, error) {
 	if clientRequestID == "" {
 		return nil, apperr.InvalidArgument("client_request_id required")
+	}
+	if strings.TrimSpace(boardSpec) == "" {
+		return nil, apperr.InvalidArgument("board_spec required")
+	}
+
+	if sourceType == "ai_style" {
+		if sourceID == "" {
+			return nil, apperr.InvalidArgument("source_id required for ai_style")
+		}
+		if s.aiValidator != nil {
+			if err := s.aiValidator.ValidateUserSucceededTask(ctx, userID, sourceID); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	cfg := conf.GlobalConfig.Generation
@@ -223,12 +246,16 @@ func (s *Service) CompleteGeneration(ctx context.Context, userID uint64, generat
 		if time.Now().After(gen.ExpiredAt) {
 			return apperr.GenerationExpired()
 		}
-		if workData.PatternData == nil {
-			return apperr.InvalidArgument("pattern_data required")
+		if err := work.NormalizeWorkPatternData(workData); err != nil {
+			return err
+		}
+		if gen.BoardSpec != workData.BoardSpec {
+			return apperr.InvalidArgument("pattern_data.board_spec must match generation board_spec")
 		}
 
-		workData.BoardSpec = gen.BoardSpec
 		workData.UserID = userID
+		workData.SourceType = gen.SourceType
+		workData.SourceID = gen.SourceID
 		workData.Status = 2
 		if err := s.workService.CreateWorkTx(tx, workData); err != nil {
 			return apperr.Internal("save work", err)
@@ -303,8 +330,15 @@ func (s *Service) CancelGeneration(ctx context.Context, userID uint64, generatio
 	return refunded, nil
 }
 
-func (s *Service) GetStatus(ctx context.Context, generationID string) (*model.Generation, error) {
-	return s.generationDAO.GetByGenerationID(ctx, generationID)
+func (s *Service) GetStatus(ctx context.Context, userID uint64, generationID string) (*model.Generation, error) {
+	gen, err := s.generationDAO.GetByGenerationID(ctx, generationID)
+	if err != nil {
+		return nil, apperr.NotFound("generation not found")
+	}
+	if gen.UserID != userID {
+		return nil, apperr.Forbidden("unauthorized")
+	}
+	return gen, nil
 }
 
 func (s *Service) ExpireTimeoutGenerations(ctx context.Context) error {

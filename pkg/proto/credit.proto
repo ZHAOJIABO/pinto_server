@@ -7,13 +7,16 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 积分账户服务。
 service CreditService {
+  // 获取积分余额。
   rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {
     option (google.api.http) = {
       get: "/api/v1/credits/balance"
     };
   }
 
+  // 获取积分流水列表。
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse) {
     option (google.api.http) = {
       get: "/api/v1/credits/transactions"
@@ -22,32 +25,48 @@ service CreditService {
 }
 
 message GetBalanceRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetBalanceResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 当前积分余额。
   int32 balance = 2;
+  // 今日剩余免费次数。
   int32 daily_free_remaining = 3;
+  // 今日免费次数总额。
   int32 daily_free_total = 4;
 }
 
 message TransactionItem {
+  // 流水 ID。
   string transaction_id = 1;
+  // 变动积分数量。
   int32 amount = 2;
+  // 变动后余额。
   int32 balance_after = 3;
+  // 流水类型。
   string type = 4;
+  // 流水说明。
   string description = 5;
+  // 创建时间戳。
   int64 created_at = 6;
 }
 
 message ListTransactionsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分页参数。
   PageRequest page = 2;
 }
 
 message ListTransactionsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 积分流水列表。
   repeated TransactionItem transactions = 2;
+  // 分页信息。
   PageResponse page = 3;
 }

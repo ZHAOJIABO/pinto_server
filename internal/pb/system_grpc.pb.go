@@ -29,11 +29,18 @@ const (
 // SystemServiceClient is the client API for SystemService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 系统配置与基础数据服务。
 type SystemServiceClient interface {
+	// 获取应用配置。
 	GetAppConfig(ctx context.Context, in *GetAppConfigRequest, opts ...grpc.CallOption) (*GetAppConfigResponse, error)
+	// 检查应用版本更新。
 	CheckUpdate(ctx context.Context, in *CheckUpdateRequest, opts ...grpc.CallOption) (*CheckUpdateResponse, error)
+	// 获取首页 Banner 列表。
 	GetBanners(ctx context.Context, in *GetBannersRequest, opts ...grpc.CallOption) (*GetBannersResponse, error)
+	// 获取拼豆颜色库。
 	GetBeadColors(ctx context.Context, in *GetBeadColorsRequest, opts ...grpc.CallOption) (*GetBeadColorsResponse, error)
+	// 获取豆板规格列表。
 	GetBoardSpecs(ctx context.Context, in *GetBoardSpecsRequest, opts ...grpc.CallOption) (*GetBoardSpecsResponse, error)
 }
 
@@ -98,11 +105,18 @@ func (c *systemServiceClient) GetBoardSpecs(ctx context.Context, in *GetBoardSpe
 // SystemServiceServer is the server API for SystemService service.
 // All implementations must embed UnimplementedSystemServiceServer
 // for forward compatibility.
+//
+// 系统配置与基础数据服务。
 type SystemServiceServer interface {
+	// 获取应用配置。
 	GetAppConfig(context.Context, *GetAppConfigRequest) (*GetAppConfigResponse, error)
+	// 检查应用版本更新。
 	CheckUpdate(context.Context, *CheckUpdateRequest) (*CheckUpdateResponse, error)
+	// 获取首页 Banner 列表。
 	GetBanners(context.Context, *GetBannersRequest) (*GetBannersResponse, error)
+	// 获取拼豆颜色库。
 	GetBeadColors(context.Context, *GetBeadColorsRequest) (*GetBeadColorsResponse, error)
+	// 获取豆板规格列表。
 	GetBoardSpecs(context.Context, *GetBoardSpecsRequest) (*GetBoardSpecsResponse, error)
 	mustEmbedUnimplementedSystemServiceServer()
 }

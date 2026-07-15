@@ -37,19 +37,34 @@ const (
 // CommunityServiceClient is the client API for CommunityService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 社区内容服务。
 type CommunityServiceClient interface {
+	// 发布作品到社区。
 	PublishWork(ctx context.Context, in *PublishWorkRequest, opts ...grpc.CallOption) (*PublishWorkResponse, error)
+	// 从社区下架作品。
 	UnpublishWork(ctx context.Context, in *UnpublishWorkRequest, opts ...grpc.CallOption) (*UnpublishWorkResponse, error)
+	// 获取社区信息流。
 	GetFeed(ctx context.Context, in *GetFeedRequest, opts ...grpc.CallOption) (*GetFeedResponse, error)
+	// 获取帖子详情。
 	GetPostDetail(ctx context.Context, in *GetPostDetailRequest, opts ...grpc.CallOption) (*GetPostDetailResponse, error)
+	// 点赞帖子。
 	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
+	// 取消点赞帖子。
 	UnlikePost(ctx context.Context, in *UnlikePostRequest, opts ...grpc.CallOption) (*UnlikePostResponse, error)
+	// 收藏帖子。
 	FavoritePost(ctx context.Context, in *FavoritePostRequest, opts ...grpc.CallOption) (*FavoritePostResponse, error)
+	// 取消收藏帖子。
 	UnfavoritePost(ctx context.Context, in *UnfavoritePostRequest, opts ...grpc.CallOption) (*UnfavoritePostResponse, error)
+	// 添加帖子评论。
 	AddComment(ctx context.Context, in *AddCommentRequest, opts ...grpc.CallOption) (*AddCommentResponse, error)
+	// 获取帖子评论列表。
 	ListComments(ctx context.Context, in *ListCommentsRequest, opts ...grpc.CallOption) (*ListCommentsResponse, error)
+	// 关注用户。
 	FollowUser(ctx context.Context, in *FollowUserRequest, opts ...grpc.CallOption) (*FollowUserResponse, error)
+	// 取消关注用户。
 	UnfollowUser(ctx context.Context, in *UnfollowUserRequest, opts ...grpc.CallOption) (*UnfollowUserResponse, error)
+	// 举报社区内容。
 	ReportContent(ctx context.Context, in *ReportContentRequest, opts ...grpc.CallOption) (*ReportContentResponse, error)
 }
 
@@ -194,19 +209,34 @@ func (c *communityServiceClient) ReportContent(ctx context.Context, in *ReportCo
 // CommunityServiceServer is the server API for CommunityService service.
 // All implementations must embed UnimplementedCommunityServiceServer
 // for forward compatibility.
+//
+// 社区内容服务。
 type CommunityServiceServer interface {
+	// 发布作品到社区。
 	PublishWork(context.Context, *PublishWorkRequest) (*PublishWorkResponse, error)
+	// 从社区下架作品。
 	UnpublishWork(context.Context, *UnpublishWorkRequest) (*UnpublishWorkResponse, error)
+	// 获取社区信息流。
 	GetFeed(context.Context, *GetFeedRequest) (*GetFeedResponse, error)
+	// 获取帖子详情。
 	GetPostDetail(context.Context, *GetPostDetailRequest) (*GetPostDetailResponse, error)
+	// 点赞帖子。
 	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
+	// 取消点赞帖子。
 	UnlikePost(context.Context, *UnlikePostRequest) (*UnlikePostResponse, error)
+	// 收藏帖子。
 	FavoritePost(context.Context, *FavoritePostRequest) (*FavoritePostResponse, error)
+	// 取消收藏帖子。
 	UnfavoritePost(context.Context, *UnfavoritePostRequest) (*UnfavoritePostResponse, error)
+	// 添加帖子评论。
 	AddComment(context.Context, *AddCommentRequest) (*AddCommentResponse, error)
+	// 获取帖子评论列表。
 	ListComments(context.Context, *ListCommentsRequest) (*ListCommentsResponse, error)
+	// 关注用户。
 	FollowUser(context.Context, *FollowUserRequest) (*FollowUserResponse, error)
+	// 取消关注用户。
 	UnfollowUser(context.Context, *UnfollowUserRequest) (*UnfollowUserResponse, error)
+	// 举报社区内容。
 	ReportContent(context.Context, *ReportContentRequest) (*ReportContentResponse, error)
 	mustEmbedUnimplementedCommunityServiceServer()
 }

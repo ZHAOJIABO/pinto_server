@@ -23,8 +23,9 @@ const (
 )
 
 type GetBalanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,13 +68,17 @@ func (x *GetBalanceRequest) GetHeader() *RequestHeader {
 }
 
 type GetBalanceResponse struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Header             *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Balance            int32                  `protobuf:"varint,2,opt,name=balance,proto3" json:"balance,omitempty"`
-	DailyFreeRemaining int32                  `protobuf:"varint,3,opt,name=daily_free_remaining,json=dailyFreeRemaining,proto3" json:"daily_free_remaining,omitempty"`
-	DailyFreeTotal     int32                  `protobuf:"varint,4,opt,name=daily_free_total,json=dailyFreeTotal,proto3" json:"daily_free_total,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 当前积分余额。
+	Balance int32 `protobuf:"varint,2,opt,name=balance,proto3" json:"balance,omitempty"`
+	// 今日剩余免费次数。
+	DailyFreeRemaining int32 `protobuf:"varint,3,opt,name=daily_free_remaining,json=dailyFreeRemaining,proto3" json:"daily_free_remaining,omitempty"`
+	// 今日免费次数总额。
+	DailyFreeTotal int32 `protobuf:"varint,4,opt,name=daily_free_total,json=dailyFreeTotal,proto3" json:"daily_free_total,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetBalanceResponse) Reset() {
@@ -135,13 +140,19 @@ func (x *GetBalanceResponse) GetDailyFreeTotal() int32 {
 }
 
 type TransactionItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TransactionId string                 `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
-	Amount        int32                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-	BalanceAfter  int32                  `protobuf:"varint,3,opt,name=balance_after,json=balanceAfter,proto3" json:"balance_after,omitempty"`
-	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
-	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 流水 ID。
+	TransactionId string `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id,omitempty"`
+	// 变动积分数量。
+	Amount int32 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	// 变动后余额。
+	BalanceAfter int32 `protobuf:"varint,3,opt,name=balance_after,json=balanceAfter,proto3" json:"balance_after,omitempty"`
+	// 流水类型。
+	Type string `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
+	// 流水说明。
+	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	// 创建时间戳。
+	CreatedAt     int64 `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -219,9 +230,11 @@ func (x *TransactionItem) GetCreatedAt() int64 {
 }
 
 type ListTransactionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Page          *PageRequest           `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分页参数。
+	Page          *PageRequest `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -271,10 +284,13 @@ func (x *ListTransactionsRequest) GetPage() *PageRequest {
 }
 
 type ListTransactionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Transactions  []*TransactionItem     `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	Page          *PageResponse          `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 积分流水列表。
+	Transactions []*TransactionItem `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

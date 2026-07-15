@@ -27,8 +27,6 @@ func (h *WorkHandler) SaveWork(ctx context.Context, req *pb.SaveWorkRequest) (*p
 		Title:            req.Title,
 		OriginalImageURL: req.OriginalImageUrl,
 		PatternImageURL:  req.PatternImageUrl,
-		BeadCount:        int(req.BeadCount),
-		ColorCount:       int(req.ColorCount),
 	}
 
 	id, err := h.workService.SaveWork(ctx, userID, w, req.PatternData)
@@ -50,9 +48,9 @@ func (h *WorkHandler) GetWork(ctx context.Context, req *pb.GetWorkRequest) (*pb.
 		return &pb.GetWorkResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
 
-	var patternData *pb.PatternData
-	if w.PatternData != nil {
-		patternData = work.JSONMapToPatternData(w.PatternData)
+	patternData, err := work.DecodePatternData(w.PatternData)
+	if err != nil {
+		return &pb.GetWorkResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
 
 	return &pb.GetWorkResponse{
@@ -65,7 +63,7 @@ func (h *WorkHandler) GetWork(ctx context.Context, req *pb.GetWorkRequest) (*pb.
 func (h *WorkHandler) ListWorks(ctx context.Context, req *pb.ListWorksRequest) (*pb.ListWorksResponse, error) {
 	userID := middleware.GetUserID(ctx)
 	page, pageSize := getPage(req.Page)
-	works, total, err := h.workService.ListWorks(ctx, userID, page, pageSize)
+	works, total, err := h.workService.ListWorks(ctx, userID, page, pageSize, req.SourceType)
 	if err != nil {
 		return &pb.ListWorksResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
@@ -146,6 +144,8 @@ func workToProto(w *model.Work) *pb.WorkItem {
 		Status:           int32(w.Status),
 		CreatedAt:        w.CreatedAt.Unix(),
 		UpdatedAt:        w.UpdatedAt.Unix(),
+		SourceType:       w.SourceType,
+		SourceId:         w.SourceID,
 	}
 }
 

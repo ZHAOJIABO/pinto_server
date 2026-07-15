@@ -7,7 +7,9 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 认证与登录服务。
 service AuthService {
+  // 游客登录并获取访问令牌。
   rpc GuestLogin(GuestLoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/guest"
@@ -15,6 +17,7 @@ service AuthService {
     };
   }
 
+  // 手机号验证码登录。
   rpc PhoneLogin(PhoneLoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/phone"
@@ -22,6 +25,7 @@ service AuthService {
     };
   }
 
+  // 发送短信验证码。
   rpc SendSmsCode(SendSmsCodeRequest) returns (SendSmsCodeResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/sms/send"
@@ -29,6 +33,7 @@ service AuthService {
     };
   }
 
+  // 微信授权登录。
   rpc WechatLogin(WechatLoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/wechat"
@@ -36,6 +41,7 @@ service AuthService {
     };
   }
 
+  // Apple 授权登录。
   rpc AppleLogin(AppleLoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/apple"
@@ -43,6 +49,7 @@ service AuthService {
     };
   }
 
+  // 刷新访问令牌。
   rpc RefreshToken(RefreshTokenRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/refresh"
@@ -52,55 +59,82 @@ service AuthService {
 }
 
 message GuestLoginRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 设备唯一标识。
   string device_id = 2;
 }
 
 message PhoneLoginRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 手机号。
   string phone = 2;
+  // 短信验证码。
   string code = 3;
 }
 
 message SendSmsCodeRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 手机号。
   string phone = 2;
 }
 
 message SendSmsCodeResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message WechatLoginRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 微信登录 code。
   string code = 2;
+  // 登录来源平台。
   Platform platform = 3;
 }
 
 message AppleLoginRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // Apple 身份令牌。
   string identity_token = 2;
+  // Apple 授权码。
   string authorization_code = 3;
+  // Apple 用户姓名。
   string full_name = 4;
 }
 
 message RefreshTokenRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 刷新令牌。
   string refresh_token = 2;
 }
 
 message LoginResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 访问令牌。
   string access_token = 2;
+  // 刷新令牌。
   string refresh_token = 3;
+  // 访问令牌有效期秒数。
   int64 expires_in = 4;
+  // 登录用户信息。
   UserInfo user = 5;
 }
 
 message UserInfo {
+  // 用户 ID。
   string user_id = 1;
+  // 用户昵称。
   string nickname = 2;
+  // 头像地址。
   string avatar_url = 3;
+  // 手机号。
   string phone = 4;
+  // 是否为会员。
   bool is_vip = 5;
 }

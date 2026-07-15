@@ -7,13 +7,16 @@ option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 import "common.proto";
 import "google/api/annotations.proto";
 
+// 订阅、商品与订单服务。
 service SubscribeService {
+  // 获取订阅商品列表。
   rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
     option (google.api.http) = {
       get: "/api/v1/subscribe/products"
     };
   }
 
+  // 创建订阅订单。
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
     option (google.api.http) = {
       post: "/api/v1/subscribe/orders"
@@ -21,12 +24,14 @@ service SubscribeService {
     };
   }
 
+  // 获取订单支付参数。
   rpc GetPaymentParams(GetPaymentParamsRequest) returns (GetPaymentParamsResponse) {
     option (google.api.http) = {
       get: "/api/v1/subscribe/orders/{order_no}/payment"
     };
   }
 
+  // 处理支付回调。
   rpc PaymentCallback(PaymentCallbackRequest) returns (PaymentCallbackResponse) {
     option (google.api.http) = {
       post: "/api/v1/subscribe/callback"
@@ -34,6 +39,7 @@ service SubscribeService {
     };
   }
 
+  // 恢复内购订阅。
   rpc RestorePurchase(RestorePurchaseRequest) returns (RestorePurchaseResponse) {
     option (google.api.http) = {
       post: "/api/v1/subscribe/restore"
@@ -41,12 +47,14 @@ service SubscribeService {
     };
   }
 
+  // 获取当前订阅状态。
   rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse) {
     option (google.api.http) = {
       get: "/api/v1/subscribe/status"
     };
   }
 
+  // 获取订单列表。
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
     option (google.api.http) = {
       get: "/api/v1/subscribe/orders"
@@ -55,100 +63,151 @@ service SubscribeService {
 }
 
 message ProductItem {
+  // 商品 ID。
   string product_id = 1;
+  // 商品 SKU。
   string sku = 2;
+  // 商品名称。
   string name = 3;
+  // 商品描述。
   string description = 4;
+  // 价格，单位分。
   int32 price_cents = 5;
+  // 币种。
   string currency = 6;
+  // 有效天数。
   int32 duration_days = 7;
+  // Apple 内购商品 ID。
   string apple_product_id = 8;
+  // 商品权益列表。
   repeated string features = 9;
 }
 
 message OrderItem {
+  // 订单号。
   string order_no = 1;
+  // 商品名称。
   string product_name = 2;
+  // 支付金额，单位分。
   int32 amount_cents = 3;
+  // 币种。
   string currency = 4;
+  // 支付方式。
   string payment_method = 5;
+  // 订单状态。
   int32 status = 6;
+  // 创建时间戳。
   int64 created_at = 7;
+  // 支付时间戳。
   int64 paid_at = 8;
 }
 
 message ListProductsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message ListProductsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 商品列表。
   repeated ProductItem products = 2;
 }
 
 message CreateOrderRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 商品 ID。
   string product_id = 2;
+  // 支付方式。
   string payment_method = 3;
 }
 
 message CreateOrderResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 订单号。
   string order_no = 2;
 }
 
 message GetPaymentParamsRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 订单号。
   string order_no = 2;
 }
 
 message GetPaymentParamsResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 支付方式。
   string payment_method = 2;
+  // 支付参数。
   map<string, string> params = 3;
 }
 
 message PaymentCallbackRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 支付方式。
   string payment_method = 2;
+  // 支付回调原始数据。
   string raw_data = 3;
 }
 
 message PaymentCallbackResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 是否处理成功。
   bool success = 2;
 }
 
 message RestorePurchaseRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 购买凭证数据。
   string receipt_data = 2;
 }
 
 message RestorePurchaseResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 是否为会员。
   bool is_vip = 2;
+  // 会员过期时间戳。
   int64 expire_at = 3;
 }
 
 message GetSubscriptionRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetSubscriptionResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 是否为会员。
   bool is_vip = 2;
+  // 订阅计划名称。
   string plan_name = 3;
+  // 会员过期时间戳。
   int64 expire_at = 4;
+  // 是否自动续费。
   bool auto_renew = 5;
 }
 
 message ListOrdersRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分页参数。
   PageRequest page = 2;
 }
 
 message ListOrdersResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 订单列表。
   repeated OrderItem orders = 2;
+  // 分页信息。
   PageResponse page = 3;
 }

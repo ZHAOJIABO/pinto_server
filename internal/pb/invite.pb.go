@@ -23,8 +23,9 @@ const (
 )
 
 type GetInviteCodeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,10 +68,13 @@ func (x *GetInviteCodeRequest) GetHeader() *RequestHeader {
 }
 
 type GetInviteCodeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	InviteCode    string                 `protobuf:"bytes,2,opt,name=invite_code,json=inviteCode,proto3" json:"invite_code,omitempty"`
-	ShareUrl      string                 `protobuf:"bytes,3,opt,name=share_url,json=shareUrl,proto3" json:"share_url,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 邀请码。
+	InviteCode string `protobuf:"bytes,2,opt,name=invite_code,json=inviteCode,proto3" json:"invite_code,omitempty"`
+	// 分享链接。
+	ShareUrl      string `protobuf:"bytes,3,opt,name=share_url,json=shareUrl,proto3" json:"share_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -127,9 +131,11 @@ func (x *GetInviteCodeResponse) GetShareUrl() string {
 }
 
 type BindInviteCodeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	InviteCode    string                 `protobuf:"bytes,2,opt,name=invite_code,json=inviteCode,proto3" json:"invite_code,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 邀请码。
+	InviteCode    string `protobuf:"bytes,2,opt,name=invite_code,json=inviteCode,proto3" json:"invite_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -179,9 +185,11 @@ func (x *BindInviteCodeRequest) GetInviteCode() string {
 }
 
 type BindInviteCodeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	RewardCredits int32                  `protobuf:"varint,2,opt,name=reward_credits,json=rewardCredits,proto3" json:"reward_credits,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 绑定奖励积分。
+	RewardCredits int32 `protobuf:"varint,2,opt,name=reward_credits,json=rewardCredits,proto3" json:"reward_credits,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -231,8 +239,9 @@ func (x *BindInviteCodeResponse) GetRewardCredits() int32 {
 }
 
 type GetInviteStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -275,10 +284,13 @@ func (x *GetInviteStatsRequest) GetHeader() *RequestHeader {
 }
 
 type GetInviteStatsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	TotalInvites  int32                  `protobuf:"varint,2,opt,name=total_invites,json=totalInvites,proto3" json:"total_invites,omitempty"`
-	TotalRewards  int32                  `protobuf:"varint,3,opt,name=total_rewards,json=totalRewards,proto3" json:"total_rewards,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 累计邀请人数。
+	TotalInvites int32 `protobuf:"varint,2,opt,name=total_invites,json=totalInvites,proto3" json:"total_invites,omitempty"`
+	// 累计奖励积分。
+	TotalRewards  int32 `protobuf:"varint,3,opt,name=total_rewards,json=totalRewards,proto3" json:"total_rewards,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -335,13 +347,17 @@ func (x *GetInviteStatsResponse) GetTotalRewards() int32 {
 }
 
 type InviteRecord struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	InviteeNickname string                 `protobuf:"bytes,1,opt,name=invitee_nickname,json=inviteeNickname,proto3" json:"invitee_nickname,omitempty"`
-	InviteeAvatar   string                 `protobuf:"bytes,2,opt,name=invitee_avatar,json=inviteeAvatar,proto3" json:"invitee_avatar,omitempty"`
-	RewardCredits   int32                  `protobuf:"varint,3,opt,name=reward_credits,json=rewardCredits,proto3" json:"reward_credits,omitempty"`
-	CreatedAt       int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 被邀请人昵称。
+	InviteeNickname string `protobuf:"bytes,1,opt,name=invitee_nickname,json=inviteeNickname,proto3" json:"invitee_nickname,omitempty"`
+	// 被邀请人头像。
+	InviteeAvatar string `protobuf:"bytes,2,opt,name=invitee_avatar,json=inviteeAvatar,proto3" json:"invitee_avatar,omitempty"`
+	// 本次奖励积分。
+	RewardCredits int32 `protobuf:"varint,3,opt,name=reward_credits,json=rewardCredits,proto3" json:"reward_credits,omitempty"`
+	// 创建时间戳。
+	CreatedAt     int64 `protobuf:"varint,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InviteRecord) Reset() {
@@ -403,9 +419,11 @@ func (x *InviteRecord) GetCreatedAt() int64 {
 }
 
 type ListInviteRecordsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Page          *PageRequest           `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分页参数。
+	Page          *PageRequest `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -455,10 +473,13 @@ func (x *ListInviteRecordsRequest) GetPage() *PageRequest {
 }
 
 type ListInviteRecordsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Records       []*InviteRecord        `protobuf:"bytes,2,rep,name=records,proto3" json:"records,omitempty"`
-	Page          *PageResponse          `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 邀请记录列表。
+	Records []*InviteRecord `protobuf:"bytes,2,rep,name=records,proto3" json:"records,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

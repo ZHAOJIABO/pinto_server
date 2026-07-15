@@ -28,10 +28,16 @@ const (
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 用户资料服务。
 type UserServiceClient interface {
+	// 获取当前用户信息。
 	GetUserInfo(ctx context.Context, in *GetUserInfoRequest, opts ...grpc.CallOption) (*GetUserInfoResponse, error)
+	// 更新当前用户资料。
 	UpdateUserInfo(ctx context.Context, in *UpdateUserInfoRequest, opts ...grpc.CallOption) (*UpdateUserInfoResponse, error)
+	// 绑定手机号。
 	BindPhone(ctx context.Context, in *BindPhoneRequest, opts ...grpc.CallOption) (*BindPhoneResponse, error)
+	// 注销当前账号。
 	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
 }
 
@@ -86,10 +92,16 @@ func (c *userServiceClient) DeleteAccount(ctx context.Context, in *DeleteAccount
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
+//
+// 用户资料服务。
 type UserServiceServer interface {
+	// 获取当前用户信息。
 	GetUserInfo(context.Context, *GetUserInfoRequest) (*GetUserInfoResponse, error)
+	// 更新当前用户资料。
 	UpdateUserInfo(context.Context, *UpdateUserInfoRequest) (*UpdateUserInfoResponse, error)
+	// 绑定手机号。
 	BindPhone(context.Context, *BindPhoneRequest) (*BindPhoneResponse, error)
+	// 注销当前账号。
 	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }

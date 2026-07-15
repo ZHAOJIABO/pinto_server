@@ -2,12 +2,8 @@ package media
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -19,22 +15,55 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 )
 
+const AdminPreviewMaxFileSize = 10 * 1024 * 1024
+
 var purposeConfig = map[string]struct {
 	MaxSize      int64
 	AllowedTypes []string
 }{
-	"original": {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
-	"pattern":  {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
-	"avatar":   {MaxSize: 5 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
-	"feedback": {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"original":      {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
+	"pattern":       {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"avatar":        {MaxSize: 5 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"feedback":      {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"style_input":   {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
+	"ai_output":     {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"admin_preview": {MaxSize: AdminPreviewMaxFileSize, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 }
 
+const adminMediaOwnerID uint64 = 0
+
 type Service struct {
-	mediaDAO *dao.MediaDAO
+	mediaDAO   *dao.MediaDAO
+	storage    ObjectStorage
+	storageErr error
 }
 
 func NewService(mediaDAO *dao.MediaDAO) *Service {
-	return &Service{mediaDAO: mediaDAO}
+	var cfg conf.OSSConfig
+	if conf.GlobalConfig != nil {
+		cfg = conf.GlobalConfig.OSS
+	}
+	storage, err := NewOSSStorage(cfg)
+	return &Service{mediaDAO: mediaDAO, storage: storage, storageErr: err}
+}
+
+// NewServiceWithStorage is used by integration tests and supports a future
+// alternative provider without exposing provider-specific details to callers.
+func NewServiceWithStorage(mediaDAO *dao.MediaDAO, storage ObjectStorage) *Service {
+	if storage == nil {
+		return &Service{mediaDAO: mediaDAO, storageErr: fmt.Errorf("object storage is required")}
+	}
+	return &Service{mediaDAO: mediaDAO, storage: storage}
+}
+
+func (s *Service) objectStorage() (ObjectStorage, error) {
+	if s.storageErr != nil {
+		return nil, apperr.Internal("configure object storage", s.storageErr)
+	}
+	if s.storage == nil {
+		return nil, apperr.Internal("configure object storage", fmt.Errorf("object storage is unavailable"))
+	}
+	return s.storage, nil
 }
 
 type UploadToken struct {
@@ -63,6 +92,15 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 	fileKey := fmt.Sprintf("%s/%d/%02d/%02d/%d/%s%s",
 		purpose, now.Year(), now.Month(), now.Day(), userID, uuid.NewString(), ext)
 
+	storage, err := s.objectStorage()
+	if err != nil {
+		return nil, err
+	}
+	presignedUpload, err := storage.PresignPut(ctx, fileKey, contentType, 30*time.Minute)
+	if err != nil {
+		return nil, apperr.Internal("create OSS upload token", err)
+	}
+
 	asset := &model.MediaAsset{
 		UserID:      userID,
 		FileKey:     fileKey,
@@ -74,22 +112,21 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 		return nil, apperr.Internal("create media asset", err)
 	}
 
-	cfg := conf.GlobalConfig.OSS
-	expiresAt := now.Add(30 * time.Minute)
-	uploadURL := generatePresignedPutURL(cfg, fileKey, contentType, expiresAt)
-
 	headers := map[string]string{
 		"Content-Type": contentType,
 	}
+	for name, value := range presignedUpload.Headers {
+		headers[name] = value
+	}
 
-	publicURL := fmt.Sprintf("https://%s/%s", getPublicDomain(cfg), fileKey)
+	publicURL := storage.PublicURL(fileKey)
 
 	return &UploadToken{
-		UploadURL:    uploadURL,
+		UploadURL:    presignedUpload.URL,
 		FileKey:      fileKey,
 		Headers:      headers,
 		FormData:     map[string]string{},
-		ExpiresAt:    expiresAt.Unix(),
+		ExpiresAt:    presignedUpload.ExpiresAt.Unix(),
 		UploadMethod: http.MethodPut,
 		PublicURL:    publicURL,
 		MaxFileSize:  pc.MaxSize,
@@ -111,40 +148,82 @@ func (s *Service) ReportUpload(ctx context.Context, userID uint64, fileKey strin
 		return "", apperr.Internal("mark uploaded", err)
 	}
 
-	cfg := conf.GlobalConfig.OSS
-	publicURL := fmt.Sprintf("https://%s/%s", getPublicDomain(cfg), fileKey)
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", err
+	}
+	publicURL := storage.PublicURL(fileKey)
 	return publicURL, nil
 }
 
+// GetAdminPreviewUploadToken only creates assets intended to become a public
+// official-template preview. The browser receives a presigned object-storage
+// upload URL, never object-storage credentials.
+func (s *Service) GetAdminPreviewUploadToken(ctx context.Context, fileName, contentType string) (*UploadToken, error) {
+	return s.GetUploadToken(ctx, adminMediaOwnerID, fileName, contentType, "admin_preview")
+}
+
+func (s *Service) ReportAdminPreviewUpload(ctx context.Context, fileKey string, fileSize int64) (string, error) {
+	return s.ReportUpload(ctx, adminMediaOwnerID, fileKey, fileSize)
+}
+
+// UploadAdminPreview receives the small, operator-only preview through the
+// application server, then writes it as a public object. This deliberately
+// avoids browser CORS access and keeps normal user uploads private.
+func (s *Service) UploadAdminPreview(ctx context.Context, contentType string, content []byte) (string, string, error) {
+	if len(content) == 0 {
+		return "", "", apperr.InvalidArgument("preview image is empty")
+	}
+	if len(content) > AdminPreviewMaxFileSize {
+		return "", "", apperr.FileTooLarge(AdminPreviewMaxFileSize)
+	}
+
+	token, err := s.GetAdminPreviewUploadToken(ctx, "official-template-preview.png", contentType)
+	if err != nil {
+		return "", "", err
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", "", err
+	}
+	if err := storage.PutPublic(ctx, token.FileKey, contentType, content); err != nil {
+		return "", "", apperr.Internal("upload admin preview to object storage", err)
+	}
+
+	fileURL, err := s.ReportAdminPreviewUpload(ctx, token.FileKey, int64(len(content)))
+	if err != nil {
+		return "", "", err
+	}
+	return token.FileKey, fileURL, nil
+}
+
+// GetUploadedAdminPreviewURL proves that a file key was created by the admin
+// upload flow and has completed uploading before it can become public template
+// metadata. The public URL is derived server-side instead of accepted from the
+// browser request.
+func (s *Service) GetUploadedAdminPreviewURL(ctx context.Context, fileKey string) (string, error) {
+	asset, err := s.mediaDAO.GetUploadedAsset(ctx, fileKey, adminMediaOwnerID, "admin_preview")
+	if err != nil {
+		return "", apperr.Internal("get admin preview asset", err)
+	}
+	if asset == nil {
+		return "", apperr.Forbidden("admin preview must be uploaded before publishing")
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", err
+	}
+	return storage.PublicURL(asset.FileKey), nil
+}
+
 func (s *Service) GetFileURL(ctx context.Context, fileKey string) (string, int64, error) {
-	cfg := conf.GlobalConfig.OSS
-	domain := getPublicDomain(cfg)
-	url := fmt.Sprintf("https://%s/%s", domain, fileKey)
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", 0, err
+	}
+	url := storage.PublicURL(fileKey)
 	expiresAt := time.Now().Add(2 * time.Hour).Unix()
 	return url, expiresAt, nil
-}
-
-func generatePresignedPutURL(cfg conf.OSSConfig, fileKey, contentType string, expires time.Time) string {
-	expUnix := expires.Unix()
-	stringToSign := fmt.Sprintf("PUT\n\n%s\n%d\n/%s/%s", contentType, expUnix, cfg.BucketName, fileKey)
-
-	mac := hmac.New(sha1.New, []byte(cfg.AccessKeySecret))
-	mac.Write([]byte(stringToSign))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
-	values := url.Values{}
-	values.Set("OSSAccessKeyId", cfg.AccessKeyID)
-	values.Set("Expires", fmt.Sprintf("%d", expUnix))
-	values.Set("Signature", signature)
-
-	return fmt.Sprintf("https://%s.%s/%s?%s", cfg.BucketName, cfg.Endpoint, fileKey, values.Encode())
-}
-
-func getPublicDomain(cfg conf.OSSConfig) string {
-	if cfg.CDNDomain != "" {
-		return cfg.CDNDomain
-	}
-	return fmt.Sprintf("%s.%s", cfg.BucketName, cfg.Endpoint)
 }
 
 func isAllowedType(contentType string, allowed []string) bool {

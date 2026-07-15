@@ -41,6 +41,7 @@ func SetupTestDB(t *testing.T) {
 		&model.Follow{},
 		&model.Template{},
 		&model.TemplateCategory{},
+		&model.TemplateFavorite{},
 		&model.Order{},
 		&model.Product{},
 		&model.Subscription{},
@@ -53,6 +54,9 @@ func SetupTestDB(t *testing.T) {
 		&model.Feedback{},
 		&model.Generation{},
 		&model.MediaAsset{},
+		&model.AIStyle{},
+		&model.AIGeneration{},
+		&model.TemplatePublishRecord{},
 	)
 	if err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)

@@ -8,13 +8,16 @@ import "common.proto";
 import "auth.proto";
 import "google/api/annotations.proto";
 
+// 用户资料服务。
 service UserService {
+  // 获取当前用户信息。
   rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse) {
     option (google.api.http) = {
       get: "/api/v1/user/info"
     };
   }
 
+  // 更新当前用户资料。
   rpc UpdateUserInfo(UpdateUserInfoRequest) returns (UpdateUserInfoResponse) {
     option (google.api.http) = {
       put: "/api/v1/user/info"
@@ -22,6 +25,7 @@ service UserService {
     };
   }
 
+  // 绑定手机号。
   rpc BindPhone(BindPhoneRequest) returns (BindPhoneResponse) {
     option (google.api.http) = {
       post: "/api/v1/user/bind-phone"
@@ -29,6 +33,7 @@ service UserService {
     };
   }
 
+  // 注销当前账号。
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse) {
     option (google.api.http) = {
       delete: "/api/v1/user/account"
@@ -37,40 +42,55 @@ service UserService {
 }
 
 message GetUserInfoRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message GetUserInfoResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 用户信息。
   UserInfo user = 2;
+  // 当前积分余额。
   int32 credit_balance = 3;
+  // 今日剩余免费次数。
   int32 daily_free_remaining = 4;
 }
 
 message UpdateUserInfoRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 用户昵称。
   string nickname = 2;
+  // 头像地址。
   string avatar_url = 3;
 }
 
 message UpdateUserInfoResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message BindPhoneRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 手机号。
   string phone = 2;
+  // 短信验证码。
   string code = 3;
 }
 
 message BindPhoneResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }
 
 message DeleteAccountRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message DeleteAccountResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
 }

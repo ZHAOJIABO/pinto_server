@@ -45,6 +45,15 @@ func (d *WorkDAO) ListByUserID(ctx context.Context, userID uint64, status int8, 
 	return works, total, err
 }
 
+func (d *WorkDAO) ListByUserIDAndSource(ctx context.Context, userID uint64, status int8, sourceType string, offset, limit int) ([]*model.Work, int64, error) {
+	var works []*model.Work
+	var total int64
+	query := d.DB(ctx).Where("user_id = ? AND status = ? AND source_type = ?", userID, status, sourceType)
+	query.Model(&model.Work{}).Count(&total)
+	err := query.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&works).Error
+	return works, total, err
+}
+
 func (d *WorkDAO) Update(ctx context.Context, work *model.Work) error {
 	return d.DB(ctx).Save(work).Error
 }

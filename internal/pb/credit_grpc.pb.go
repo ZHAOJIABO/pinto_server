@@ -26,8 +26,12 @@ const (
 // CreditServiceClient is the client API for CreditService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// 积分账户服务。
 type CreditServiceClient interface {
+	// 获取积分余额。
 	GetBalance(ctx context.Context, in *GetBalanceRequest, opts ...grpc.CallOption) (*GetBalanceResponse, error)
+	// 获取积分流水列表。
 	ListTransactions(ctx context.Context, in *ListTransactionsRequest, opts ...grpc.CallOption) (*ListTransactionsResponse, error)
 }
 
@@ -62,8 +66,12 @@ func (c *creditServiceClient) ListTransactions(ctx context.Context, in *ListTran
 // CreditServiceServer is the server API for CreditService service.
 // All implementations must embed UnimplementedCreditServiceServer
 // for forward compatibility.
+//
+// 积分账户服务。
 type CreditServiceServer interface {
+	// 获取积分余额。
 	GetBalance(context.Context, *GetBalanceRequest) (*GetBalanceResponse, error)
+	// 获取积分流水列表。
 	ListTransactions(context.Context, *ListTransactionsRequest) (*ListTransactionsResponse, error)
 	mustEmbedUnimplementedCreditServiceServer()
 }

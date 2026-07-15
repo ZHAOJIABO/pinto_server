@@ -23,14 +23,19 @@ const (
 )
 
 type PatternData struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Width         int32                  `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
-	Height        int32                  `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
-	BoardSpec     string                 `protobuf:"bytes,3,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
-	PixelRows     [][]byte               `protobuf:"bytes,4,rep,name=pixel_rows,json=pixelRows,proto3" json:"pixel_rows,omitempty"`
-	ColorPalette  []*ColorEntry          `protobuf:"bytes,5,rep,name=color_palette,json=colorPalette,proto3" json:"color_palette,omitempty"`
-	Pixels        []int32                `protobuf:"varint,6,rep,packed,name=pixels,proto3" json:"pixels,omitempty"`
-	SchemaVersion int32                  `protobuf:"varint,7,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 图纸宽度。
+	Width int32 `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`
+	// 图纸高度。
+	Height int32 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
+	// 豆板规格。
+	BoardSpec string `protobuf:"bytes,3,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
+	// 图纸颜色表。
+	ColorPalette []*ColorEntry `protobuf:"bytes,5,rep,name=color_palette,json=colorPalette,proto3" json:"color_palette,omitempty"`
+	// 展平后的像素索引。
+	Pixels []int32 `protobuf:"varint,6,rep,packed,name=pixels,proto3" json:"pixels,omitempty"`
+	// 图纸数据结构版本。
+	SchemaVersion int32 `protobuf:"varint,7,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -86,13 +91,6 @@ func (x *PatternData) GetBoardSpec() string {
 	return ""
 }
 
-func (x *PatternData) GetPixelRows() [][]byte {
-	if x != nil {
-		return x.PixelRows
-	}
-	return nil
-}
-
 func (x *PatternData) GetColorPalette() []*ColorEntry {
 	if x != nil {
 		return x.ColorPalette
@@ -115,12 +113,17 @@ func (x *PatternData) GetSchemaVersion() int32 {
 }
 
 type ColorEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Hex           string                 `protobuf:"bytes,2,opt,name=hex,proto3" json:"hex,omitempty"`
-	Brand         string                 `protobuf:"bytes,3,opt,name=brand,proto3" json:"brand,omitempty"`
-	Code          string                 `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
-	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 颜色索引。
+	Index int32 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	// 颜色十六进制值。
+	Hex string `protobuf:"bytes,2,opt,name=hex,proto3" json:"hex,omitempty"`
+	// 色号品牌。
+	Brand string `protobuf:"bytes,3,opt,name=brand,proto3" json:"brand,omitempty"`
+	// 品牌色号。
+	Code string `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
+	// 颜色名称。
+	Name          string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -191,22 +194,39 @@ func (x *ColorEntry) GetName() string {
 }
 
 type WorkItem struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	WorkId           string                 `protobuf:"bytes,1,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
-	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	OriginalImageUrl string                 `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
-	PatternImageUrl  string                 `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
-	BoardSpec        string                 `protobuf:"bytes,5,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
-	Width            int32                  `protobuf:"varint,6,opt,name=width,proto3" json:"width,omitempty"`
-	Height           int32                  `protobuf:"varint,7,opt,name=height,proto3" json:"height,omitempty"`
-	BeadCount        int32                  `protobuf:"varint,8,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
-	ColorCount       int32                  `protobuf:"varint,9,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
-	Status           int32                  `protobuf:"varint,10,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt        int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	ThumbnailUrl     string                 `protobuf:"bytes,12,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
-	UpdatedAt        int64                  `protobuf:"varint,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 作品 ID。
+	WorkId string `protobuf:"bytes,1,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	// 作品标题。
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// 原图地址。
+	OriginalImageUrl string `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
+	// 图纸图片地址。
+	PatternImageUrl string `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
+	// 豆板规格。
+	BoardSpec string `protobuf:"bytes,5,opt,name=board_spec,json=boardSpec,proto3" json:"board_spec,omitempty"`
+	// 图纸宽度。
+	Width int32 `protobuf:"varint,6,opt,name=width,proto3" json:"width,omitempty"`
+	// 图纸高度。
+	Height int32 `protobuf:"varint,7,opt,name=height,proto3" json:"height,omitempty"`
+	// 拼豆总数。
+	BeadCount int32 `protobuf:"varint,8,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
+	// 颜色数量。
+	ColorCount int32 `protobuf:"varint,9,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	// 作品状态。
+	Status int32 `protobuf:"varint,10,opt,name=status,proto3" json:"status,omitempty"`
+	// 创建时间戳。
+	CreatedAt int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// 缩略图地址。
+	ThumbnailUrl string `protobuf:"bytes,12,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
+	// 更新时间戳。
+	UpdatedAt int64 `protobuf:"varint,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// 作品来源类型。
+	SourceType string `protobuf:"bytes,14,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
+	// 作品来源 ID。
+	SourceId      string `protobuf:"bytes,15,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkItem) Reset() {
@@ -330,17 +350,38 @@ func (x *WorkItem) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *WorkItem) GetSourceType() string {
+	if x != nil {
+		return x.SourceType
+	}
+	return ""
+}
+
+func (x *WorkItem) GetSourceId() string {
+	if x != nil {
+		return x.SourceId
+	}
+	return ""
+}
+
 type SaveWorkRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Header           *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	OriginalImageUrl string                 `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
-	PatternImageUrl  string                 `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
-	PatternData      *PatternData           `protobuf:"bytes,5,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
-	BeadCount        int32                  `protobuf:"varint,6,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
-	ColorCount       int32                  `protobuf:"varint,7,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 作品标题。
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// 原图地址。
+	OriginalImageUrl string `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
+	// 图纸图片地址。
+	PatternImageUrl string `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
+	// 图纸数据。
+	PatternData *PatternData `protobuf:"bytes,5,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	// 客户端展示用统计值；服务端会按 pattern_data 的非零 pixels 重算并忽略该值。
+	BeadCount int32 `protobuf:"varint,6,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
+	// 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
+	ColorCount    int32 `protobuf:"varint,7,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SaveWorkRequest) Reset() {
@@ -423,9 +464,11 @@ func (x *SaveWorkRequest) GetColorCount() int32 {
 }
 
 type SaveWorkResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	WorkId        string                 `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 新保存的作品 ID。
+	WorkId        string `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -475,9 +518,11 @@ func (x *SaveWorkResponse) GetWorkId() string {
 }
 
 type GetWorkRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	WorkId        string                 `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 作品 ID。
+	WorkId        string `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -527,10 +572,13 @@ func (x *GetWorkRequest) GetWorkId() string {
 }
 
 type GetWorkResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Work          *WorkItem              `protobuf:"bytes,2,opt,name=work,proto3" json:"work,omitempty"`
-	PatternData   *PatternData           `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 作品信息。
+	Work *WorkItem `protobuf:"bytes,2,opt,name=work,proto3" json:"work,omitempty"`
+	// 图纸数据。
+	PatternData   *PatternData `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -587,9 +635,13 @@ func (x *GetWorkResponse) GetPatternData() *PatternData {
 }
 
 type ListWorksRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Page          *PageRequest           `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分页参数。
+	Page *PageRequest `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	// 作品来源类型筛选。
+	SourceType    string `protobuf:"bytes,3,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -638,11 +690,21 @@ func (x *ListWorksRequest) GetPage() *PageRequest {
 	return nil
 }
 
+func (x *ListWorksRequest) GetSourceType() string {
+	if x != nil {
+		return x.SourceType
+	}
+	return ""
+}
+
 type ListWorksResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Works         []*WorkItem            `protobuf:"bytes,2,rep,name=works,proto3" json:"works,omitempty"`
-	Page          *PageResponse          `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 作品列表。
+	Works []*WorkItem `protobuf:"bytes,2,rep,name=works,proto3" json:"works,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -699,9 +761,11 @@ func (x *ListWorksResponse) GetPage() *PageResponse {
 }
 
 type DeleteWorkRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	WorkId        string                 `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 作品 ID。
+	WorkId        string `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -751,8 +815,9 @@ func (x *DeleteWorkRequest) GetWorkId() string {
 }
 
 type DeleteWorkResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header        *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -795,15 +860,21 @@ func (x *DeleteWorkResponse) GetHeader() *ResponseHeader {
 }
 
 type SaveDraftRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Header           *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	OriginalImageUrl string                 `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
-	PatternImageUrl  string                 `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
-	PatternData      *PatternData           `protobuf:"bytes,5,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
-	DraftId          string                 `protobuf:"bytes,6,opt,name=draft_id,json=draftId,proto3" json:"draft_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 草稿标题。
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// 原图地址。
+	OriginalImageUrl string `protobuf:"bytes,3,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
+	// 图纸图片地址。
+	PatternImageUrl string `protobuf:"bytes,4,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
+	// 图纸数据。
+	PatternData *PatternData `protobuf:"bytes,5,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	// 草稿 ID，更新时传入。
+	DraftId       string `protobuf:"bytes,6,opt,name=draft_id,json=draftId,proto3" json:"draft_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SaveDraftRequest) Reset() {
@@ -879,9 +950,11 @@ func (x *SaveDraftRequest) GetDraftId() string {
 }
 
 type SaveDraftResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	DraftId       string                 `protobuf:"bytes,2,opt,name=draft_id,json=draftId,proto3" json:"draft_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 保存后的草稿 ID。
+	DraftId       string `protobuf:"bytes,2,opt,name=draft_id,json=draftId,proto3" json:"draft_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -931,9 +1004,11 @@ func (x *SaveDraftResponse) GetDraftId() string {
 }
 
 type ListDraftsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *RequestHeader         `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Page          *PageRequest           `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 分页参数。
+	Page          *PageRequest `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -983,10 +1058,13 @@ func (x *ListDraftsRequest) GetPage() *PageRequest {
 }
 
 type ListDraftsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Header        *ResponseHeader        `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	Drafts        []*WorkItem            `protobuf:"bytes,2,rep,name=drafts,proto3" json:"drafts,omitempty"`
-	Page          *PageResponse          `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 草稿列表。
+	Drafts []*WorkItem `protobuf:"bytes,2,rep,name=drafts,proto3" json:"drafts,omitempty"`
+	// 分页信息。
+	Page          *PageResponse `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1047,24 +1125,23 @@ var File_work_proto protoreflect.FileDescriptor
 const file_work_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"work.proto\x12\fbobobeads.v1\x1a\fcommon.proto\x1a\x1cgoogle/api/annotations.proto\"\xf7\x01\n" +
+	"work.proto\x12\fbobobeads.v1\x1a\fcommon.proto\x1a\x1cgoogle/api/annotations.proto\"\xea\x01\n" +
 	"\vPatternData\x12\x14\n" +
 	"\x05width\x18\x01 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x05R\x06height\x12\x1d\n" +
 	"\n" +
-	"board_spec\x18\x03 \x01(\tR\tboardSpec\x12\x1d\n" +
-	"\n" +
-	"pixel_rows\x18\x04 \x03(\fR\tpixelRows\x12=\n" +
+	"board_spec\x18\x03 \x01(\tR\tboardSpec\x12=\n" +
 	"\rcolor_palette\x18\x05 \x03(\v2\x18.bobobeads.v1.ColorEntryR\fcolorPalette\x12\x16\n" +
 	"\x06pixels\x18\x06 \x03(\x05R\x06pixels\x12%\n" +
-	"\x0eschema_version\x18\a \x01(\x05R\rschemaVersion\"r\n" +
+	"\x0eschema_version\x18\a \x01(\x05R\rschemaVersionJ\x04\b\x04\x10\x05R\n" +
+	"pixel_rows\"r\n" +
 	"\n" +
 	"ColorEntry\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x10\n" +
 	"\x03hex\x18\x02 \x01(\tR\x03hex\x12\x14\n" +
 	"\x05brand\x18\x03 \x01(\tR\x05brand\x12\x12\n" +
 	"\x04code\x18\x04 \x01(\tR\x04code\x12\x12\n" +
-	"\x04name\x18\x05 \x01(\tR\x04name\"\x9b\x03\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\"\xd9\x03\n" +
 	"\bWorkItem\x12\x17\n" +
 	"\awork_id\x18\x01 \x01(\tR\x06workId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12,\n" +
@@ -1084,7 +1161,10 @@ const file_work_proto_rawDesc = "" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12#\n" +
 	"\rthumbnail_url\x18\f \x01(\tR\fthumbnailUrl\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\x03R\tupdatedAt\"\xb4\x02\n" +
+	"updated_at\x18\r \x01(\x03R\tupdatedAt\x12\x1f\n" +
+	"\vsource_type\x18\x0e \x01(\tR\n" +
+	"sourceType\x12\x1b\n" +
+	"\tsource_id\x18\x0f \x01(\tR\bsourceId\"\xb4\x02\n" +
 	"\x0fSaveWorkRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12,\n" +
@@ -1104,10 +1184,12 @@ const file_work_proto_rawDesc = "" +
 	"\x0fGetWorkResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12*\n" +
 	"\x04work\x18\x02 \x01(\v2\x16.bobobeads.v1.WorkItemR\x04work\x12<\n" +
-	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\"v\n" +
+	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\"\x97\x01\n" +
 	"\x10ListWorksRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12-\n" +
-	"\x04page\x18\x02 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\"\xa7\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\x12\x1f\n" +
+	"\vsource_type\x18\x03 \x01(\tR\n" +
+	"sourceType\"\xa7\x01\n" +
 	"\x11ListWorksResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12,\n" +
 	"\x05works\x18\x02 \x03(\v2\x16.bobobeads.v1.WorkItemR\x05works\x12.\n" +

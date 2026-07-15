@@ -8,72 +8,192 @@ import "common.proto";
 import "work.proto";
 import "google/api/annotations.proto";
 
+// 官方图纸模板服务。
 service TemplateService {
-  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse) {
+  // 获取图纸模板详情。
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
     option (google.api.http) = {
-      get: "/api/v1/templates/categories"
+      get: "/api/v1/templates/{template_id}"
     };
   }
 
+  // 获取图纸模板列表。
   rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse) {
     option (google.api.http) = {
       get: "/api/v1/templates"
     };
   }
 
-  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+  // 获取图纸分类列表。
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse) {
     option (google.api.http) = {
-      get: "/api/v1/templates/{template_id}"
+      get: "/api/v1/templates/categories"
+    };
+  }
+
+  // 获取当前用户收藏的图纸模板。
+  rpc ListFavoriteTemplates(ListFavoriteTemplatesRequest) returns (ListFavoriteTemplatesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/favorites"
+    };
+  }
+
+  // 收藏图纸模板。
+  rpc FavoriteTemplate(FavoriteTemplateRequest) returns (FavoriteTemplateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/templates/{template_id}/favorite"
+      body: "*"
+    };
+  }
+
+  // 取消收藏图纸模板。
+  rpc UnfavoriteTemplate(UnfavoriteTemplateRequest) returns (UnfavoriteTemplateResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/templates/{template_id}/favorite"
     };
   }
 }
 
 message CategoryItem {
+  // 分类 ID。
   int32 category_id = 1;
+  // 分类名称。
   string name = 2;
+  // 分类图标地址。
   string icon_url = 3;
+  // 分类下图纸数量。
   int32 template_count = 4;
 }
 
 message TemplateItem {
+  // 图纸 ID。
   string template_id = 1;
+  // 图纸标题。
   string title = 2;
+  // 预览图地址。
   string preview_url = 3;
+  // 豆板规格。
   string board_spec = 4;
+  // 颜色数量。
   int32 color_count = 5;
+  // 是否免费。
   bool is_free = 6;
+  // 兑换所需积分。
   int32 credit_cost = 7;
+  // 下载次数。
   int32 download_count = 8;
+  // 缩略图地址。
+  string thumbnail_url = 9;
+  // 图纸描述。
+  string description = 10;
+  // 标签列表。
+  repeated string tags = 11;
+  // 难度等级。
+  int32 difficulty = 12;
+  // 收藏数量。
+  int32 favorite_count = 13;
+  // 当前用户是否已收藏。
+  bool is_favorited = 14;
+  // 图纸宽度。
+  int32 width = 15;
+  // 图纸高度。
+  int32 height = 16;
 }
 
 message ListCategoriesRequest {
+  // 请求公共头。
   RequestHeader header = 1;
 }
 
 message ListCategoriesResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 分类列表。
   repeated CategoryItem categories = 2;
 }
 
 message ListTemplatesRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 分类 ID。
   int32 category_id = 2;
+  // 分页参数。
   PageRequest page = 3;
+  // 场景筛选。
+  string scene = 4;
+  // 搜索关键词。
+  string keyword = 5;
 }
 
 message ListTemplatesResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 图纸列表。
   repeated TemplateItem templates = 2;
+  // 分页信息。
   PageResponse page = 3;
 }
 
 message GetTemplateRequest {
+  // 请求公共头。
   RequestHeader header = 1;
+  // 图纸 ID。
   string template_id = 2;
 }
 
 message GetTemplateResponse {
+  // 响应公共头。
   ResponseHeader header = 1;
+  // 图纸信息。
   TemplateItem template = 2;
+  // 图纸数据。
   PatternData pattern_data = 3;
+}
+
+message FavoriteTemplateRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 图纸 ID。
+  string template_id = 2;
+}
+
+message FavoriteTemplateResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 当前是否已收藏。
+  bool is_favorited = 2;
+  // 收藏数量。
+  int32 favorite_count = 3;
+}
+
+message UnfavoriteTemplateRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 图纸 ID。
+  string template_id = 2;
+}
+
+message UnfavoriteTemplateResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 当前是否已收藏。
+  bool is_favorited = 2;
+  // 收藏数量。
+  int32 favorite_count = 3;
+}
+
+message ListFavoriteTemplatesRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 分页参数。
+  PageRequest page = 2;
+}
+
+message ListFavoriteTemplatesResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 收藏图纸列表。
+  repeated TemplateItem templates = 2;
+  // 分页信息。
+  PageResponse page = 3;
 }
