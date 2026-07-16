@@ -46,7 +46,7 @@ pattern:
   max_width: 200
   max_height: 200
   max_pixels: 40000
-  max_colors: 128
+  max_colors: 221
 
 ai_generation:
   task_expire_minutes: 30

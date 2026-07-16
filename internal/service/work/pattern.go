@@ -44,7 +44,7 @@ func CalculatePatternStats(p *pb.PatternData) (PatternStats, error) {
 		maxPixels = 40000
 	}
 	if maxColors == 0 {
-		maxColors = 128
+		maxColors = 221
 	}
 
 	if p.Width <= 0 || p.Height <= 0 {

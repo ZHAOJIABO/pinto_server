@@ -31,7 +31,7 @@ func TestAdminPortalPublishesOnlyAuthenticatedUploadedPattern(t *testing.T) {
 	}
 	previousConfig := conf.GlobalConfig
 	conf.GlobalConfig = &conf.Config{
-		Pattern: conf.PatternConfig{MaxWidth: 200, MaxHeight: 200, MaxPixels: 40000, MaxColors: 128},
+		Pattern: conf.PatternConfig{MaxWidth: 200, MaxHeight: 200, MaxPixels: 40000, MaxColors: 221},
 		Admin: conf.AdminConfig{
 			JWTSecret: "admin-test-secret",
 			Accounts: []conf.AdminAccountConfig{{
