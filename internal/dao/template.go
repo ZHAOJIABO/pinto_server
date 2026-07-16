@@ -24,6 +24,43 @@ func (d *TemplateDAO) ListCategories(ctx context.Context) ([]*model.TemplateCate
 	return categories, err
 }
 
+func (d *TemplateDAO) ListActiveCategoryNames(ctx context.Context, categoryIDs []int) (map[int]string, error) {
+	if len(categoryIDs) == 0 {
+		return map[int]string{}, nil
+	}
+
+	var categories []model.TemplateCategory
+	if err := d.DB(ctx).Select("id", "name").
+		Where("status = 1 AND id IN ?", categoryIDs).
+		Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	names := make(map[int]string, len(categories))
+	for _, category := range categories {
+		names[category.ID] = category.Name
+	}
+	return names, nil
+}
+
+func (d *TemplateDAO) GetCategoryByName(ctx context.Context, name string) (*model.TemplateCategory, error) {
+	var category model.TemplateCategory
+	err := d.DB(ctx).Where("name = ?", name).First(&category).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &category, err
+}
+
+func (d *TemplateDAO) GetActiveCategoryByID(ctx context.Context, categoryID int) (*model.TemplateCategory, error) {
+	var category model.TemplateCategory
+	err := d.DB(ctx).Where("id = ? AND status = 1", categoryID).First(&category).Error
+	return &category, err
+}
+
+func (d *TemplateDAO) CreateCategory(ctx context.Context, category *model.TemplateCategory) error {
+	return d.DB(ctx).Create(category).Error
+}
+
 func (d *TemplateDAO) CountByCategory(ctx context.Context, categoryID int) (int64, error) {
 	var count int64
 	err := d.DB(ctx).Model(&model.Template{}).Where("category_id = ? AND status = 1", categoryID).Count(&count).Error
@@ -39,12 +76,19 @@ func (d *TemplateDAO) ListByCategory(ctx context.Context, categoryID int, offset
 	return templates, total, err
 }
 
-func (d *TemplateDAO) ListByScene(ctx context.Context, scene string, offset, limit int) ([]*model.Template, int64, error) {
+func (d *TemplateDAO) ListByScene(ctx context.Context, _ string, offset, limit int) ([]*model.Template, int64, error) {
+	return d.ListPublished(ctx, offset, limit)
+}
+
+func (d *TemplateDAO) ListPublished(ctx context.Context, offset, limit int) ([]*model.Template, int64, error) {
 	var templates []*model.Template
 	var total int64
 	query := d.DB(ctx).Where("status = 1")
 	query.Model(&model.Template{}).Count(&total)
-	err := query.Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
+	err := query.Select(
+		"id", "category_id", "title", "preview_url", "thumbnail_url", "description", "board_spec", "tags",
+		"difficulty", "width", "height", "color_count", "is_free", "credit_cost", "download_count", "favorite_count",
+	).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
 	return templates, total, err
 }
 
@@ -179,9 +223,48 @@ func (d *TemplateDAO) CreateOrUpdateTemplate(ctx context.Context, tpl *model.Tem
 	return tpl.ID, nil
 }
 
-func (d *TemplateDAO) SetTemplateStatus(ctx context.Context, templateID uint64, status int8) error {
-	return d.DB(ctx).Model(&model.Template{}).Where("id = ?", templateID).
-		Update("status", status).Error
+func (d *TemplateDAO) UpdatePublishedTemplate(ctx context.Context, templateID uint64, tpl *model.Template) (bool, error) {
+	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
+		Updates(map[string]interface{}{
+			"category_id":   tpl.CategoryID,
+			"title":         tpl.Title,
+			"preview_url":   tpl.PreviewURL,
+			"thumbnail_url": tpl.ThumbnailURL,
+			"description":   tpl.Description,
+			"pattern_data":  tpl.PatternData,
+			"board_spec":    tpl.BoardSpec,
+			"tags":          tpl.Tags,
+			"difficulty":    tpl.Difficulty,
+			"width":         tpl.Width,
+			"height":        tpl.Height,
+			"color_count":   tpl.ColorCount,
+		})
+	if result.Error != nil || result.RowsAffected > 0 {
+		return result.RowsAffected > 0, result.Error
+	}
+
+	var count int64
+	if err := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (d *TemplateDAO) UnpublishTemplate(ctx context.Context, templateID uint64) (bool, error) {
+	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
+		Update("status", 0)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	if result.RowsAffected > 0 {
+		return true, nil
+	}
+
+	var count int64
+	if err := d.DB(ctx).Model(&model.Template{}).Where("id = ?", templateID).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (d *TemplateDAO) CreatePublishRecord(ctx context.Context, record *model.TemplatePublishRecord) error {
@@ -195,10 +278,4 @@ func (d *TemplateDAO) GetPublishRecordByKey(ctx context.Context, key string) (*m
 		return nil, nil
 	}
 	return &record, err
-}
-
-func (d *TemplateDAO) GetTemplateByIDIncludeInactive(ctx context.Context, id uint64) (*model.Template, error) {
-	var tpl model.Template
-	err := d.DB(ctx).Where("id = ?", id).First(&tpl).Error
-	return &tpl, err
 }

@@ -25,7 +25,7 @@ type ListInput struct {
 }
 
 func (s *Service) ListCategories(ctx context.Context) ([]*model.TemplateCategory, []int64, error) {
-	categories, err := s.templateDAO.ListCategories(ctx)
+	categories, err := s.ListActiveCategories(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -35,6 +35,14 @@ func (s *Service) ListCategories(ctx context.Context) ([]*model.TemplateCategory
 		counts[i] = count
 	}
 	return categories, counts, nil
+}
+
+func (s *Service) ListActiveCategories(ctx context.Context) ([]*model.TemplateCategory, error) {
+	return s.templateDAO.ListCategories(ctx)
+}
+
+func (s *Service) ListActiveCategoryNames(ctx context.Context, categoryIDs []int) (map[int]string, error) {
+	return s.templateDAO.ListActiveCategoryNames(ctx, categoryIDs)
 }
 
 func (s *Service) ListTemplates(ctx context.Context, input ListInput) ([]*model.Template, int64, error) {
@@ -47,6 +55,11 @@ func (s *Service) ListTemplates(ctx context.Context, input ListInput) ([]*model.
 		return s.templateDAO.ListByScene(ctx, input.Scene, offset, input.PageSize)
 	}
 	return s.templateDAO.ListByCategory(ctx, input.CategoryID, offset, input.PageSize)
+}
+
+func (s *Service) ListPublishedTemplates(ctx context.Context, page, pageSize int) ([]*model.Template, int64, error) {
+	offset := (page - 1) * pageSize
+	return s.templateDAO.ListPublished(ctx, offset, pageSize)
 }
 
 func (s *Service) GetTemplate(ctx context.Context, templateID uint64) (*model.Template, error) {

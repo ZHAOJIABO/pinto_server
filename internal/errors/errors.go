@@ -1,23 +1,26 @@
 package errors
 
-import "fmt"
+import (
+	stderrors "errors"
+	"fmt"
+)
 
 const (
-	CodeSuccess            int32 = 0
-	CodeUnauthorized       int32 = 1001
-	CodeTokenExpired       int32 = 1002
-	CodeForbidden          int32 = 1003
-	CodeInvalidArgument    int32 = 1101
-	CodeNotFound           int32 = 1102
-	CodeRateLimited        int32 = 1103
-	CodeInsufficientCredit int32 = 2001
-	CodeGenerationExpired  int32 = 2002
+	CodeSuccess             int32 = 0
+	CodeUnauthorized        int32 = 1001
+	CodeTokenExpired        int32 = 1002
+	CodeForbidden           int32 = 1003
+	CodeInvalidArgument     int32 = 1101
+	CodeNotFound            int32 = 1102
+	CodeRateLimited         int32 = 1103
+	CodeInsufficientCredit  int32 = 2001
+	CodeGenerationExpired   int32 = 2002
 	CodeGenerationCompleted int32 = 2003
-	CodeDuplicateRequest   int32 = 2004
-	CodeUploadTokenFailed  int32 = 3001
-	CodeInvalidFileType    int32 = 3002
-	CodeFileTooLarge       int32 = 3003
-	CodeInternal           int32 = 5000
+	CodeDuplicateRequest    int32 = 2004
+	CodeUploadTokenFailed   int32 = 3001
+	CodeInvalidFileType     int32 = 3002
+	CodeFileTooLarge        int32 = 3003
+	CodeInternal            int32 = 5000
 )
 
 type AppError struct {
@@ -88,6 +91,9 @@ func IsAppError(err error) (*AppError, bool) {
 	if err == nil {
 		return nil, false
 	}
-	ae, ok := err.(*AppError)
-	return ae, ok
+	var appErr *AppError
+	if !stderrors.As(err, &appErr) {
+		return nil, false
+	}
+	return appErr, true
 }

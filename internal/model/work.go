@@ -96,24 +96,24 @@ func (Follow) TableName() string { return "bb_follow" }
 
 type Template struct {
 	BaseModel
-	CategoryID    int    `gorm:"not null" json:"category_id"`
-	Title         string `gorm:"type:varchar(128)" json:"title"`
-	PreviewURL    string `gorm:"type:varchar(512)" json:"preview_url"`
-	ThumbnailURL  string `gorm:"type:varchar(512)" json:"thumbnail_url"`
-	Description   string `gorm:"type:varchar(512)" json:"description"`
+	CategoryID    int     `gorm:"not null" json:"category_id"`
+	Title         string  `gorm:"type:varchar(128)" json:"title"`
+	PreviewURL    string  `gorm:"type:varchar(512)" json:"preview_url"`
+	ThumbnailURL  string  `gorm:"type:varchar(512)" json:"thumbnail_url"`
+	Description   string  `gorm:"type:varchar(512)" json:"description"`
 	PatternData   JSONMap `gorm:"type:json" json:"pattern_data"`
-	BoardSpec     string `gorm:"type:varchar(32)" json:"board_spec"`
-	Tags          string `gorm:"type:varchar(512)" json:"tags"`
-	Difficulty    int8   `gorm:"type:tinyint;default:1" json:"difficulty"`
-	Width         int    `gorm:"default:0" json:"width"`
-	Height        int    `gorm:"default:0" json:"height"`
-	ColorCount    int    `gorm:"default:0" json:"color_count"`
-	IsFree        bool   `gorm:"default:true" json:"is_free"`
-	CreditCost    int    `gorm:"default:0" json:"credit_cost"`
-	DownloadCount int    `gorm:"default:0" json:"download_count"`
-	FavoriteCount int    `gorm:"default:0" json:"favorite_count"`
-	SortOrder     int    `gorm:"default:0" json:"sort_order"`
-	Status        int8   `gorm:"type:tinyint;default:1" json:"status"`
+	BoardSpec     string  `gorm:"type:varchar(32)" json:"board_spec"`
+	Tags          string  `gorm:"type:varchar(512)" json:"tags"`
+	Difficulty    int8    `gorm:"type:tinyint;default:1" json:"difficulty"`
+	Width         int     `gorm:"default:0" json:"width"`
+	Height        int     `gorm:"default:0" json:"height"`
+	ColorCount    int     `gorm:"default:0" json:"color_count"`
+	IsFree        bool    `gorm:"default:true" json:"is_free"`
+	CreditCost    int     `gorm:"default:0" json:"credit_cost"`
+	DownloadCount int     `gorm:"default:0" json:"download_count"`
+	FavoriteCount int     `gorm:"default:0" json:"favorite_count"`
+	SortOrder     int     `gorm:"default:0" json:"sort_order"`
+	Status        int8    `gorm:"type:tinyint;default:1" json:"status"`
 }
 
 func (Template) TableName() string { return "bb_template" }
@@ -127,11 +127,11 @@ type TemplateFavorite struct {
 func (TemplateFavorite) TableName() string { return "bb_template_favorite" }
 
 type TemplateCategory struct {
-	ID       int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name     string    `gorm:"type:varchar(64)" json:"name"`
-	IconURL  string    `gorm:"type:varchar(512)" json:"icon_url"`
-	SortOrder int      `gorm:"default:0" json:"sort_order"`
-	Status   int8      `gorm:"type:tinyint;default:1" json:"status"`
+	ID        int       `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name      string    `gorm:"type:varchar(64);uniqueIndex:uk_template_category_name" json:"name"`
+	IconURL   string    `gorm:"type:varchar(512)" json:"icon_url"`
+	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	Status    int8      `gorm:"type:tinyint;default:1" json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
