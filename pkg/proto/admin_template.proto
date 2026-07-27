@@ -4,6 +4,8 @@ package bobobeads;
 
 option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 
+import "work.proto";
+
 // Internal admin template service - no HTTP gateway annotation.
 // Authenticated only by service-to-service mTLS + scoped token.
 service AdminTemplateService {
@@ -23,7 +25,7 @@ message PublishTemplateRequest {
   string board_spec = 8;
   string preview_url = 9;
   string thumbnail_url = 10;
-  PatternData pattern_data = 11;
+  bobobeads.v1.PatternData pattern_data = 11;
   int32 width = 12;
   int32 height = 13;
   int32 color_count = 14;

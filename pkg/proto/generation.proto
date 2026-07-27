@@ -87,6 +87,8 @@ message CompleteGenerationRequest {
   int32 bead_count = 7;
   // 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
   int32 color_count = 8;
+  // 纯图纸缩略图地址（不含底部色块）。
+  string thumbnail_url = 9;
 }
 
 message CompleteGenerationResponse {

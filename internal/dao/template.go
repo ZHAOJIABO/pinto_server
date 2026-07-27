@@ -67,6 +67,12 @@ func (d *TemplateDAO) CountByCategory(ctx context.Context, categoryID int) (int6
 	return count, err
 }
 
+func (d *TemplateDAO) GetByIDs(ctx context.Context, ids []uint64) ([]*model.Template, error) {
+	var templates []*model.Template
+	err := d.DB(ctx).Where("id IN ? AND status = 1", ids).Find(&templates).Error
+	return templates, err
+}
+
 func (d *TemplateDAO) ListByCategory(ctx context.Context, categoryID int, offset, limit int) ([]*model.Template, int64, error) {
 	var templates []*model.Template
 	var total int64
@@ -278,4 +284,16 @@ func (d *TemplateDAO) GetPublishRecordByKey(ctx context.Context, key string) (*m
 		return nil, nil
 	}
 	return &record, err
+}
+
+func (d *TemplateDAO) GetRandom(ctx context.Context) (*model.Template, error) {
+	var tpl model.Template
+	err := d.DB(ctx).Where("status = 1").Order("RAND()").Limit(1).Find(&tpl).Error
+	if err != nil {
+		return nil, err
+	}
+	if tpl.ID == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return &tpl, nil
 }

@@ -44,6 +44,7 @@ func (h *GenerationHandler) CompleteGeneration(ctx context.Context, req *pb.Comp
 		Title:            req.Title,
 		OriginalImageURL: req.OriginalImageUrl,
 		PatternImageURL:  req.PatternImageUrl,
+		ThumbnailURL:     req.ThumbnailUrl,
 	}
 
 	workData.PatternData = work.PatternDataToJSONMap(req.PatternData)

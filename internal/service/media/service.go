@@ -20,9 +20,10 @@ const AdminPreviewMaxFileSize = 10 * 1024 * 1024
 var purposeConfig = map[string]struct {
 	MaxSize      int64
 	AllowedTypes []string
+	PublicRead   bool
 }{
 	"original":      {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
-	"pattern":       {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+	"pattern":       {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}, PublicRead: true},
 	"avatar":        {MaxSize: 5 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"feedback":      {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"style_input":   {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
@@ -96,7 +97,11 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 	if err != nil {
 		return nil, err
 	}
-	presignedUpload, err := storage.PresignPut(ctx, fileKey, contentType, 30*time.Minute)
+	presignPut := storage.PresignPut
+	if pc.PublicRead {
+		presignPut = storage.PresignPublicPut
+	}
+	presignedUpload, err := presignPut(ctx, fileKey, contentType, 30*time.Minute)
 	if err != nil {
 		return nil, apperr.Internal("create OSS upload token", err)
 	}

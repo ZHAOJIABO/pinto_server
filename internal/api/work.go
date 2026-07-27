@@ -136,6 +136,7 @@ func workToProto(w *model.Work) *pb.WorkItem {
 		Title:            w.Title,
 		OriginalImageUrl: w.OriginalImageURL,
 		PatternImageUrl:  w.PatternImageURL,
+		ThumbnailUrl:     w.ThumbnailURL,
 		BoardSpec:        w.BoardSpec,
 		Width:            int32(w.Width),
 		Height:           int32(w.Height),

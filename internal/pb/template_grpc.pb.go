@@ -25,6 +25,8 @@ const (
 	TemplateService_ListFavoriteTemplates_FullMethodName = "/bobobeads.v1.TemplateService/ListFavoriteTemplates"
 	TemplateService_FavoriteTemplate_FullMethodName      = "/bobobeads.v1.TemplateService/FavoriteTemplate"
 	TemplateService_UnfavoriteTemplate_FullMethodName    = "/bobobeads.v1.TemplateService/UnfavoriteTemplate"
+	TemplateService_RandomTemplate_FullMethodName        = "/bobobeads.v1.TemplateService/RandomTemplate"
+	TemplateService_ListBlindBoxRecords_FullMethodName   = "/bobobeads.v1.TemplateService/ListBlindBoxRecords"
 )
 
 // TemplateServiceClient is the client API for TemplateService service.
@@ -45,6 +47,10 @@ type TemplateServiceClient interface {
 	FavoriteTemplate(ctx context.Context, in *FavoriteTemplateRequest, opts ...grpc.CallOption) (*FavoriteTemplateResponse, error)
 	// 取消收藏图纸模板。
 	UnfavoriteTemplate(ctx context.Context, in *UnfavoriteTemplateRequest, opts ...grpc.CallOption) (*UnfavoriteTemplateResponse, error)
+	// 盲盒：随机返回一个图纸模板。
+	RandomTemplate(ctx context.Context, in *RandomTemplateRequest, opts ...grpc.CallOption) (*RandomTemplateResponse, error)
+	// 盲盒历史：获取用户的开盒记录。
+	ListBlindBoxRecords(ctx context.Context, in *ListBlindBoxRecordsRequest, opts ...grpc.CallOption) (*ListBlindBoxRecordsResponse, error)
 }
 
 type templateServiceClient struct {
@@ -115,6 +121,26 @@ func (c *templateServiceClient) UnfavoriteTemplate(ctx context.Context, in *Unfa
 	return out, nil
 }
 
+func (c *templateServiceClient) RandomTemplate(ctx context.Context, in *RandomTemplateRequest, opts ...grpc.CallOption) (*RandomTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RandomTemplateResponse)
+	err := c.cc.Invoke(ctx, TemplateService_RandomTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *templateServiceClient) ListBlindBoxRecords(ctx context.Context, in *ListBlindBoxRecordsRequest, opts ...grpc.CallOption) (*ListBlindBoxRecordsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBlindBoxRecordsResponse)
+	err := c.cc.Invoke(ctx, TemplateService_ListBlindBoxRecords_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TemplateServiceServer is the server API for TemplateService service.
 // All implementations must embed UnimplementedTemplateServiceServer
 // for forward compatibility.
@@ -133,6 +159,10 @@ type TemplateServiceServer interface {
 	FavoriteTemplate(context.Context, *FavoriteTemplateRequest) (*FavoriteTemplateResponse, error)
 	// 取消收藏图纸模板。
 	UnfavoriteTemplate(context.Context, *UnfavoriteTemplateRequest) (*UnfavoriteTemplateResponse, error)
+	// 盲盒：随机返回一个图纸模板。
+	RandomTemplate(context.Context, *RandomTemplateRequest) (*RandomTemplateResponse, error)
+	// 盲盒历史：获取用户的开盒记录。
+	ListBlindBoxRecords(context.Context, *ListBlindBoxRecordsRequest) (*ListBlindBoxRecordsResponse, error)
 	mustEmbedUnimplementedTemplateServiceServer()
 }
 
@@ -160,6 +190,12 @@ func (UnimplementedTemplateServiceServer) FavoriteTemplate(context.Context, *Fav
 }
 func (UnimplementedTemplateServiceServer) UnfavoriteTemplate(context.Context, *UnfavoriteTemplateRequest) (*UnfavoriteTemplateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnfavoriteTemplate not implemented")
+}
+func (UnimplementedTemplateServiceServer) RandomTemplate(context.Context, *RandomTemplateRequest) (*RandomTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RandomTemplate not implemented")
+}
+func (UnimplementedTemplateServiceServer) ListBlindBoxRecords(context.Context, *ListBlindBoxRecordsRequest) (*ListBlindBoxRecordsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBlindBoxRecords not implemented")
 }
 func (UnimplementedTemplateServiceServer) mustEmbedUnimplementedTemplateServiceServer() {}
 func (UnimplementedTemplateServiceServer) testEmbeddedByValue()                         {}
@@ -290,6 +326,42 @@ func _TemplateService_UnfavoriteTemplate_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TemplateService_RandomTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RandomTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).RandomTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_RandomTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).RandomTemplate(ctx, req.(*RandomTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TemplateService_ListBlindBoxRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBlindBoxRecordsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).ListBlindBoxRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_ListBlindBoxRecords_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).ListBlindBoxRecords(ctx, req.(*ListBlindBoxRecordsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TemplateService_ServiceDesc is the grpc.ServiceDesc for TemplateService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -320,6 +392,14 @@ var TemplateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UnfavoriteTemplate",
 			Handler:    _TemplateService_UnfavoriteTemplate_Handler,
+		},
+		{
+			MethodName: "RandomTemplate",
+			Handler:    _TemplateService_RandomTemplate_Handler,
+		},
+		{
+			MethodName: "ListBlindBoxRecords",
+			Handler:    _TemplateService_ListBlindBoxRecords_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

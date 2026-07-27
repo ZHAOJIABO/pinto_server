@@ -70,6 +70,7 @@ func main() {
 		&model.AIStyle{},
 		&model.AIGeneration{},
 		&model.TemplatePublishRecord{},
+		&model.BlindBoxRecord{},
 	); err != nil {
 		zap.L().Fatal("failed to auto migrate", zap.Error(err))
 	}

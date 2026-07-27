@@ -30,3 +30,6 @@ conf/*.local.yaml
 
 # Flutter Web build artifact, copied to the server during deployment.
 admin-web/build/
+
+# Let's Encrypt account and certificate data. Private keys must remain on ECS.
+certbot/

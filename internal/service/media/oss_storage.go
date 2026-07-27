@@ -25,6 +25,7 @@ type PresignedUpload struct {
 // vendor client and permits deterministic tests without a network connection.
 type ObjectStorage interface {
 	PresignPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
+	PresignPublicPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
 	PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error
 	PublicURL(fileKey string) string
 }
@@ -51,6 +52,7 @@ func NewOSSStorage(cfg conf.OSSConfig) (ObjectStorage, error) {
 		WithRegion(region).
 		WithEndpoint(endpoint).
 		WithSignatureVersion(oss.SignatureVersionV4).
+		WithAdditionalHeaders([]string{"x-oss-object-acl"}).
 		WithHttpClient(&http.Client{Timeout: 30 * time.Second})
 
 	return &ossStorage{
@@ -61,13 +63,28 @@ func NewOSSStorage(cfg conf.OSSConfig) (ObjectStorage, error) {
 }
 
 func (s *ossStorage) PresignPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error) {
+	return s.presignPut(ctx, fileKey, contentType, expires, false)
+}
+
+// PresignPublicPut creates a browser upload grant that makes only the uploaded
+// object publicly readable. The bucket itself remains private.
+func (s *ossStorage) PresignPublicPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error) {
+	return s.presignPut(ctx, fileKey, contentType, expires, true)
+}
+
+func (s *ossStorage) presignPut(ctx context.Context, fileKey, contentType string, expires time.Duration, publicRead bool) (*PresignedUpload, error) {
+	request := &oss.PutObjectRequest{
+		Bucket:      oss.Ptr(s.bucket),
+		Key:         oss.Ptr(fileKey),
+		ContentType: oss.Ptr(contentType),
+	}
+	if publicRead {
+		request.Acl = oss.ObjectACLPublicRead
+	}
+
 	result, err := s.client.Presign(
 		ctx,
-		&oss.PutObjectRequest{
-			Bucket:      oss.Ptr(s.bucket),
-			Key:         oss.Ptr(fileKey),
-			ContentType: oss.Ptr(contentType),
-		},
+		request,
 		oss.PresignExpires(expires),
 	)
 	if err != nil {
@@ -80,8 +97,8 @@ func (s *ossStorage) PresignPut(ctx context.Context, fileKey, contentType string
 	}, nil
 }
 
-// PutPublic uploads an official-template preview with public-read ACL. User
-// uploads use their separate presigned path and continue to inherit private ACL.
+// PutPublic uploads an official-template preview with public-read ACL. Other
+// uploads use their separate presigned path and inherit the private bucket ACL.
 func (s *ossStorage) PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error {
 	contentLength := int64(len(content))
 	_, err := s.client.PutObject(ctx, &oss.PutObjectRequest{

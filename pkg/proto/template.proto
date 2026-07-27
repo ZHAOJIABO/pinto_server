@@ -52,6 +52,20 @@ service TemplateService {
       delete: "/api/v1/templates/{template_id}/favorite"
     };
   }
+
+  // 盲盒：随机返回一个图纸模板。
+  rpc RandomTemplate(RandomTemplateRequest) returns (RandomTemplateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/random"
+    };
+  }
+
+  // 盲盒历史：获取用户的开盒记录。
+  rpc ListBlindBoxRecords(ListBlindBoxRecordsRequest) returns (ListBlindBoxRecordsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/random/history"
+    };
+  }
 }
 
 message CategoryItem {
@@ -193,6 +207,36 @@ message ListFavoriteTemplatesResponse {
   // 响应公共头。
   ResponseHeader header = 1;
   // 收藏图纸列表。
+  repeated TemplateItem templates = 2;
+  // 分页信息。
+  PageResponse page = 3;
+}
+
+message RandomTemplateRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+}
+
+message RandomTemplateResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 随机图纸信息。
+  TemplateItem template = 2;
+  // 图纸数据。
+  PatternData pattern_data = 3;
+}
+
+message ListBlindBoxRecordsRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 分页参数。
+  PageRequest page = 2;
+}
+
+message ListBlindBoxRecordsResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 图纸列表。
   repeated TemplateItem templates = 2;
   // 分页信息。
   PageResponse page = 3;

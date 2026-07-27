@@ -64,7 +64,7 @@ func TestListTemplates_SceneHome(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	templates, total, err := svc.ListTemplates(context.Background(), template.ListInput{
 		Scene: "home", Page: 1, PageSize: 20,
@@ -89,7 +89,7 @@ func TestListTemplates_ByCategoryID(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var cat model.TemplateCategory
 	db.DB.Where("name = ?", "动物").First(&cat)
@@ -112,7 +112,7 @@ func TestListTemplates_Keyword(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	templates, total, err := svc.ListTemplates(context.Background(), template.ListInput{
 		Keyword: "猫", Page: 1, PageSize: 20,
@@ -134,7 +134,7 @@ func TestGetTemplate_WithPatternData(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl)
@@ -155,7 +155,7 @@ func TestGetTemplate_WithPatternData(t *testing.T) {
 func TestGetTemplate_InvalidID(t *testing.T) {
 	SetupTestDB(t)
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	_, err := svc.GetTemplate(context.Background(), 0)
 	if err == nil {
@@ -169,7 +169,7 @@ func TestGetTemplate_ThumbnailFallback(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl)
@@ -187,7 +187,7 @@ func TestFavoriteTemplate_Idempotent(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl)
@@ -219,7 +219,7 @@ func TestUnfavoriteTemplate_Idempotent(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl)
@@ -253,7 +253,7 @@ func TestUnfavoriteTemplate_Idempotent(t *testing.T) {
 func TestFavoriteTemplate_NotFound(t *testing.T) {
 	SetupTestDB(t)
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	_, err := svc.FavoriteTemplate(context.Background(), 1, 99999)
 	if err == nil {
@@ -267,7 +267,7 @@ func TestListFavoriteTemplates(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl1, tpl2 model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl1)
@@ -307,7 +307,7 @@ func TestListCategories_WithCount(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	categories, counts, err := svc.ListCategories(context.Background())
 	if err != nil {
@@ -327,7 +327,7 @@ func TestListTemplates_IsFavorited(t *testing.T) {
 	seedTemplateData(t)
 
 	templateDAO := dao.NewTemplateDAO()
-	svc := template.NewService(templateDAO)
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
 
 	var tpl model.Template
 	db.DB.Where("title = ?", "小猫咪").First(&tpl)

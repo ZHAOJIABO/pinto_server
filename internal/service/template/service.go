@@ -10,10 +10,11 @@ import (
 
 type Service struct {
 	templateDAO *dao.TemplateDAO
+	blindBoxDAO *dao.BlindBoxRecordDAO
 }
 
-func NewService(templateDAO *dao.TemplateDAO) *Service {
-	return &Service{templateDAO: templateDAO}
+func NewService(templateDAO *dao.TemplateDAO, blindBoxDAO *dao.BlindBoxRecordDAO) *Service {
+	return &Service{templateDAO: templateDAO, blindBoxDAO: blindBoxDAO}
 }
 
 type ListInput struct {
@@ -50,6 +51,9 @@ func (s *Service) ListTemplates(ctx context.Context, input ListInput) ([]*model.
 
 	if input.Keyword != "" {
 		return s.templateDAO.ListByKeyword(ctx, input.Keyword, offset, input.PageSize)
+	}
+	if input.CategoryID > 0 {
+		return s.templateDAO.ListByCategory(ctx, input.CategoryID, offset, input.PageSize)
 	}
 	if input.Scene == "home" {
 		return s.templateDAO.ListByScene(ctx, input.Scene, offset, input.PageSize)
@@ -139,4 +143,47 @@ func (s *Service) BatchGetFavorited(ctx context.Context, userID uint64, template
 
 func (s *Service) SplitTags(tags string) []string {
 	return s.templateDAO.SplitTags(tags)
+}
+
+func (s *Service) GetRandomTemplate(ctx context.Context) (*model.Template, error) {
+	tpl, err := s.templateDAO.GetRandom(ctx)
+	if err != nil {
+		return nil, apperr.NotFound("no templates available")
+	}
+	return tpl, nil
+}
+
+func (s *Service) RecordBlindBox(ctx context.Context, userID, templateID uint64) {
+	record := &model.BlindBoxRecord{UserID: userID, TemplateID: templateID}
+	s.blindBoxDAO.Create(ctx, record)
+}
+
+func (s *Service) ListBlindBoxRecords(ctx context.Context, userID uint64, page, pageSize int) ([]*model.Template, int64, error) {
+	offset := (page - 1) * pageSize
+	records, total, err := s.blindBoxDAO.ListByUserID(ctx, userID, offset, pageSize)
+	if err != nil {
+		return nil, 0, apperr.Internal("list blind box records", err)
+	}
+	if len(records) == 0 {
+		return nil, 0, nil
+	}
+	templateIDs := make([]uint64, 0, len(records))
+	for _, r := range records {
+		templateIDs = append(templateIDs, r.TemplateID)
+	}
+	templates, err := s.templateDAO.GetByIDs(ctx, templateIDs)
+	if err != nil {
+		return nil, 0, apperr.Internal("get templates", err)
+	}
+	templateMap := make(map[uint64]*model.Template, len(templates))
+	for _, t := range templates {
+		templateMap[t.ID] = t
+	}
+	result := make([]*model.Template, 0, len(records))
+	for _, r := range records {
+		if t, ok := templateMap[r.TemplateID]; ok {
+			result = append(result, t)
+		}
+	}
+	return result, total, nil
 }

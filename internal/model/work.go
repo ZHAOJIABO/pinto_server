@@ -12,6 +12,7 @@ type Work struct {
 	Title            string  `gorm:"type:varchar(128)" json:"title"`
 	OriginalImageURL string  `gorm:"type:varchar(512)" json:"original_image_url"`
 	PatternImageURL  string  `gorm:"type:varchar(512)" json:"pattern_image_url"`
+	ThumbnailURL     string  `gorm:"type:varchar(512)" json:"thumbnail_url"`
 	PatternData      JSONMap `gorm:"type:json" json:"pattern_data"`
 	BoardSpec        string  `gorm:"type:varchar(32)" json:"board_spec"`
 	Width            int     `gorm:"type:int" json:"width"`

@@ -62,7 +62,7 @@ func TestAdminPortalPublishesOnlyAuthenticatedUploadedPattern(t *testing.T) {
 	handler := api.NewAdminPortalHTTPHandler(
 		adminauth.NewAuthService(conf.GlobalConfig.Admin),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 
@@ -132,7 +132,7 @@ func TestAdminPortalRejectsInvalidPassword(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(dao.NewTemplateDAO()),
+		templateservice.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(dao.NewTemplateDAO()),
 	)
 
@@ -168,7 +168,7 @@ func TestAdminPortalUploadsPreviewThroughApplicationServer(t *testing.T) {
 	handler := api.NewAdminPortalHTTPHandler(
 		adminauth.NewAuthService(conf.GlobalConfig.Admin),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
@@ -248,7 +248,7 @@ func TestAdminPortalListsPublishedTemplates(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
@@ -302,7 +302,7 @@ func TestAdminPortalListsPublishedTemplates(t *testing.T) {
 	if len(item.Tags) == 0 {
 		t.Fatalf("expected tags array, got %#v", item.Tags)
 	}
-	summaries, _, err := templateservice.NewService(templateDAO).ListPublishedTemplates(context.Background(), 1, 1)
+	summaries, _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).ListPublishedTemplates(context.Background(), 1, 1)
 	if err != nil || len(summaries) != 1 || summaries[0].PatternData != nil {
 		t.Fatalf("template list must not load pattern data, summaries=%#v err=%v", summaries, err)
 	}
@@ -352,7 +352,7 @@ func TestAdminPortalUnpublishValidatesReasonAndIsIdempotent(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
@@ -388,10 +388,10 @@ func TestAdminPortalUnpublishValidatesReasonAndIsIdempotent(t *testing.T) {
 	if err := db.DB.First(template, template.ID).Error; err != nil || template.Status != 0 {
 		t.Fatalf("expected template to be unpublished, template=%#v err=%v", template, err)
 	}
-	if _, err := templateservice.NewService(templateDAO).GetTemplate(context.Background(), template.ID); err == nil {
+	if _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).GetTemplate(context.Background(), template.ID); err == nil {
 		t.Fatal("unpublished template must not be visible through client template service")
 	}
-	published, total, err := templateservice.NewService(templateDAO).ListTemplates(context.Background(), templateservice.ListInput{
+	published, total, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).ListTemplates(context.Background(), templateservice.ListInput{
 		Scene: "home", Page: 1, PageSize: 20,
 	})
 	if err != nil || total != 0 || len(published) != 0 {
@@ -412,7 +412,7 @@ func TestAdminPortalCreatesTemplateCategory(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 
@@ -507,7 +507,7 @@ func TestAdminPortalGetsAndUpdatesTemplate(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
@@ -644,7 +644,7 @@ func TestAdminPortalListUsesAccessiblePreviewURL(t *testing.T) {
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
@@ -678,6 +678,14 @@ func (s *memoryObjectStorage) PresignPut(_ context.Context, fileKey, _ string, e
 	return &media.PresignedUpload{
 		URL:       "https://uploads.example.test/" + fileKey,
 		Headers:   map[string]string{},
+		ExpiresAt: time.Now().Add(expires),
+	}, nil
+}
+
+func (s *memoryObjectStorage) PresignPublicPut(_ context.Context, fileKey, _ string, expires time.Duration) (*media.PresignedUpload, error) {
+	return &media.PresignedUpload{
+		URL:       "https://uploads.example.test/" + fileKey,
+		Headers:   map[string]string{"X-Oss-Object-Acl": "public-read"},
 		ExpiresAt: time.Now().Add(expires),
 	}, nil
 }

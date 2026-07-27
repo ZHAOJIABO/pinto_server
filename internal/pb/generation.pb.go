@@ -210,7 +210,9 @@ type CompleteGenerationRequest struct {
 	// 客户端展示用统计值；服务端会按 pattern_data 的非零 pixels 重算并忽略该值。
 	BeadCount int32 `protobuf:"varint,7,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
 	// 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
-	ColorCount    int32 `protobuf:"varint,8,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	ColorCount int32 `protobuf:"varint,8,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
+	// 纯图纸缩略图地址（不含底部色块）。
+	ThumbnailUrl  string `protobuf:"bytes,9,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +301,13 @@ func (x *CompleteGenerationRequest) GetColorCount() int32 {
 		return x.ColorCount
 	}
 	return 0
+}
+
+func (x *CompleteGenerationRequest) GetThumbnailUrl() string {
+	if x != nil {
+		return x.ThumbnailUrl
+	}
+	return ""
 }
 
 type CompleteGenerationResponse struct {
@@ -630,7 +639,7 @@ const file_generation_proto_rawDesc = "" +
 	"expires_at\x18\x05 \x01(\x03R\texpiresAt\x12\x1e\n" +
 	"\n" +
 	"duplicated\x18\x06 \x01(\bR\n" +
-	"duplicated\"\xe3\x02\n" +
+	"duplicated\"\x88\x03\n" +
 	"\x19CompleteGenerationRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12#\n" +
 	"\rgeneration_id\x18\x02 \x01(\tR\fgenerationId\x12\x14\n" +
@@ -641,7 +650,8 @@ const file_generation_proto_rawDesc = "" +
 	"\n" +
 	"bead_count\x18\a \x01(\x05R\tbeadCount\x12\x1f\n" +
 	"\vcolor_count\x18\b \x01(\x05R\n" +
-	"colorCount\"\x8b\x01\n" +
+	"colorCount\x12#\n" +
+	"\rthumbnail_url\x18\t \x01(\tR\fthumbnailUrl\"\x8b\x01\n" +
 	"\x1aCompleteGenerationResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12\x17\n" +
 	"\awork_id\x18\x02 \x01(\tR\x06workId\x12\x1e\n" +

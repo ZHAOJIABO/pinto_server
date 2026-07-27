@@ -22,19 +22,20 @@ import (
 
 type ServiceProvider struct {
 	// DAOs
-	UserDAO         *dao.UserDAO
-	WorkDAO         *dao.WorkDAO
-	CommunityDAO    *dao.CommunityDAO
-	TemplateDAO     *dao.TemplateDAO
-	OrderDAO        *dao.OrderDAO
-	ProductDAO      *dao.ProductDAO
-	SubscriptionDAO *dao.SubscriptionDAO
-	CreditDAO       *dao.CreditDAO
-	InviteDAO       *dao.InviteDAO
-	SystemDAO       *dao.SystemDAO
-	GenerationDAO   *dao.GenerationDAO
-	MediaDAO        *dao.MediaDAO
-	AIGenerationDAO *dao.AIGenerationDAO
+	UserDAO            *dao.UserDAO
+	WorkDAO            *dao.WorkDAO
+	CommunityDAO       *dao.CommunityDAO
+	TemplateDAO        *dao.TemplateDAO
+	BlindBoxRecordDAO  *dao.BlindBoxRecordDAO
+	OrderDAO           *dao.OrderDAO
+	ProductDAO         *dao.ProductDAO
+	SubscriptionDAO    *dao.SubscriptionDAO
+	CreditDAO          *dao.CreditDAO
+	InviteDAO          *dao.InviteDAO
+	SystemDAO          *dao.SystemDAO
+	GenerationDAO      *dao.GenerationDAO
+	MediaDAO           *dao.MediaDAO
+	AIGenerationDAO    *dao.AIGenerationDAO
 
 	// Services
 	AuthService          *auth.Service
@@ -84,6 +85,7 @@ func (sp *ServiceProvider) initDAOs() {
 	sp.WorkDAO = dao.NewWorkDAO()
 	sp.CommunityDAO = dao.NewCommunityDAO()
 	sp.TemplateDAO = dao.NewTemplateDAO()
+	sp.BlindBoxRecordDAO = dao.NewBlindBoxRecordDAO()
 	sp.OrderDAO = dao.NewOrderDAO()
 	sp.ProductDAO = dao.NewProductDAO()
 	sp.SubscriptionDAO = dao.NewSubscriptionDAO()
@@ -102,7 +104,7 @@ func (sp *ServiceProvider) initServices() {
 	sp.WorkService = work.NewService(sp.WorkDAO)
 	sp.MediaService = media.NewService(sp.MediaDAO)
 	sp.CommunityService = community.NewService(sp.CommunityDAO)
-	sp.TemplateService = template.NewService(sp.TemplateDAO)
+	sp.TemplateService = template.NewService(sp.TemplateDAO, sp.BlindBoxRecordDAO)
 	sp.TemplateAdminService = template.NewAdminService(sp.TemplateDAO)
 	sp.SubscribeService = subscribe.NewService(sp.OrderDAO, sp.ProductDAO, sp.SubscriptionDAO)
 	sp.CreditService = credit.NewService(sp.CreditDAO)
