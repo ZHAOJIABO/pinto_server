@@ -13,6 +13,10 @@ oss:
 jwt:
   secret: "replace-with-a-random-user-jwt-secret"
 
+ai_generation:
+  vector_engine:
+    api_key: "replace-with-vectorengine-api-key"
+
 admin:
   jwt_secret: "replace-with-a-random-admin-jwt-secret"
   accounts:

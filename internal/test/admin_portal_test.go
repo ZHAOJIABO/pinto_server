@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -662,7 +664,9 @@ func TestAdminPortalListUsesAccessiblePreviewURL(t *testing.T) {
 
 type memoryObjectStorage struct {
 	publicBaseURL string
+	mu            sync.Mutex
 	objects       map[string][]byte
+	contentTypes  map[string]string
 	contentType   string
 	publicRead    bool
 }
@@ -671,7 +675,15 @@ func newMemoryObjectStorage(publicBaseURL string) *memoryObjectStorage {
 	return &memoryObjectStorage{
 		publicBaseURL: strings.TrimRight(publicBaseURL, "/"),
 		objects:       make(map[string][]byte),
+		contentTypes:  make(map[string]string),
 	}
+}
+
+func (s *memoryObjectStorage) put(fileKey, contentType string, content []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.objects[fileKey] = append([]byte(nil), content...)
+	s.contentTypes[fileKey] = contentType
 }
 
 func (s *memoryObjectStorage) PresignPut(_ context.Context, fileKey, _ string, expires time.Duration) (*media.PresignedUpload, error) {
@@ -691,10 +703,25 @@ func (s *memoryObjectStorage) PresignPublicPut(_ context.Context, fileKey, _ str
 }
 
 func (s *memoryObjectStorage) PutPublic(_ context.Context, fileKey, contentType string, content []byte) error {
+	s.mu.Lock()
 	s.contentType = contentType
 	s.publicRead = true
-	s.objects[fileKey] = append([]byte(nil), content...)
+	s.mu.Unlock()
+	s.put(fileKey, contentType, content)
 	return nil
+}
+
+func (s *memoryObjectStorage) Get(_ context.Context, fileKey string, maxSize int64) ([]byte, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	content, ok := s.objects[fileKey]
+	if !ok {
+		return nil, "", fmt.Errorf("object %s not found", fileKey)
+	}
+	if int64(len(content)) > maxSize {
+		return nil, "", fmt.Errorf("object %s exceeds %d bytes", fileKey, maxSize)
+	}
+	return append([]byte(nil), content...), s.contentTypes[fileKey], nil
 }
 
 func (s *memoryObjectStorage) PublicURL(fileKey string) string {

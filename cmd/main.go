@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/zhaojiabo/bobobeads_server/conf"
 	"github.com/zhaojiabo/bobobeads_server/internal/bootstrap"
 	"github.com/zhaojiabo/bobobeads_server/internal/db"
+	"github.com/zhaojiabo/bobobeads_server/internal/logger"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
@@ -32,11 +35,7 @@ func main() {
 		panic(fmt.Sprintf("failed to init config: %v", err))
 	}
 
-	logger, _ := zap.NewDevelopment()
-	if conf.IsProd() {
-		logger, _ = zap.NewProduction()
-	}
-	zap.ReplaceGlobals(logger)
+	logger.Init()
 	defer logger.Sync()
 
 	if err := db.InitMySQL(); err != nil {
@@ -85,6 +84,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			middleware.TraceInterceptor(),
+			middleware.LoggingInterceptor(time.Second),
 			middleware.ServiceAuthInterceptor(),
 			middleware.PlatformInterceptor(),
 			middleware.AuthInterceptor(sp.AuthService),
@@ -128,7 +128,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(gatewayHeaderMatcher))
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	grpcAddr := fmt.Sprintf("localhost:%d", grpcPort)
 
@@ -153,7 +153,7 @@ func main() {
 	httpPort := conf.GlobalConfig.Server.HTTPPort
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
-		Handler: corsMiddleware(rootMux),
+		Handler: middleware.HTTPLogging(2 * time.Second)(corsMiddleware(rootMux)),
 	}
 
 	go func() {
@@ -167,8 +167,11 @@ func main() {
 	genTimeoutProcessor := task.NewGenerationTimeoutProcessor(sp.GenerationService)
 	genTimeoutProcessor.Start()
 
-	aiProcessor := task.NewAIGenerationProcessor(sp.AIGenerationService)
+	aiProcessor := task.NewAIGenerationProcessor(sp.AIGenerationService,
+		time.Duration(conf.GlobalConfig.AIGeneration.WorkerInterval)*time.Second)
 	aiProcessor.Start()
+
+	sp.AIDispatcher.Start()
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -178,13 +181,24 @@ func main() {
 	zap.L().Info("shutting down...")
 	genTimeoutProcessor.Stop()
 	aiProcessor.Stop()
+	// Before the servers: it waits for provider calls already paid for.
+	sp.AIDispatcher.Stop()
 	grpcServer.GracefulStop()
 	httpServer.Shutdown(ctx)
 	zap.L().Info("server stopped")
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// gatewayHeaderMatcher forwards the client headers the gRPC interceptors read;
+// runtime.DefaultHeaderMatcher drops non-standard ones.
+func gatewayHeaderMatcher(key string) (string, bool) {
+	switch strings.ToLower(key) {
+	case "x-request-id", "x-platform", "x-app-version", "x-device-id":
+		return strings.ToLower(key), true
+	}
+	return runtime.DefaultHeaderMatcher(key)
+}
+
+func corsMiddleware(next http.Handler) http.Handler {	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Platform, X-App-Version, X-Device-Id")

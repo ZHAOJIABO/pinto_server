@@ -510,7 +510,7 @@ GET /api/v1/ai/style-generations/{task_id}
     "styleId": "1",
     "styleName": "水彩风格",
     "inputImageUrl": "https://cdn/input.png",
-    "outputImageUrl": "https://fake-ai-output.example.com/result.png",
+    "outputImageUrl": "https://pinto-test.oss-cn-beijing.aliyuncs.com/ai_output/2026/07/27/xxx.png",
     "status": 2,
     "creditsDeducted": 2,
     "errorMessage": "",
@@ -544,7 +544,7 @@ GET /api/v1/ai/style-generations
       "styleId": "1",
       "styleName": "",
       "inputImageUrl": "",
-      "outputImageUrl": "https://fake-ai-output.example.com/result.png",
+      "outputImageUrl": "https://pinto-test.oss-cn-beijing.aliyuncs.com/ai_output/2026/07/27/xxx.png",
       "status": 2,
       "creditsDeducted": 2,
       "errorMessage": "",
@@ -1241,4 +1241,4 @@ VALUES (<your_user_id>, 'style_input/test/fake-input.png', 'style_input', 'image
 
 然后用 `style_input/test/fake-input.png` 作为 `input_file_key` 调用 CreateStyleGeneration。
 
-> 注意：本地开发环境 `fake_provider=true`，AI 生成会立即返回成功，无需等待。
+> 注意：本地开发环境 `fake_provider=true`，创建任务后返回 `status=0(pending)`，调度器异步执行，通常 1~2 秒后轮询到 `status=2`。

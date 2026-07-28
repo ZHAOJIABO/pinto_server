@@ -30,7 +30,7 @@ func InitMySQL() error {
 			TablePrefix:   "bb_",
 			SingularTable: true,
 		},
-		Logger:      logger.Default.LogMode(logLevel),
+		Logger:      newGormLogger(logLevel, 200*time.Millisecond),
 		PrepareStmt: true,
 	})
 	if err != nil {

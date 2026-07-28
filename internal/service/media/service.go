@@ -221,6 +221,75 @@ func (s *Service) GetUploadedAdminPreviewURL(ctx context.Context, fileKey string
 	return storage.PublicURL(asset.FileKey), nil
 }
 
+// GetPurposeMaxSize exposes the configured size ceiling so callers that buffer
+// object content in memory can bound their reads.
+func GetPurposeMaxSize(purpose string) (int64, bool) {
+	pc, ok := purposeConfig[purpose]
+	if !ok {
+		return 0, false
+	}
+	return pc.MaxSize, true
+}
+
+// GetObjectBytes reads an uploaded object owned by userID for the given
+// purpose. User uploads are private objects, so callers cannot fetch them over
+// the public URL and must go through object storage.
+func (s *Service) GetObjectBytes(ctx context.Context, userID uint64, fileKey, purpose string) ([]byte, string, error) {
+	pc, ok := purposeConfig[purpose]
+	if !ok {
+		return nil, "", apperr.InvalidArgument("invalid purpose: " + purpose)
+	}
+	asset, err := s.mediaDAO.GetUploadedAsset(ctx, fileKey, userID, purpose)
+	if err != nil {
+		return nil, "", apperr.Internal("get media asset", err)
+	}
+	if asset == nil {
+		return nil, "", apperr.Forbidden("file not found or not owned by user")
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return nil, "", err
+	}
+	content, contentType, err := storage.Get(ctx, asset.FileKey, pc.MaxSize)
+	if err != nil {
+		return nil, "", apperr.Internal("read object from object storage", err)
+	}
+	if contentType == "" {
+		contentType = asset.ContentType
+	}
+	return content, contentType, nil
+}
+
+// UploadAIOutput stores a generated image as a public object so the client can
+// render it directly from the returned URL.
+func (s *Service) UploadAIOutput(ctx context.Context, userID uint64, contentType string, content []byte) (string, string, error) {
+	if len(content) == 0 {
+		return "", "", apperr.InvalidArgument("ai output image is empty")
+	}
+	pc := purposeConfig["ai_output"]
+	if int64(len(content)) > pc.MaxSize {
+		return "", "", apperr.FileTooLarge(pc.MaxSize)
+	}
+
+	token, err := s.GetUploadToken(ctx, userID, "ai-output", contentType, "ai_output")
+	if err != nil {
+		return "", "", err
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", "", err
+	}
+	if err := storage.PutPublic(ctx, token.FileKey, contentType, content); err != nil {
+		return "", "", apperr.Internal("upload ai output to object storage", err)
+	}
+
+	fileURL, err := s.ReportUpload(ctx, userID, token.FileKey, int64(len(content)))
+	if err != nil {
+		return "", "", err
+	}
+	return token.FileKey, fileURL, nil
+}
+
 func (s *Service) GetFileURL(ctx context.Context, fileKey string) (string, int64, error) {
 	storage, err := s.objectStorage()
 	if err != nil {

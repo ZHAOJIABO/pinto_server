@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI 风格转换 · 运行时链路",
+    "subtitle": "从客户端提交到结果图落回 OSS：一条主路径 + 外部依赖与信任边界",
+    "output": "ai-style-transfer-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "submit",
+        "label": "提交阶段（同步 ~13ms）",
+        "focus": [
+          "client",
+          "gateway",
+          "aisvc",
+          "mysql"
+        ],
+        "note": "鉴权 → 幂等 → 配额 → 扣积分 → 写 pending 行，然后立刻返回 task_id。"
+      },
+      {
+        "id": "execute",
+        "label": "执行阶段（后台 ~30s）",
+        "focus": [
+          "mysql",
+          "dispatcher",
+          "worker",
+          "provider",
+          "vendor"
+        ],
+        "note": "Dispatcher 按空闲槽位 CAS 抢占任务，Worker 独立 goroutine 调用第三方。"
+      },
+      {
+        "id": "storage",
+        "label": "图片进出与回收",
+        "focus": [
+          "worker",
+          "oss",
+          "reaper",
+          "mysql"
+        ],
+        "note": "私有原图走 SDK 读取，结果图 public-read 写回 ai_output/；失败与卡死由 Reaper 退积分。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "Flutter 客户端",
+      "sublabel": "选图 → 选风格 → 轮询",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ],
+      "tag": "Bearer JWT"
+    },
+    {
+      "id": "gateway",
+      "type": "backend",
+      "label": "HTTP / gRPC 网关",
+      "sublabel": "grpc-gateway :8080",
+      "pos": [
+        290,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ],
+      "tag": "鉴权拦截器"
+    },
+    {
+      "id": "aisvc",
+      "type": "backend",
+      "label": "AI 风格转换服务",
+      "sublabel": "幂等 · 配额 · 扣积分",
+      "pos": [
+        540,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ]
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL 8.0",
+      "sublabel": "ai_generation / credit / style",
+      "pos": [
+        790,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ],
+      "tag": "状态即真相"
+    },
+    {
+      "id": "dispatcher",
+      "type": "backend",
+      "label": "Dispatcher",
+      "sublabel": "信号量 10 · CAS 抢占",
+      "pos": [
+        1040,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ]
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Task Worker",
+      "sublabel": "goroutine · 180s deadline",
+      "pos": [
+        1290,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ]
+    },
+    {
+      "id": "provider",
+      "type": "backend",
+      "label": "VectorEngine Provider",
+      "sublabel": "multipart · 重试 1 次",
+      "pos": [
+        1540,
+        300
+      ],
+      "size": [
+        160,
+        66
+      ]
+    },
+    {
+      "id": "vendor",
+      "type": "external",
+      "label": "api.vectorengine.cn",
+      "sublabel": "/v1/images/edits · gpt-image-2",
+      "pos": [
+        1790,
+        300
+      ],
+      "size": [
+        170,
+        66
+      ],
+      "tag": "同步返 base64"
+    },
+    {
+      "id": "oss",
+      "type": "cloud",
+      "label": "阿里云 OSS pinto-test",
+      "sublabel": "style_input 私有 / ai_output 公读",
+      "pos": [
+        1275,
+        500
+      ],
+      "size": [
+        190,
+        66
+      ]
+    },
+    {
+      "id": "reaper",
+      "type": "backend",
+      "label": "Reaper",
+      "sublabel": "过期 + 卡死回收",
+      "pos": [
+        790,
+        500
+      ],
+      "size": [
+        160,
+        66
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "bobobeads-server 单实例进程",
+      "wraps": [
+        "gateway",
+        "aisvc",
+        "dispatcher",
+        "worker",
+        "provider",
+        "reaper"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "信任边界 · JWT 鉴权后",
+      "wraps": [
+        "gateway",
+        "aisvc"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "submit",
+      "from": "client",
+      "to": "gateway",
+      "label": "POST 提交",
+      "variant": "emphasis"
+    },
+    {
+      "id": "route",
+      "from": "gateway",
+      "to": "aisvc",
+      "label": "gRPC",
+      "variant": "emphasis"
+    },
+    {
+      "id": "persist",
+      "from": "aisvc",
+      "to": "mysql",
+      "label": "扣分 + 落库",
+      "variant": "emphasis"
+    },
+    {
+      "id": "claim",
+      "from": "mysql",
+      "to": "dispatcher",
+      "label": "CAS 抢占",
+      "variant": "emphasis"
+    },
+    {
+      "id": "run",
+      "from": "dispatcher",
+      "to": "worker",
+      "label": "占槽运行",
+      "variant": "emphasis"
+    },
+    {
+      "id": "call",
+      "from": "worker",
+      "to": "provider",
+      "label": "原图字节",
+      "variant": "emphasis"
+    },
+    {
+      "id": "vendor-call",
+      "from": "provider",
+      "to": "vendor",
+      "label": "HTTPS ~30s",
+      "variant": "emphasis"
+    },
+    {
+      "id": "images",
+      "from": "worker",
+      "to": "oss",
+      "label": "读原图 / 写输出",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "refund",
+      "from": "reaper",
+      "to": "mysql",
+      "label": "失败退积分",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "主链路",
+      "items": [
+        "客户端提交 → 网关鉴权 → 服务扣分落库",
+        "Dispatcher 抢占 → Worker 调第三方 → 结果写回 OSS",
+        "创建接口 ~13ms 返回 task_id，status=0"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "并发与配额",
+      "items": [
+        "max_concurrency=10 为进程内信号量，不是第三方限制",
+        "免费 1 并发 / 3 排队，会员 2 / 10",
+        "排队超限返 2005，不扣积分、不创建任务",
+        "吞吐约 10 ÷ 30s ≈ 20 任务/分钟"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "时间与失败",
+      "items": [
+        "单次尝试 180s，仅连接层错误重试 1 次",
+        "卡死 running 15min、排队过期 30min 由 Reaper 回收",
+        "所有失败与超时自动退还积分（最多一次）"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "信任边界与外部依赖",
+      "items": [
+        "客户端只持 JWT，永不接触第三方凭据",
+        "第三方 API Key 只在未提交的 conf/server.local.yaml",
+        "style_input 是私有对象，必须走 SDK 读字节",
+        "base64 图片内容不写 DB、不写日志"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "未画进连线的辅助链路",
+      "items": [
+        "图片由客户端预签名直传 OSS，不经过服务器",
+        "轮询 GET /style-generations/{taskId} 复用同一网关",
+        "Redis 只服务鉴权与限流，不参与本链路"
+      ]
+    }
+  ]
+}

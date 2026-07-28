@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"time"
+
 	"github.com/zhaojiabo/bobobeads_server/conf"
 	"github.com/zhaojiabo/bobobeads_server/internal/api"
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
@@ -18,6 +20,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/service/template"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/user"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
+	"go.uber.org/zap"
 )
 
 type ServiceProvider struct {
@@ -53,6 +56,10 @@ type ServiceProvider struct {
 	ReportService        *report.Service
 	GenerationService    *generation.Service
 	AIGenerationService  *ai_generation.Service
+
+	// AIDispatcher owns the worker pool that executes AI tasks; main starts and
+	// stops it alongside the servers.
+	AIDispatcher *ai_generation.Dispatcher
 
 	// Handlers
 	AuthHandler          *api.AuthHandler
@@ -113,15 +120,73 @@ func (sp *ServiceProvider) initServices() {
 	sp.ReportService = report.NewService(sp.SystemDAO)
 	sp.GenerationService = generation.NewService(sp.GenerationDAO, sp.CreditService, sp.SubscribeService, sp.WorkService)
 
-	var provider ai_generation.Provider
-	provider = ai_generation.NewFakeProvider()
-
-	aiCfg := ai_generation.Config{
-		TaskExpireMinutes: conf.GlobalConfig.AIGeneration.TaskExpireMinutes,
-	}
-	sp.AIGenerationService = ai_generation.NewService(sp.AIGenerationDAO, sp.MediaDAO, sp.CreditService, provider, aiCfg)
+	sp.initAIGeneration()
 
 	sp.GenerationService.SetAIValidator(sp.AIGenerationService)
+}
+
+func (sp *ServiceProvider) initAIGeneration() {
+	cfg := conf.GlobalConfig.AIGeneration
+
+	// Fail closed: the fake provider still charges credits, so shipping it to
+	// production would bill users for a placeholder image.
+	if cfg.FakeProvider && conf.IsProd() {
+		zap.L().Fatal("ai_generation.fake_provider must be false in production")
+	}
+
+	var provider ai_generation.Provider
+	if cfg.FakeProvider {
+		provider = ai_generation.NewFakeProvider()
+	} else {
+		// The client timeout is only a backstop behind the per-attempt context
+		// deadline, so it must sit above it.
+		vectorEngine, err := ai_generation.NewVectorEngineProvider(cfg.VectorEngine,
+			time.Duration(cfg.ProviderTimeoutSec+20)*time.Second)
+		if err != nil {
+			zap.L().Fatal("build ai provider failed", zap.Error(err))
+		}
+		provider = vectorEngine
+	}
+
+	registry := ai_generation.NewRegistry(firstNonEmpty(cfg.ProviderName, provider.Name()), provider)
+
+	sp.AIGenerationService = ai_generation.NewService(
+		sp.AIGenerationDAO,
+		sp.MediaDAO,
+		sp.CreditService,
+		sp.MediaService,
+		sp.SubscribeService,
+		registry,
+		ai_generation.Config{
+			TaskExpireMinutes:   cfg.TaskExpireMinutes,
+			StuckRunningMinutes: cfg.StuckRunningMinutes,
+			FreeConcurrent:      cfg.FreeConcurrent,
+			FreeQueueSize:       cfg.FreeQueueSize,
+			VIPConcurrent:       cfg.VIPConcurrent,
+			VIPQueueSize:        cfg.VIPQueueSize,
+		},
+	)
+
+	sp.AIDispatcher = ai_generation.NewDispatcher(sp.AIGenerationService, ai_generation.DispatcherConfig{
+		MaxConcurrency: cfg.MaxConcurrency,
+		BatchSize:      cfg.DispatchBatchSize,
+		Interval:       time.Duration(cfg.DispatchIntervalMS) * time.Millisecond,
+		TaskTimeout:    time.Duration(cfg.ProviderTimeoutSec) * time.Second,
+	})
+	sp.AIGenerationService.SetDispatchNotifier(sp.AIDispatcher.Notify)
+
+	zap.L().Info("ai generation configured",
+		zap.Strings("providers", registry.Names()),
+		zap.Bool("fake_provider", cfg.FakeProvider))
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func (sp *ServiceProvider) initHandlers() {

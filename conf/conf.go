@@ -144,6 +144,36 @@ type AIGenerationConfig struct {
 	WorkerInterval    int    `mapstructure:"worker_interval"`
 	FakeProvider      bool   `mapstructure:"fake_provider"`
 	ProviderName      string `mapstructure:"provider_name"`
+
+	// MaxConcurrency is the ceiling on generation requests in flight towards the
+	// provider. The provider itself imposes no limit, so this is our own
+	// throttle on burst cost and memory; with more than one server instance,
+	// divide it by the instance count because the semaphore is process-local.
+	MaxConcurrency      int `mapstructure:"max_concurrency"`
+	DispatchIntervalMS  int `mapstructure:"dispatch_interval_ms"`
+	DispatchBatchSize   int `mapstructure:"dispatch_batch_size"`
+	ProviderTimeoutSec  int `mapstructure:"provider_timeout_sec"`
+	StuckRunningMinutes int `mapstructure:"stuck_running_minutes"`
+
+	FreeConcurrent int `mapstructure:"free_concurrent"`
+	FreeQueueSize  int `mapstructure:"free_queue_size"`
+	VIPConcurrent  int `mapstructure:"vip_concurrent"`
+	VIPQueueSize   int `mapstructure:"vip_queue_size"`
+
+	VectorEngine VectorEngineConfig `mapstructure:"vector_engine"`
+}
+
+// VectorEngineConfig holds the credentials and defaults for the third-party
+// image edit endpoint. Keep api_key in an untracked local override, never in
+// the shared YAML.
+type VectorEngineConfig struct {
+	BaseURL    string `mapstructure:"base_url"`
+	APIKey     string `mapstructure:"api_key"`
+	Model      string `mapstructure:"model"`
+	Size       string `mapstructure:"size"`
+	Quality    string `mapstructure:"quality"`
+	Background string `mapstructure:"background"`
+	Moderation string `mapstructure:"moderation"`
 }
 
 func Init(configPath string) error {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ type ObjectStorage interface {
 	PresignPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
 	PresignPublicPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
 	PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error
+	Get(ctx context.Context, fileKey string, maxSize int64) ([]byte, string, error)
 	PublicURL(fileKey string) string
 }
 
@@ -110,6 +112,33 @@ func (s *ossStorage) PutPublic(ctx context.Context, fileKey, contentType string,
 		Body:          bytes.NewReader(content),
 	})
 	return err
+}
+
+// Get reads a private object. maxSize caps how much is buffered so a malicious
+// or unexpectedly large object cannot exhaust process memory.
+func (s *ossStorage) Get(ctx context.Context, fileKey string, maxSize int64) ([]byte, string, error) {
+	result, err := s.client.GetObject(ctx, &oss.GetObjectRequest{
+		Bucket: oss.Ptr(s.bucket),
+		Key:    oss.Ptr(fileKey),
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	defer result.Body.Close()
+
+	content, err := io.ReadAll(io.LimitReader(result.Body, maxSize+1))
+	if err != nil {
+		return nil, "", err
+	}
+	if int64(len(content)) > maxSize {
+		return nil, "", fmt.Errorf("object %s exceeds %d bytes", fileKey, maxSize)
+	}
+
+	contentType := ""
+	if result.ContentType != nil {
+		contentType = *result.ContentType
+	}
+	return content, contentType, nil
 }
 
 func (s *ossStorage) PublicURL(fileKey string) string {

@@ -964,4 +964,4 @@ ON DUPLICATE KEY UPDATE balance = balance + 100;
 "
 ```
 
-> 本地环境 `fake_provider=true`，AI 生成会立即完成，无需轮询等待。
+> 本地环境 `fake_provider=true`，创建任务后立即返回 `status=0(pending)`，由调度器异步执行，通常 1~2 秒内变为 `status=2`，仍需轮询一次。

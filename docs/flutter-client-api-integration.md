@@ -359,7 +359,7 @@ sequenceDiagram
 | `4` | cancelled | 当前没有取消接口，按失败态处理 |
 | `5` | expired | 提示任务超时，允许重新创建 |
 
-本地开发环境当前使用 fake provider，创建任务后通常很快返回 `status=2`，`outputImageUrl` 是 fake 域名。
+创建任务只入队，返回 `status=0(pending)`，客户端必须轮询。本地开发环境使用 fake provider，通常 1~2 秒内变为 `status=2`，输出图与线上一样存在我们自己的 OSS 上。
 
 ### 5.5 AI 输出图转拼豆图纸
 
@@ -949,7 +949,7 @@ GET /api/v1/ai/style-generations/{taskId}
     "styleId": "1",
     "styleName": "",
     "inputImageUrl": "",
-    "outputImageUrl": "https://fake-ai-output.example.com/xxx.png",
+    "outputImageUrl": "https://pinto-test.oss-cn-beijing.aliyuncs.com/ai_output/2026/07/27/xxx.png",
     "status": 2,
     "creditsDeducted": 2,
     "errorMessage": "",
@@ -1041,7 +1041,7 @@ POST /api/v1/generation/{generationId}/complete
 ```json
 {
   "title": "我的水彩图纸",
-  "originalImageUrl": "https://fake-ai-output.example.com/xxx.png",
+  "originalImageUrl": "https://pinto-test.oss-cn-beijing.aliyuncs.com/ai_output/2026/07/27/xxx.png",
   "patternImageUrl": "https://cdn/pattern/xxx.png",
   "patternData": {
     "width": 3,
@@ -1392,7 +1392,7 @@ GET /api/v1/system/board-specs
 4. `ListAIStyles` 当前忽略分页，返回所有 active styles。
 5. `AIGenerationItem.styleName` 当前不会填充，客户端可用 `styleId` 本地映射。
 6. `AIGenerationItem.inputImageUrl` 当前可能为空，显示输入图时用本地文件或 `ReportUploadResponse.fileUrl`。
-7. 本地开发 AI provider 是 fake provider，输出 URL 是 `https://fake-ai-output.example.com/...`。
+7. 本地开发 AI provider 是 fake provider，输出的是一张占位图，但和线上一样落在我们的 OSS `ai_output/` 下。
 8. `CreditService.GetBalance.dailyFreeRemaining` 当前没有计算，UI 不要展示为真实剩余次数。
 9. `RequestHeader` 在 proto 中存在，但 REST 客户端主要通过 HTTP headers 传平台、token 和 device id。
 10. 业务错误通常在 HTTP 200 的 `header.code` 中，不能只看 HTTP status。

@@ -21,8 +21,8 @@ redis:
 oss:
   endpoint: https://oss-cn-beijing.aliyuncs.com
   region: cn-beijing
-  bucket: pinto-test
-  public_base_url: https://pinto-test.oss-cn-beijing.aliyuncs.com
+  bucket: pintoo
+  public_base_url: https://pintoo.oss-cn-beijing.aliyuncs.com
   access_key_id: ""
   access_key_secret: ""
 
@@ -51,8 +51,28 @@ pattern:
 ai_generation:
   task_expire_minutes: 30
   worker_interval: 30
-  fake_provider: true
-  provider_name: fake
+  fake_provider: false
+  provider_name: vectorengine
+  # 第三方不限并发，这里是我们自己的节流阀：先保守起步，按线上排队时延再上调。
+  # 信号量是进程内的，多实例部署时需按实例数均分这个值。
+  max_concurrency: 10
+  dispatch_interval_ms: 2000
+  dispatch_batch_size: 200
+  provider_timeout_sec: 180
+  stuck_running_minutes: 15
+  free_concurrent: 1
+  free_queue_size: 3
+  vip_concurrent: 2
+  vip_queue_size: 10
+  # api_key 通过未提交的 conf/server.production.local.yaml 注入
+  vector_engine:
+    base_url: "https://api.vectorengine.cn"
+    api_key: ""
+    model: "gpt-image-2"
+    size: "1024x1024"
+    quality: "medium"
+    background: "auto"
+    moderation: "auto"
 
 admin:
   jwt_secret: ""

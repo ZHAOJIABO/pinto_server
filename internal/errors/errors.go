@@ -17,6 +17,7 @@ const (
 	CodeGenerationExpired   int32 = 2002
 	CodeGenerationCompleted int32 = 2003
 	CodeDuplicateRequest    int32 = 2004
+	CodeTaskQuotaExceeded   int32 = 2005
 	CodeUploadTokenFailed   int32 = 3001
 	CodeInvalidFileType     int32 = 3002
 	CodeFileTooLarge        int32 = 3003
@@ -73,6 +74,13 @@ func InsufficientCredits(balance, need int) *AppError {
 
 func GenerationExpired() *AppError {
 	return &AppError{Code: CodeGenerationExpired, Message: "generation expired"}
+}
+
+func TaskQuotaExceeded(current, limit int) *AppError {
+	return &AppError{
+		Code:    CodeTaskQuotaExceeded,
+		Message: fmt.Sprintf("task quota exceeded: %d running or queued, limit %d", current, limit),
+	}
 }
 
 func Internal(msg string, cause error) *AppError {

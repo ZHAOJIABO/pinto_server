@@ -52,6 +52,7 @@ func AuthInterceptor(authService *auth.Service) grpc.UnaryServerInterceptor {
 		}
 
 		ctx = context.WithValue(ctx, UserIDKey, userID)
+		setLogUserID(ctx, userID)
 		return handler(ctx, req)
 	}
 }
