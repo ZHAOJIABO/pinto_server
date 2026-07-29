@@ -20,10 +20,9 @@ const AdminPreviewMaxFileSize = 10 * 1024 * 1024
 var purposeConfig = map[string]struct {
 	MaxSize      int64
 	AllowedTypes []string
-	PublicRead   bool
 }{
 	"original":      {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
-	"pattern":       {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}, PublicRead: true},
+	"pattern":       {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"avatar":        {MaxSize: 5 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"feedback":      {MaxSize: 10 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"style_input":   {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
@@ -97,11 +96,7 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 	if err != nil {
 		return nil, err
 	}
-	presignPut := storage.PresignPut
-	if pc.PublicRead {
-		presignPut = storage.PresignPublicPut
-	}
-	presignedUpload, err := presignPut(ctx, fileKey, contentType, 30*time.Minute)
+	presignedUpload, err := storage.PresignPublicPut(ctx, fileKey, contentType, 30*time.Minute)
 	if err != nil {
 		return nil, apperr.Internal("create OSS upload token", err)
 	}
@@ -174,7 +169,7 @@ func (s *Service) ReportAdminPreviewUpload(ctx context.Context, fileKey string, 
 
 // UploadAdminPreview receives the small, operator-only preview through the
 // application server, then writes it as a public object. This deliberately
-// avoids browser CORS access and keeps normal user uploads private.
+// avoids browser CORS access.
 func (s *Service) UploadAdminPreview(ctx context.Context, contentType string, content []byte) (string, string, error) {
 	if len(content) == 0 {
 		return "", "", apperr.InvalidArgument("preview image is empty")
@@ -232,8 +227,8 @@ func GetPurposeMaxSize(purpose string) (int64, bool) {
 }
 
 // GetObjectBytes reads an uploaded object owned by userID for the given
-// purpose. User uploads are private objects, so callers cannot fetch them over
-// the public URL and must go through object storage.
+// purpose. Ownership is still verified before the service reads from object
+// storage, even though uploaded images are publicly readable.
 func (s *Service) GetObjectBytes(ctx context.Context, userID uint64, fileKey, purpose string) ([]byte, string, error) {
 	pc, ok := purposeConfig[purpose]
 	if !ok {
@@ -295,9 +290,7 @@ func (s *Service) GetFileURL(ctx context.Context, fileKey string) (string, int64
 	if err != nil {
 		return "", 0, err
 	}
-	url := storage.PublicURL(fileKey)
-	expiresAt := time.Now().Add(2 * time.Hour).Unix()
-	return url, expiresAt, nil
+	return storage.PublicURL(fileKey), 0, nil
 }
 
 func isAllowedType(contentType string, allowed []string) bool {

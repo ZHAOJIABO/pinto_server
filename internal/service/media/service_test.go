@@ -10,7 +10,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/conf"
 )
 
-func TestOSSPresignPutUsesV4Signature(t *testing.T) {
+func TestOSSPresignPublicPutUsesV4SignatureAndPublicReadACL(t *testing.T) {
 	cfg := conf.OSSConfig{
 		Endpoint:        "https://oss-cn-beijing.aliyuncs.com",
 		Region:          "cn-beijing",
@@ -23,9 +23,9 @@ func TestOSSPresignPutUsesV4Signature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewOSSStorage: %v", err)
 	}
-	presigned, err := storage.PresignPut(context.Background(), "original/2026/image.png", "image/png", 30*time.Minute)
+	presigned, err := storage.PresignPublicPut(context.Background(), "original/2026/image.png", "image/png", 30*time.Minute)
 	if err != nil {
-		t.Fatalf("PresignPut: %v", err)
+		t.Fatalf("PresignPublicPut: %v", err)
 	}
 	parsedURL, err := url.Parse(presigned.URL)
 	if err != nil {
@@ -48,29 +48,6 @@ func TestOSSPresignPutUsesV4Signature(t *testing.T) {
 	if !presigned.ExpiresAt.After(time.Now()) {
 		t.Errorf("expires at = %v", presigned.ExpiresAt)
 	}
-	if got := presigned.Headers["X-Oss-Object-Acl"]; got != "" {
-		t.Errorf("private upload ACL = %q, want inherited bucket ACL", got)
-	}
-}
-
-func TestOSSPresignPublicPutSignsPublicReadACL(t *testing.T) {
-	cfg := conf.OSSConfig{
-		Endpoint:        "https://oss-cn-beijing.aliyuncs.com",
-		Region:          "cn-beijing",
-		AccessKeyID:     "test-access-key",
-		AccessKeySecret: "test-access-secret",
-		Bucket:          "pinto-test",
-	}
-
-	storage, err := NewOSSStorage(cfg)
-	if err != nil {
-		t.Fatalf("NewOSSStorage: %v", err)
-	}
-	presigned, err := storage.PresignPublicPut(context.Background(), "pattern/2026/image.png", "image/png", 30*time.Minute)
-	if err != nil {
-		t.Fatalf("PresignPublicPut: %v", err)
-	}
-
 	if got := presigned.Headers["X-Oss-Object-Acl"]; got != "public-read" {
 		t.Errorf("X-Oss-Object-Acl = %q, want public-read", got)
 	}

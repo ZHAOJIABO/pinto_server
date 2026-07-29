@@ -25,7 +25,6 @@ type PresignedUpload struct {
 // ObjectStorage keeps media-service behaviour independent from the cloud
 // vendor client and permits deterministic tests without a network connection.
 type ObjectStorage interface {
-	PresignPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
 	PresignPublicPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error)
 	PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error
 	Get(ctx context.Context, fileKey string, maxSize int64) ([]byte, string, error)
@@ -64,24 +63,14 @@ func NewOSSStorage(cfg conf.OSSConfig) (ObjectStorage, error) {
 	}, nil
 }
 
-func (s *ossStorage) PresignPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error) {
-	return s.presignPut(ctx, fileKey, contentType, expires, false)
-}
-
-// PresignPublicPut creates a browser upload grant that makes only the uploaded
+// PresignPublicPut creates a browser upload grant that makes the uploaded
 // object publicly readable. The bucket itself remains private.
 func (s *ossStorage) PresignPublicPut(ctx context.Context, fileKey, contentType string, expires time.Duration) (*PresignedUpload, error) {
-	return s.presignPut(ctx, fileKey, contentType, expires, true)
-}
-
-func (s *ossStorage) presignPut(ctx context.Context, fileKey, contentType string, expires time.Duration, publicRead bool) (*PresignedUpload, error) {
 	request := &oss.PutObjectRequest{
 		Bucket:      oss.Ptr(s.bucket),
 		Key:         oss.Ptr(fileKey),
 		ContentType: oss.Ptr(contentType),
-	}
-	if publicRead {
-		request.Acl = oss.ObjectACLPublicRead
+		Acl:         oss.ObjectACLPublicRead,
 	}
 
 	result, err := s.client.Presign(
@@ -99,8 +88,7 @@ func (s *ossStorage) presignPut(ctx context.Context, fileKey, contentType string
 	}, nil
 }
 
-// PutPublic uploads an official-template preview with public-read ACL. Other
-// uploads use their separate presigned path and inherit the private bucket ACL.
+// PutPublic uploads a public-read object through the application server.
 func (s *ossStorage) PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error {
 	contentLength := int64(len(content))
 	_, err := s.client.PutObject(ctx, &oss.PutObjectRequest{
@@ -114,8 +102,8 @@ func (s *ossStorage) PutPublic(ctx context.Context, fileKey, contentType string,
 	return err
 }
 
-// Get reads a private object. maxSize caps how much is buffered so a malicious
-// or unexpectedly large object cannot exhaust process memory.
+// Get reads an object. maxSize caps how much is buffered so a malicious or
+// unexpectedly large object cannot exhaust process memory.
 func (s *ossStorage) Get(ctx context.Context, fileKey string, maxSize int64) ([]byte, string, error) {
 	result, err := s.client.GetObject(ctx, &oss.GetObjectRequest{
 		Bucket: oss.Ptr(s.bucket),

@@ -386,9 +386,9 @@ type GetFileUrlResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 响应公共头。
 	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	// 文件临时访问地址。
+	// 文件公开访问地址。
 	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	// 访问地址过期时间戳。
+	// 公开地址不过期，固定为 0。
 	ExpiresAt     int64 `protobuf:"varint,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

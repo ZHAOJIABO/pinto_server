@@ -686,14 +686,6 @@ func (s *memoryObjectStorage) put(fileKey, contentType string, content []byte) {
 	s.contentTypes[fileKey] = contentType
 }
 
-func (s *memoryObjectStorage) PresignPut(_ context.Context, fileKey, _ string, expires time.Duration) (*media.PresignedUpload, error) {
-	return &media.PresignedUpload{
-		URL:       "https://uploads.example.test/" + fileKey,
-		Headers:   map[string]string{},
-		ExpiresAt: time.Now().Add(expires),
-	}, nil
-}
-
 func (s *memoryObjectStorage) PresignPublicPut(_ context.Context, fileKey, _ string, expires time.Duration) (*media.PresignedUpload, error) {
 	return &media.PresignedUpload{
 		URL:       "https://uploads.example.test/" + fileKey,

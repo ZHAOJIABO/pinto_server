@@ -91,8 +91,8 @@ message GetFileUrlRequest {
 message GetFileUrlResponse {
   // 响应公共头。
   ResponseHeader header = 1;
-  // 文件临时访问地址。
+  // 文件公开访问地址。
   string url = 2;
-  // 访问地址过期时间戳。
+  // 公开地址不过期，固定为 0。
   int64 expires_at = 3;
 }

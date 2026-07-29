@@ -30,6 +30,50 @@ func TestMedia_StyleInputPurpose(t *testing.T) {
 	t.Log("style_input purpose with image/png success")
 }
 
+func TestMedia_AllPurposesCreatePublicReadUploads(t *testing.T) {
+	SetupTestDB(t)
+	mediaDAO := dao.NewMediaDAO()
+	svc := media.NewServiceWithStorage(mediaDAO, newMemoryObjectStorage("https://cdn.example.test"))
+
+	for purpose, contentType := range map[string]string{
+		"original":      "image/png",
+		"pattern":       "image/png",
+		"avatar":        "image/png",
+		"feedback":      "image/png",
+		"style_input":   "image/png",
+		"ai_output":     "image/png",
+		"admin_preview": "image/png",
+	} {
+		t.Run(purpose, func(t *testing.T) {
+			token, err := svc.GetUploadToken(context.Background(), 1, "image.png", contentType, purpose)
+			if err != nil {
+				t.Fatalf("GetUploadToken: %v", err)
+			}
+			if got := token.Headers["X-Oss-Object-Acl"]; got != "public-read" {
+				t.Errorf("X-Oss-Object-Acl = %q, want public-read", got)
+			}
+			if want := "https://cdn.example.test/" + token.FileKey; token.PublicURL != want {
+				t.Errorf("public URL = %q, want %q", token.PublicURL, want)
+			}
+		})
+	}
+}
+
+func TestMedia_GetFileURLReturnsStablePublicURL(t *testing.T) {
+	svc := media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://img.appbobo.cn"))
+
+	url, expiresAt, err := svc.GetFileURL(context.Background(), "original/2026/example.png")
+	if err != nil {
+		t.Fatalf("GetFileURL: %v", err)
+	}
+	if want := "https://img.appbobo.cn/original/2026/example.png"; url != want {
+		t.Errorf("url = %q, want %q", url, want)
+	}
+	if expiresAt != 0 {
+		t.Errorf("expiresAt = %d, want 0 for a stable public URL", expiresAt)
+	}
+}
+
 func TestMedia_StyleInputInvalidType(t *testing.T) {
 	SetupTestDB(t)
 	mediaDAO := dao.NewMediaDAO()
