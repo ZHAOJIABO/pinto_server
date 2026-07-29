@@ -22,7 +22,7 @@ oss:
   endpoint: https://oss-cn-beijing.aliyuncs.com
   region: cn-beijing
   bucket: pintoo
-  public_base_url: https://pintoo.oss-cn-beijing.aliyuncs.com
+  public_base_url: https://img.appbobo.cn
   access_key_id: ""
   access_key_secret: ""
 

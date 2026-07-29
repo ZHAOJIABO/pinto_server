@@ -24,7 +24,7 @@ oss:
   bucket: pintoo
   # OSS CNAME 域名只用于 DNS 自定义域名绑定，不能直接访问。
   # 未配置自定义域名前，使用标准 Bucket 外网域名。
-  public_base_url: https://pintoo.oss-cn-beijing.aliyuncs.com
+  public_base_url: https://img.appbobo.cn
   access_key_id: ""
   access_key_secret: ""
 
