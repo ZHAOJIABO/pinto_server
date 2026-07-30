@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
@@ -20,11 +19,18 @@ func NewAuthHandler(authService *auth.Service) *AuthHandler {
 }
 
 func (h *AuthHandler) GuestLogin(ctx context.Context, req *pb.GuestLoginRequest) (*pb.LoginResponse, error) {
-	if req.DeviceId == "" {
-		return &pb.LoginResponse{Header: errHeaderCtx(ctx, apperr.InvalidArgument("device_id is required"))}, nil
+	platform := middleware.GetPlatform(ctx)
+	if platform == "" {
+		platform = req.GetHeader().GetPlatform()
 	}
-
-	user, tokens, err := h.authService.GuestLogin(ctx, req.DeviceId)
+	device := req.GetHeader().GetDevice()
+	user, tokens, err := h.authService.GuestLoginWithDevice(ctx, auth.GuestLoginParams{
+		Platform:  platform,
+		AndroidID: device.GetAndroidId(),
+		OAID:      device.GetOaid(),
+		IDFV:      device.GetIdfv(),
+		IDFA:      device.GetIdfa(),
+	})
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
@@ -89,17 +95,16 @@ func (h *AuthHandler) AppleLogin(ctx context.Context, req *pb.AppleLoginRequest)
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.LoginResponse, error) {
-	tokens, err := h.authService.RefreshToken(ctx, req.RefreshToken)
+	user, tokens, err := h.authService.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
 
-	userID := middleware.GetUserID(ctx)
 	return &pb.LoginResponse{
 		Header:       okHeaderCtx(ctx),
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
 		ExpiresIn:    tokens.ExpiresIn,
-		User:         &pb.UserInfo{UserId: fmt.Sprintf("%d", userID)},
+		User:         userToProto(user),
 	}, nil
 }

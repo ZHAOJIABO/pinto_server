@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
@@ -40,7 +39,7 @@ func userToProto(user *model.User) *pb.UserInfo {
 		return nil
 	}
 	return &pb.UserInfo{
-		UserId:    fmt.Sprintf("%d", user.ID),
+		UserId:    user.PublicUserID(),
 		Nickname:  user.Nickname,
 		AvatarUrl: user.AvatarURL,
 		Phone:     user.Phone,

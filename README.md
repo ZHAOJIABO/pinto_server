@@ -27,6 +27,37 @@ make build
 - gRPC: `:9090`（移动端）
 - HTTP REST: `:8080`（小程序 / Web）
 
+## 图纸导出水印
+
+将两张 PNG 上传到 CDN 后，服务端优先从 `bb_config` 读取水印策略和完整 CDN 地址；数据库没有对应键时，才使用 YAML 兜底：
+
+```yaml
+export_watermark:
+  # none（关闭）、marketing（宣传图）或 online（线上导出）
+  mode: online
+  # 客户端可直接访问的完整 CDN 图片地址。
+  marketing_url: https://cdn.example.com/bobobeads/watermarks/marketing-v1.png
+  online_url: https://cdn.example.com/bobobeads/watermarks/online-v1.png
+```
+
+客户端请求 `GET /api/v1/system/config` 后读取：
+
+- `export_watermark_mode`：`none`、`marketing` 或 `online`；
+- `export_watermark_url`：当前策略对应的 PNG。`none` 时为空。
+
+线上可直接写入数据库，立即对下一次配置请求生效：
+
+```sql
+INSERT INTO bb_config (config_key, config_value, description)
+VALUES
+  ('export_watermark_mode', 'online', '图纸导出水印：none / marketing / online'),
+  ('export_watermark_marketing_url', 'https://cdn.example.com/bobobeads/watermarks/marketing-v1.png', '宣传图水印 CDN 地址'),
+  ('export_watermark_online_url', 'https://cdn.example.com/bobobeads/watermarks/online-v1.png', '线上水印 CDN 地址')
+ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);
+```
+
+仅需切换策略时，更新 `export_watermark_mode` 即可；未写当前模式对应的 CDN URL 时，服务会使用 YAML 中相应的 URL。服务端只向客户端下发最终的 `export_watermark_url`，不再托管水印图片。CDN 必须提供 HTTPS 地址，并为 Web Canvas 导出允许跨域读取（如 `Access-Control-Allow-Origin: *`）。
+
 ## ECS Docker 部署（HTTPS 域名）
 
 根目录的 `docker-compose.yml` 会启动 MySQL、Redis、`backend` 和

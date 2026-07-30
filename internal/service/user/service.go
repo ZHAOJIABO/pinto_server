@@ -2,9 +2,12 @@ package user
 
 import (
 	"context"
+	"errors"
+	"strconv"
 
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -17,6 +20,19 @@ func NewService(userDAO *dao.UserDAO) *Service {
 
 func (s *Service) GetUserInfo(ctx context.Context, userID uint64) (*model.User, error) {
 	return s.userDAO.GetByID(ctx, userID)
+}
+
+func (s *Service) GetUserByPublicID(ctx context.Context, publicUserID string) (*model.User, error) {
+	user, err := s.userDAO.GetByPublicUserID(ctx, publicUserID)
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return user, err
+	}
+
+	internalUserID, parseErr := strconv.ParseUint(publicUserID, 10, 64)
+	if parseErr != nil {
+		return nil, err
+	}
+	return s.userDAO.GetByID(ctx, internalUserID)
 }
 
 func (s *Service) UpdateUserInfo(ctx context.Context, userID uint64, nickname, avatarURL string) error {

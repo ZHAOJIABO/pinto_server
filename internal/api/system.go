@@ -22,6 +22,12 @@ func (h *SystemHandler) GetAppConfig(ctx context.Context, req *pb.GetAppConfigRe
 	if err != nil {
 		return &pb.GetAppConfigResponse{Header: errHeader(err)}, nil
 	}
+	policy := h.systemService.GetExportWatermarkPolicy(configs)
+	delete(configs, system.ExportWatermarkMarketingURLConfigKey)
+	delete(configs, system.ExportWatermarkOnlineURLConfigKey)
+	delete(configs, system.LegacyExportWatermarkPublicBaseURLConfigKey)
+	configs[system.ExportWatermarkModeConfigKey] = policy.Mode
+	configs[system.ExportWatermarkURLConfigKey] = policy.URL
 	return &pb.GetAppConfigResponse{Header: okHeader(), Configs: configs}, nil
 }
 

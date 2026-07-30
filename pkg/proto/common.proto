@@ -4,6 +4,18 @@ package bobobeads.v1;
 
 option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 
+// 设备身份标识。仅用于游客身份的稳定生成，不应写入日志。
+message Device {
+  // Android 系统标识。
+  string android_id = 1;
+  // Android 开放匿名设备标识。
+  string oaid = 2;
+  // iOS Vendor 标识。
+  string idfv = 3;
+  // iOS 广告标识。
+  string idfa = 4;
+}
+
 message RequestHeader {
   // 请求令牌。
   string token = 1;
@@ -15,6 +27,8 @@ message RequestHeader {
   string device_id = 4;
   // 客户端语言。
   string language = 5;
+  // 设备身份标识。
+  Device device = 6;
 }
 
 message ResponseHeader {

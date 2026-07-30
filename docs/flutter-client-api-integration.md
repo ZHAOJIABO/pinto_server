@@ -283,7 +283,7 @@ final clientRequestId = const Uuid().v4();
 sequenceDiagram
     participant App
     participant API
-    App->>API: POST /api/v1/auth/guest(deviceId)
+    App->>API: POST /api/v1/auth/guest(header.device)
     API-->>App: accessToken, refreshToken, user
     App->>API: GET /api/v1/system/config
     App->>API: GET /api/v1/system/board-specs
@@ -292,7 +292,7 @@ sequenceDiagram
 
 流程建议：
 
-1. 本地读取稳定 `deviceId`。没有就生成并保存。
+1. 读取设备身份：Android 优先 `androidId`、为空用 `oaid`；iOS 优先 `idfv`、为空用 `idfa`。
 2. 如果本地没有 token，调用游客登录。
 3. 如果已有 token，先直接请求接口。遇到 401 再 refresh 或重新游客登录。
 4. 拉取系统配置、豆板规格、颜色库。
@@ -572,7 +572,11 @@ POST /api/v1/auth/guest
 
 ```json
 {
-  "deviceId": "ios-device-uuid"
+  "header": {
+    "device": {
+      "idfv": "ios-idfv"
+    }
+  }
 }
 ```
 
@@ -583,16 +587,18 @@ POST /api/v1/auth/guest
   "header": {"code": 0, "message": "success"},
   "accessToken": "...",
   "refreshToken": "...",
-  "expiresIn": 259200,
+  "expiresIn": "259200",
   "user": {
-    "userId": "1",
-    "nickname": "用户ios-de",
+    "userId": "8621057774721",
+    "nickname": "用户ios-id",
     "avatarUrl": "",
     "phone": "",
     "isVip": false
   }
 }
 ```
+
+游客 `userId` 为 `86 + 平台位 + SHA-256(设备标识) 十进制前 10 位`；Android 平台位为 `3`，iOS 为 `2`。
 
 ### 7.2 手机号登录
 

@@ -80,7 +80,12 @@ POST /api/v1/auth/guest
 **Request Body:**
 ```json
 {
-  "device_id": "test-device-001"
+  "header": {
+    "platform": "android",
+    "device": {
+      "androidId": "test-android-id-001"
+    }
+  }
 }
 ```
 
@@ -92,7 +97,7 @@ POST /api/v1/auth/guest
   "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
   "expiresIn": "259200",
   "user": {
-    "userId": "1",
+    "userId": "863...",
     "nickname": "用户test-d",
     "avatarUrl": "",
     "phone": "",
@@ -189,7 +194,7 @@ GET /api/v1/user/info
 {
   "header": {"code": 0, "message": "success", "traceId": "..."},
   "user": {
-    "userId": "1",
+    "userId": "863...",
     "nickname": "用户test-d",
     "avatarUrl": "",
     "phone": "",

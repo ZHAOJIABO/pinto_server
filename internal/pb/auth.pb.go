@@ -26,7 +26,9 @@ type GuestLoginRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 请求公共头。
 	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	// 设备唯一标识。
+	// 旧版设备标识。请使用 header.device；该字段不再参与游客用户 ID 生成。
+	//
+	// Deprecated: Marked as deprecated in auth.proto.
 	DeviceId      string `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -69,6 +71,7 @@ func (x *GuestLoginRequest) GetHeader() *RequestHeader {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in auth.proto.
 func (x *GuestLoginRequest) GetDeviceId() string {
 	if x != nil {
 		return x.DeviceId
@@ -594,10 +597,10 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\fbobobeads.v1\x1a\fcommon.proto\x1a\x1cgoogle/api/annotations.proto\"e\n" +
+	"auth.proto\x12\fbobobeads.v1\x1a\fcommon.proto\x1a\x1cgoogle/api/annotations.proto\"i\n" +
 	"\x11GuestLoginRequest\x123\n" +
-	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x1b\n" +
-	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\"r\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x1f\n" +
+	"\tdevice_id\x18\x02 \x01(\tB\x02\x18\x01R\bdeviceId\"r\n" +
 	"\x11PhoneLoginRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x14\n" +
 	"\x05phone\x18\x02 \x01(\tR\x05phone\x12\x12\n" +

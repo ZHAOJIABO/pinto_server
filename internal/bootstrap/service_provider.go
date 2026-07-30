@@ -116,7 +116,7 @@ func (sp *ServiceProvider) initServices() {
 	sp.SubscribeService = subscribe.NewService(sp.OrderDAO, sp.ProductDAO, sp.SubscriptionDAO)
 	sp.CreditService = credit.NewService(sp.CreditDAO)
 	sp.InviteService = invite.NewService(sp.InviteDAO)
-	sp.SystemService = system.NewService(sp.SystemDAO)
+	sp.SystemService = system.NewService(sp.SystemDAO, conf.GlobalConfig.ExportWatermark)
 	sp.ReportService = report.NewService(sp.SystemDAO)
 	sp.GenerationService = generation.NewService(sp.GenerationDAO, sp.CreditService, sp.SubscribeService, sp.WorkService)
 
@@ -194,7 +194,7 @@ func (sp *ServiceProvider) initHandlers() {
 	sp.UserHandler = api.NewUserHandler(sp.UserService)
 	sp.WorkHandler = api.NewWorkHandler(sp.WorkService)
 	sp.MediaHandler = api.NewMediaHandler(sp.MediaService)
-	sp.CommunityHandler = api.NewCommunityHandler(sp.CommunityService)
+	sp.CommunityHandler = api.NewCommunityHandler(sp.CommunityService, sp.UserService)
 	sp.TemplateHandler = api.NewTemplateHandler(sp.TemplateService)
 	sp.AdminTemplateHandler = api.NewAdminTemplateHandler(sp.TemplateAdminService)
 	sp.AdminPortalHandler = api.NewAdminPortalHTTPHandler(sp.AdminAuthService, sp.MediaService, sp.TemplateService, sp.TemplateAdminService)

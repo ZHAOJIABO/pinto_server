@@ -22,7 +22,7 @@ grpcurl -plaintext -H "authorization: Bearer <token>" -d '<json>' localhost:9090
 
 ```bash
 # 先用游客登录获取 token
-TOKEN=$(grpcurl -plaintext -d '{"device_id":"grpc-test-001"}' localhost:9090 bobobeads.v1.AuthService/GuestLogin | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])")
+TOKEN=$(grpcurl -plaintext -d '{"header":{"platform":"android","device":{"android_id":"grpc-test-android-id-001"}}}' localhost:9090 bobobeads.v1.AuthService/GuestLogin | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])")
 echo $TOKEN
 ```
 
@@ -54,7 +54,10 @@ grpcurl -plaintext localhost:9090 describe bobobeads.v1.CreateStyleGenerationReq
 
 ```bash
 grpcurl -plaintext -d '{
-  "device_id": "grpc-test-001"
+  "header": {
+    "platform": "android",
+    "device": {"android_id": "grpc-test-android-id-001"}
+  }
 }' localhost:9090 bobobeads.v1.AuthService/GuestLogin
 ```
 
@@ -869,7 +872,7 @@ grpcurl -plaintext -H "authorization: Bearer $TOKEN" \
 
 # 1. 登录
 echo "=== Step 1: Guest Login ==="
-LOGIN=$(grpcurl -plaintext -d '{"device_id":"e2e-test-001"}' localhost:9090 bobobeads.v1.AuthService/GuestLogin)
+LOGIN=$(grpcurl -plaintext -d '{"header":{"platform":"android","device":{"android_id":"e2e-test-android-id-001"}}}' localhost:9090 bobobeads.v1.AuthService/GuestLogin)
 echo $LOGIN | python3 -m json.tool
 TOKEN=$(echo $LOGIN | python3 -c "import sys,json; print(json.load(sys.stdin)['accessToken'])")
 

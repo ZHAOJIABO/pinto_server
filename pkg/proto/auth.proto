@@ -61,8 +61,8 @@ service AuthService {
 message GuestLoginRequest {
   // 请求公共头。
   RequestHeader header = 1;
-  // 设备唯一标识。
-  string device_id = 2;
+  // 旧版设备标识。请使用 header.device；该字段不再参与游客用户 ID 生成。
+  string device_id = 2 [deprecated = true];
 }
 
 message PhoneLoginRequest {

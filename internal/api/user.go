@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
@@ -26,12 +25,7 @@ func (h *UserHandler) GetUserInfo(ctx context.Context, req *pb.GetUserInfoReques
 	}
 	return &pb.GetUserInfoResponse{
 		Header: okHeader(),
-		User: &pb.UserInfo{
-			UserId:    fmt.Sprintf("%d", u.ID),
-			Nickname:  u.Nickname,
-			AvatarUrl: u.AvatarURL,
-			Phone:     u.Phone,
-		},
+		User:   userToProto(u),
 	}, nil
 }
 

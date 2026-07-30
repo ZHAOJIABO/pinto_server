@@ -4,16 +4,19 @@ import (
 	"context"
 	"testing"
 
+	"github.com/zhaojiabo/bobobeads_server/conf"
+	"github.com/zhaojiabo/bobobeads_server/internal/api"
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	"github.com/zhaojiabo/bobobeads_server/internal/db"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/system"
 )
 
 func TestGetBeadColors(t *testing.T) {
 	SetupTestDB(t)
 	systemDAO := dao.NewSystemDAO()
-	systemService := system.NewService(systemDAO)
+	systemService := system.NewService(systemDAO, conf.ExportWatermarkConfig{})
 
 	ctx := context.Background()
 
@@ -51,7 +54,7 @@ func TestGetBeadColors(t *testing.T) {
 func TestGetBoardSpecs(t *testing.T) {
 	SetupTestDB(t)
 	systemDAO := dao.NewSystemDAO()
-	systemService := system.NewService(systemDAO)
+	systemService := system.NewService(systemDAO, conf.ExportWatermarkConfig{})
 
 	ctx := context.Background()
 
@@ -79,7 +82,7 @@ func TestGetBoardSpecs(t *testing.T) {
 func TestAppConfig(t *testing.T) {
 	SetupTestDB(t)
 	systemDAO := dao.NewSystemDAO()
-	systemService := system.NewService(systemDAO)
+	systemService := system.NewService(systemDAO, conf.ExportWatermarkConfig{})
 
 	ctx := context.Background()
 
@@ -99,4 +102,54 @@ func TestAppConfig(t *testing.T) {
 	}
 
 	t.Logf("AppConfig success: %d configs", len(configs))
+}
+
+func TestAppConfigIncludesConfiguredExportWatermark(t *testing.T) {
+	SetupTestDB(t)
+	db.DB.Create(&model.Config{ConfigKey: "export_watermark_mode", ConfigValue: "marketing"})
+	db.DB.Create(&model.Config{ConfigKey: "export_watermark_marketing_url", ConfigValue: "https://cdn.db.example.com/watermarks/marketing-v2.png"})
+	db.DB.Create(&model.Config{ConfigKey: "export_watermark_public_base_url", ConfigValue: "https://legacy.example.com"})
+	systemService := system.NewService(dao.NewSystemDAO(), conf.ExportWatermarkConfig{
+		Mode:      "online",
+		OnlineURL: "https://cdn.yaml.example.com/watermarks/online-v1.png",
+	})
+
+	response, err := api.NewSystemHandler(systemService).GetAppConfig(context.Background(), &pb.GetAppConfigRequest{})
+	if err != nil {
+		t.Fatalf("GetAppConfig failed: %v", err)
+	}
+	if response.Header.Code != 0 {
+		t.Fatalf("GetAppConfig response error: %#v", response.Header)
+	}
+	if got := response.Configs["export_watermark_mode"]; got != "marketing" {
+		t.Fatalf("export_watermark_mode = %q, want marketing", got)
+	}
+	if got := response.Configs[system.ExportWatermarkURLConfigKey]; got != "https://cdn.db.example.com/watermarks/marketing-v2.png" {
+		t.Fatalf("export_watermark_url = %q", got)
+	}
+	if _, ok := response.Configs[system.ExportWatermarkMarketingURLConfigKey]; ok {
+		t.Fatalf("response unexpectedly exposes %s", system.ExportWatermarkMarketingURLConfigKey)
+	}
+	if _, ok := response.Configs[system.ExportWatermarkOnlineURLConfigKey]; ok {
+		t.Fatalf("response unexpectedly exposes %s", system.ExportWatermarkOnlineURLConfigKey)
+	}
+	if _, ok := response.Configs[system.LegacyExportWatermarkPublicBaseURLConfigKey]; ok {
+		t.Fatalf("response unexpectedly exposes %s", system.LegacyExportWatermarkPublicBaseURLConfigKey)
+	}
+}
+
+func TestAppConfigDisablesWatermarkWithoutSelectedCDNURL(t *testing.T) {
+	SetupTestDB(t)
+	systemService := system.NewService(dao.NewSystemDAO(), conf.ExportWatermarkConfig{Mode: "online"})
+
+	response, err := api.NewSystemHandler(systemService).GetAppConfig(context.Background(), &pb.GetAppConfigRequest{})
+	if err != nil {
+		t.Fatalf("GetAppConfig failed: %v", err)
+	}
+	if got := response.Configs["export_watermark_mode"]; got != "none" {
+		t.Fatalf("export_watermark_mode = %q, want none", got)
+	}
+	if got := response.Configs[system.ExportWatermarkURLConfigKey]; got != "" {
+		t.Fatalf("export_watermark_url = %q, want empty", got)
+	}
 }

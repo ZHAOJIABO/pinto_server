@@ -2,7 +2,12 @@ package auth
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -27,16 +32,20 @@ type TokenPair struct {
 	ExpiresIn    int64
 }
 
-func (s *Service) GuestLogin(ctx context.Context, deviceID string) (*model.User, *TokenPair, error) {
-	if deviceID == "" {
-		return nil, nil, apperr.InvalidArgument("device_id is required")
-	}
+type GuestLoginParams struct {
+	Platform  string
+	AndroidID string
+	OAID      string
+	IDFV      string
+	IDFA      string
+}
 
-	existing, err := s.userDAO.GetByDeviceIDAndType(ctx, deviceID, "guest")
-	if err != nil {
-		return nil, nil, apperr.Internal("check existing guest", err)
-	}
-	if existing != nil {
+func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginParams) (*model.User, *TokenPair, error) {
+	deviceID, platformSuffix := selectGuestIdentity(params)
+	guestIdentity := hashGuestIdentity(platformSuffix, deviceID)
+	if existing, err := s.userDAO.GetByGuestIdentity(ctx, guestIdentity); err != nil {
+		return nil, nil, apperr.Internal("get guest user", err)
+	} else if existing != nil {
 		tokens, err := s.generateTokens(existing.ID)
 		if err != nil {
 			return nil, nil, err
@@ -44,20 +53,24 @@ func (s *Service) GuestLogin(ctx context.Context, deviceID string) (*model.User,
 		return existing, tokens, nil
 	}
 
-	prefix := deviceID
-	if len(prefix) > 6 {
-		prefix = prefix[:6]
-	}
-	nickname := fmt.Sprintf("用户%s", prefix)
+	userID := generateGuestUserID(deviceID, platformSuffix)
+
+	nickname := "用户" + userID[len(userID)-6:]
 
 	user := &model.User{
-		UUID:      uuid.New().String(),
-		Nickname:  nickname,
-		DeviceID:  deviceID,
-		LoginType: "guest",
-		Status:    1,
+		UserID:        &userID,
+		UUID:          uuid.New().String(),
+		Nickname:      nickname,
+		DeviceID:      guestIdentity,
+		GuestIdentity: &guestIdentity,
+		LoginType:     "guest",
+		Status:        1,
 	}
-	if err := s.userDAO.Create(ctx, user); err != nil {
+	user, err := s.userDAO.CreateOrGetGuest(ctx, user)
+	if err != nil {
+		if err == dao.ErrGuestUserIDCollision {
+			return nil, nil, apperr.New(apperr.CodeDuplicateRequest, "guest user id collision")
+		}
 		return nil, nil, apperr.Internal("create guest user", err)
 	}
 
@@ -66,6 +79,41 @@ func (s *Service) GuestLogin(ctx context.Context, deviceID string) (*model.User,
 		return nil, nil, err
 	}
 	return user, tokens, nil
+}
+
+func hashGuestIdentity(platformSuffix, identity string) string {
+	mac := hmac.New(sha256.New, []byte(conf.GlobalConfig.JWT.Secret))
+	mac.Write([]byte(platformSuffix + ":" + identity))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func selectGuestIdentity(params GuestLoginParams) (string, string) {
+	switch strings.ToLower(params.Platform) {
+	case "android":
+		if params.AndroidID != "" {
+			return params.AndroidID, "3"
+		}
+		if params.OAID != "" {
+			return params.OAID, "3"
+		}
+		return strings.ReplaceAll(uuid.New().String(), "-", ""), "3"
+	case "ios":
+		if params.IDFV != "" {
+			return params.IDFV, "2"
+		}
+		if params.IDFA != "" {
+			return params.IDFA, "2"
+		}
+		return strings.ReplaceAll(uuid.New().String(), "-", ""), "2"
+	default:
+		return strings.ReplaceAll(uuid.New().String(), "-", ""), ""
+	}
+}
+
+func generateGuestUserID(identity, platformSuffix string) string {
+	digest := sha256.Sum256([]byte(identity))
+	decimal := new(big.Int).SetBytes(digest[:]).String()
+	return "86" + platformSuffix + decimal[:10]
 }
 
 func (s *Service) PhoneLogin(ctx context.Context, phone, code string) (*model.User, *TokenPair, error) {
@@ -99,22 +147,30 @@ func (s *Service) AppleLogin(ctx context.Context, identityToken, authCode, fullN
 	return nil, nil, apperr.New(apperr.CodeInternal, "not implemented")
 }
 
-func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) {
+func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model.User, *TokenPair, error) {
 	claims, err := s.parseToken(refreshToken)
 	if err != nil {
-		return nil, apperr.Unauthorized("invalid refresh token")
+		return nil, nil, apperr.Unauthorized("invalid refresh token")
 	}
 
 	tokenType, _ := claims["type"].(string)
 	if tokenType != "refresh" {
-		return nil, apperr.Unauthorized("not a refresh token")
+		return nil, nil, apperr.Unauthorized("not a refresh token")
 	}
 
 	userID, ok := claims["user_id"].(float64)
 	if !ok {
-		return nil, apperr.Unauthorized("invalid token claims")
+		return nil, nil, apperr.Unauthorized("invalid token claims")
 	}
-	return s.generateTokens(uint64(userID))
+	user, err := s.userDAO.GetByID(ctx, uint64(userID))
+	if err != nil {
+		return nil, nil, apperr.Unauthorized("user not found")
+	}
+	tokens, err := s.generateTokens(user.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return user, tokens, nil
 }
 
 func (s *Service) generateTokens(userID uint64) (*TokenPair, error) {

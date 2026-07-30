@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"strconv"
 
+	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/community"
+	"github.com/zhaojiabo/bobobeads_server/internal/service/user"
 )
 
 type CommunityHandler struct {
 	pb.UnimplementedCommunityServiceServer
 	communityService *community.Service
+	userService      *user.Service
 }
 
-func NewCommunityHandler(communityService *community.Service) *CommunityHandler {
-	return &CommunityHandler{communityService: communityService}
+func NewCommunityHandler(communityService *community.Service, userService *user.Service) *CommunityHandler {
+	return &CommunityHandler{communityService: communityService, userService: userService}
 }
 
 func (h *CommunityHandler) PublishWork(ctx context.Context, req *pb.PublishWorkRequest) (*pb.PublishWorkResponse, error) {
@@ -47,13 +50,13 @@ func (h *CommunityHandler) GetFeed(ctx context.Context, req *pb.GetFeedRequest) 
 	var items []*pb.PostItem
 	for _, p := range posts {
 		items = append(items, &pb.PostItem{
-			PostId:      fmt.Sprintf("%d", p.ID),
-			WorkId:      fmt.Sprintf("%d", p.WorkID),
-			Description: p.Description,
-			LikeCount:   int32(p.LikeCount),
+			PostId:        fmt.Sprintf("%d", p.ID),
+			WorkId:        fmt.Sprintf("%d", p.WorkID),
+			Description:   p.Description,
+			LikeCount:     int32(p.LikeCount),
 			FavoriteCount: int32(p.FavoriteCount),
 			CommentCount:  int32(p.CommentCount),
-			CreatedAt:   p.CreatedAt.Unix(),
+			CreatedAt:     p.CreatedAt.Unix(),
 		})
 	}
 	return &pb.GetFeedResponse{
@@ -155,7 +158,11 @@ func (h *CommunityHandler) ListComments(ctx context.Context, req *pb.ListComment
 
 func (h *CommunityHandler) FollowUser(ctx context.Context, req *pb.FollowUserRequest) (*pb.FollowUserResponse, error) {
 	userID := middleware.GetUserID(ctx)
-	targetID, _ := strconv.ParseUint(req.UserId, 10, 64)
+	target, err := h.userService.GetUserByPublicID(ctx, req.UserId)
+	if err != nil {
+		return &pb.FollowUserResponse{Header: errHeader(apperr.NotFound("target user not found"))}, nil
+	}
+	targetID := target.ID
 	if err := h.communityService.FollowUser(ctx, userID, targetID); err != nil {
 		return &pb.FollowUserResponse{Header: errHeader(err)}, nil
 	}
@@ -164,7 +171,11 @@ func (h *CommunityHandler) FollowUser(ctx context.Context, req *pb.FollowUserReq
 
 func (h *CommunityHandler) UnfollowUser(ctx context.Context, req *pb.UnfollowUserRequest) (*pb.UnfollowUserResponse, error) {
 	userID := middleware.GetUserID(ctx)
-	targetID, _ := strconv.ParseUint(req.UserId, 10, 64)
+	target, err := h.userService.GetUserByPublicID(ctx, req.UserId)
+	if err != nil {
+		return &pb.UnfollowUserResponse{Header: errHeader(apperr.NotFound("target user not found"))}, nil
+	}
+	targetID := target.ID
 	if err := h.communityService.UnfollowUser(ctx, userID, targetID); err != nil {
 		return &pb.UnfollowUserResponse{Header: errHeader(err)}, nil
 	}

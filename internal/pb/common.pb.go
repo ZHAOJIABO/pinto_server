@@ -76,6 +76,79 @@ func (Platform) EnumDescriptor() ([]byte, []int) {
 	return file_common_proto_rawDescGZIP(), []int{0}
 }
 
+// 设备身份标识。仅用于游客身份的稳定生成，不应写入日志。
+type Device struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Android 系统标识。
+	AndroidId string `protobuf:"bytes,1,opt,name=android_id,json=androidId,proto3" json:"android_id,omitempty"`
+	// Android 开放匿名设备标识。
+	Oaid string `protobuf:"bytes,2,opt,name=oaid,proto3" json:"oaid,omitempty"`
+	// iOS Vendor 标识。
+	Idfv string `protobuf:"bytes,3,opt,name=idfv,proto3" json:"idfv,omitempty"`
+	// iOS 广告标识。
+	Idfa          string `protobuf:"bytes,4,opt,name=idfa,proto3" json:"idfa,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Device) Reset() {
+	*x = Device{}
+	mi := &file_common_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Device) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Device) ProtoMessage() {}
+
+func (x *Device) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Device.ProtoReflect.Descriptor instead.
+func (*Device) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Device) GetAndroidId() string {
+	if x != nil {
+		return x.AndroidId
+	}
+	return ""
+}
+
+func (x *Device) GetOaid() string {
+	if x != nil {
+		return x.Oaid
+	}
+	return ""
+}
+
+func (x *Device) GetIdfv() string {
+	if x != nil {
+		return x.Idfv
+	}
+	return ""
+}
+
+func (x *Device) GetIdfa() string {
+	if x != nil {
+		return x.Idfa
+	}
+	return ""
+}
+
 type RequestHeader struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 请求令牌。
@@ -87,14 +160,16 @@ type RequestHeader struct {
 	// 设备唯一标识。
 	DeviceId string `protobuf:"bytes,4,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	// 客户端语言。
-	Language      string `protobuf:"bytes,5,opt,name=language,proto3" json:"language,omitempty"`
+	Language string `protobuf:"bytes,5,opt,name=language,proto3" json:"language,omitempty"`
+	// 设备身份标识。
+	Device        *Device `protobuf:"bytes,6,opt,name=device,proto3" json:"device,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RequestHeader) Reset() {
 	*x = RequestHeader{}
-	mi := &file_common_proto_msgTypes[0]
+	mi := &file_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -106,7 +181,7 @@ func (x *RequestHeader) String() string {
 func (*RequestHeader) ProtoMessage() {}
 
 func (x *RequestHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[0]
+	mi := &file_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -119,7 +194,7 @@ func (x *RequestHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestHeader.ProtoReflect.Descriptor instead.
 func (*RequestHeader) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{0}
+	return file_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RequestHeader) GetToken() string {
@@ -157,6 +232,13 @@ func (x *RequestHeader) GetLanguage() string {
 	return ""
 }
 
+func (x *RequestHeader) GetDevice() *Device {
+	if x != nil {
+		return x.Device
+	}
+	return nil
+}
+
 type ResponseHeader struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 业务状态码。
@@ -171,7 +253,7 @@ type ResponseHeader struct {
 
 func (x *ResponseHeader) Reset() {
 	*x = ResponseHeader{}
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -183,7 +265,7 @@ func (x *ResponseHeader) String() string {
 func (*ResponseHeader) ProtoMessage() {}
 
 func (x *ResponseHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -196,7 +278,7 @@ func (x *ResponseHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResponseHeader.ProtoReflect.Descriptor instead.
 func (*ResponseHeader) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{1}
+	return file_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ResponseHeader) GetCode() int32 {
@@ -232,7 +314,7 @@ type PageRequest struct {
 
 func (x *PageRequest) Reset() {
 	*x = PageRequest{}
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +326,7 @@ func (x *PageRequest) String() string {
 func (*PageRequest) ProtoMessage() {}
 
 func (x *PageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +339,7 @@ func (x *PageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PageRequest.ProtoReflect.Descriptor instead.
 func (*PageRequest) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{2}
+	return file_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PageRequest) GetPage() int32 {
@@ -290,7 +372,7 @@ type PageResponse struct {
 
 func (x *PageResponse) Reset() {
 	*x = PageResponse{}
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +384,7 @@ func (x *PageResponse) String() string {
 func (*PageResponse) ProtoMessage() {}
 
 func (x *PageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +397,7 @@ func (x *PageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PageResponse.ProtoReflect.Descriptor instead.
 func (*PageResponse) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{3}
+	return file_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PageResponse) GetTotal() int32 {
@@ -350,14 +432,21 @@ var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
 	"\n" +
-	"\fcommon.proto\x12\fbobobeads.v1\"\x9b\x01\n" +
+	"\fcommon.proto\x12\fbobobeads.v1\"c\n" +
+	"\x06Device\x12\x1d\n" +
+	"\n" +
+	"android_id\x18\x01 \x01(\tR\tandroidId\x12\x12\n" +
+	"\x04oaid\x18\x02 \x01(\tR\x04oaid\x12\x12\n" +
+	"\x04idfv\x18\x03 \x01(\tR\x04idfv\x12\x12\n" +
+	"\x04idfa\x18\x04 \x01(\tR\x04idfa\"\xc9\x01\n" +
 	"\rRequestHeader\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1a\n" +
 	"\bplatform\x18\x02 \x01(\tR\bplatform\x12\x1f\n" +
 	"\vapp_version\x18\x03 \x01(\tR\n" +
 	"appVersion\x12\x1b\n" +
 	"\tdevice_id\x18\x04 \x01(\tR\bdeviceId\x12\x1a\n" +
-	"\blanguage\x18\x05 \x01(\tR\blanguage\"Y\n" +
+	"\blanguage\x18\x05 \x01(\tR\blanguage\x12,\n" +
+	"\x06device\x18\x06 \x01(\v2\x14.bobobeads.v1.DeviceR\x06device\"Y\n" +
 	"\x0eResponseHeader\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x19\n" +
@@ -391,20 +480,22 @@ func file_common_proto_rawDescGZIP() []byte {
 }
 
 var file_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_common_proto_goTypes = []any{
 	(Platform)(0),          // 0: bobobeads.v1.Platform
-	(*RequestHeader)(nil),  // 1: bobobeads.v1.RequestHeader
-	(*ResponseHeader)(nil), // 2: bobobeads.v1.ResponseHeader
-	(*PageRequest)(nil),    // 3: bobobeads.v1.PageRequest
-	(*PageResponse)(nil),   // 4: bobobeads.v1.PageResponse
+	(*Device)(nil),         // 1: bobobeads.v1.Device
+	(*RequestHeader)(nil),  // 2: bobobeads.v1.RequestHeader
+	(*ResponseHeader)(nil), // 3: bobobeads.v1.ResponseHeader
+	(*PageRequest)(nil),    // 4: bobobeads.v1.PageRequest
+	(*PageResponse)(nil),   // 5: bobobeads.v1.PageResponse
 }
 var file_common_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: bobobeads.v1.RequestHeader.device:type_name -> bobobeads.v1.Device
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_common_proto_init() }
@@ -418,7 +509,7 @@ func file_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
