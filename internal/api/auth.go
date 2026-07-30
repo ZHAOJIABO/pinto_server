@@ -25,11 +25,12 @@ func (h *AuthHandler) GuestLogin(ctx context.Context, req *pb.GuestLoginRequest)
 	}
 	device := req.GetHeader().GetDevice()
 	user, tokens, err := h.authService.GuestLoginWithDevice(ctx, auth.GuestLoginParams{
-		Platform:  platform,
-		AndroidID: device.GetAndroidId(),
-		OAID:      device.GetOaid(),
-		IDFV:      device.GetIdfv(),
-		IDFA:      device.GetIdfa(),
+		Platform:        platform,
+		GuestCredential: req.GetHeader().GetGuestCredential(),
+		AndroidID:       device.GetAndroidId(),
+		OAID:            device.GetOaid(),
+		IDFV:            device.GetIdfv(),
+		IDFA:            device.GetIdfa(),
 	})
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil

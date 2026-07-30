@@ -19,16 +19,18 @@ type User struct {
 	Nickname  string  `gorm:"type:varchar(64)" json:"nickname"`
 	AvatarURL string  `gorm:"type:varchar(512)" json:"avatar_url"`
 	Phone     string  `gorm:"type:varchar(20);index" json:"phone"`
-	DeviceID  string  `gorm:"type:varchar(64);index" json:"device_id"`
-	// GuestIdentity 为游客设备身份的 HMAC；NULL 允许非游客账户重复为空。
-	GuestIdentity   *string `gorm:"type:varchar(64);uniqueIndex" json:"-"`
-	LoginType       string  `gorm:"type:varchar(16)" json:"login_type"`
-	WechatUnionID   string  `gorm:"type:varchar(64);index" json:"wechat_unionid"`
-	WechatOpenIDApp string  `gorm:"type:varchar(64)" json:"wechat_openid_app"`
-	WechatOpenIDMp  string  `gorm:"type:varchar(64)" json:"wechat_openid_mp"`
-	WechatOpenIDWeb string  `gorm:"type:varchar(64)" json:"wechat_openid_web"`
-	AppleID         string  `gorm:"type:varchar(128)" json:"apple_id"`
-	Status          int8    `gorm:"type:tinyint;default:1" json:"status"` // 1:正常 2:禁用 3:注销
+	// DeviceID 和 GuestIdentity 均只保存旧设备标识的 HMAC，用于游客账号迁移。
+	DeviceID      string  `gorm:"type:varchar(64);index" json:"device_id"`
+	GuestIdentity *string `gorm:"type:varchar(64);uniqueIndex" json:"-"`
+	// GuestCredentialHash 为游客账号的主恢复凭证 HMAC；NULL 仅兼容存量游客数据。
+	GuestCredentialHash *string `gorm:"type:varchar(64);uniqueIndex" json:"-"`
+	LoginType           string  `gorm:"type:varchar(16)" json:"login_type"`
+	WechatUnionID       string  `gorm:"type:varchar(64);index" json:"wechat_unionid"`
+	WechatOpenIDApp     string  `gorm:"type:varchar(64)" json:"wechat_openid_app"`
+	WechatOpenIDMp      string  `gorm:"type:varchar(64)" json:"wechat_openid_mp"`
+	WechatOpenIDWeb     string  `gorm:"type:varchar(64)" json:"wechat_openid_web"`
+	AppleID             string  `gorm:"type:varchar(128)" json:"apple_id"`
+	Status              int8    `gorm:"type:tinyint;default:1" json:"status"` // 1:正常 2:禁用 3:注销
 }
 
 func (u *User) PublicUserID() string {

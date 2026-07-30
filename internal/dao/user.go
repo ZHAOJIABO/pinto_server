@@ -10,7 +10,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var ErrGuestUserIDCollision = errors.New("guest user id collision")
+var (
+	ErrGuestUserIDCollision         = errors.New("guest user id collision")
+	ErrGuestCredentialBindingFailed = errors.New("guest credential cannot be bound to legacy user")
+)
 
 type UserDAO struct{}
 
@@ -57,12 +60,45 @@ func (d *UserDAO) GetByGuestIdentity(ctx context.Context, guestIdentity string) 
 	return &user, err
 }
 
+func (d *UserDAO) GetByGuestCredentialHash(ctx context.Context, credentialHash string) (*model.User, error) {
+	var user model.User
+	err := d.DB(ctx).Where("guest_credential_hash = ? AND status = 1", credentialHash).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &user, err
+}
+
+// BindGuestCredential atomically associates a newly upgraded client credential
+// with a legacy device-based guest user. It never replaces an existing
+// credential, so the original recovery path remains valid.
+func (d *UserDAO) BindGuestCredential(ctx context.Context, user *model.User, credentialHash string) (*model.User, error) {
+	result := d.DB(ctx).
+		Model(&model.User{}).
+		Where("id = ? AND guest_credential_hash IS NULL", user.ID).
+		Update("guest_credential_hash", credentialHash)
+	if result.Error != nil {
+		if existing, err := d.GetByGuestCredentialHash(ctx, credentialHash); err != nil || existing != nil {
+			return existing, err
+		}
+		return nil, result.Error
+	}
+	if result.RowsAffected == 1 {
+		user.GuestCredentialHash = &credentialHash
+		return user, nil
+	}
+	if existing, err := d.GetByGuestCredentialHash(ctx, credentialHash); err != nil || existing != nil {
+		return existing, err
+	}
+	return nil, ErrGuestCredentialBindingFailed
+}
+
 // CreateOrGetGuest atomically creates a guest user or returns the user created
-// by a concurrent login from the same device. A conflicting public ID for a
-// different device is surfaced instead of merging the two identities.
+// by a concurrent login with the same recovery credential. A conflicting public
+// ID is surfaced instead of merging unrelated guest users.
 func (d *UserDAO) CreateOrGetGuest(ctx context.Context, user *model.User) (*model.User, error) {
-	if user.GuestIdentity == nil || user.UserID == nil {
-		return nil, errors.New("guest identity and user id are required")
+	if user.GuestCredentialHash == nil || user.UserID == nil {
+		return nil, errors.New("guest credential hash and user id are required")
 	}
 
 	result := d.DB(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(user)
@@ -73,7 +109,7 @@ func (d *UserDAO) CreateOrGetGuest(ctx context.Context, user *model.User) (*mode
 		return user, nil
 	}
 
-	existing, err := d.GetByGuestIdentity(ctx, *user.GuestIdentity)
+	existing, err := d.GetByGuestCredentialHash(ctx, *user.GuestCredentialHash)
 	if err != nil {
 		return nil, err
 	}

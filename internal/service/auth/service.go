@@ -33,18 +33,23 @@ type TokenPair struct {
 }
 
 type GuestLoginParams struct {
-	Platform  string
-	AndroidID string
-	OAID      string
-	IDFV      string
-	IDFA      string
+	Platform        string
+	GuestCredential string
+	AndroidID       string
+	OAID            string
+	IDFV            string
+	IDFA            string
 }
 
 func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginParams) (*model.User, *TokenPair, error) {
-	deviceID, platformSuffix := selectGuestIdentity(params)
-	guestIdentity := hashGuestIdentity(platformSuffix, deviceID)
-	if existing, err := s.userDAO.GetByGuestIdentity(ctx, guestIdentity); err != nil {
-		return nil, nil, apperr.Internal("get guest user", err)
+	credential := params.GuestCredential
+	if credential == "" {
+		return nil, nil, apperr.InvalidArgument("guest credential is required")
+	}
+
+	credentialHash := hashGuestCredential(credential)
+	if existing, err := s.userDAO.GetByGuestCredentialHash(ctx, credentialHash); err != nil {
+		return nil, nil, apperr.Internal("get guest user by credential", err)
 	} else if existing != nil {
 		tokens, err := s.generateTokens(existing.ID)
 		if err != nil {
@@ -53,18 +58,47 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 		return existing, tokens, nil
 	}
 
-	userID := generateGuestUserID(deviceID, platformSuffix)
+	deviceID, platformSuffix := selectLegacyGuestIdentity(params)
+	var guestIdentity *string
+	if deviceID != "" {
+		identity := hashGuestIdentity(platformSuffix, deviceID)
+		guestIdentity = &identity
+	}
+	if guestIdentity != nil {
+		existing, err := s.userDAO.GetByGuestIdentity(ctx, *guestIdentity)
+		if err != nil {
+			return nil, nil, apperr.Internal("get legacy guest user by device", err)
+		}
+		if existing != nil {
+			bound, err := s.userDAO.BindGuestCredential(ctx, existing, credentialHash)
+			if err != nil {
+				if err == dao.ErrGuestCredentialBindingFailed {
+					return nil, nil, apperr.New(apperr.CodeDuplicateRequest, "legacy guest already has a recovery credential")
+				}
+				return nil, nil, apperr.Internal("bind guest credential", err)
+			}
+			tokens, err := s.generateTokens(bound.ID)
+			if err != nil {
+				return nil, nil, err
+			}
+			return bound, tokens, nil
+		}
+	}
 
+	userID := generateGuestUserID(credentialHash, platformSuffix)
 	nickname := "用户" + userID[len(userID)-6:]
 
 	user := &model.User{
-		UserID:        &userID,
-		UUID:          uuid.New().String(),
-		Nickname:      nickname,
-		DeviceID:      guestIdentity,
-		GuestIdentity: &guestIdentity,
-		LoginType:     "guest",
-		Status:        1,
+		UserID:              &userID,
+		UUID:                uuid.New().String(),
+		Nickname:            nickname,
+		GuestCredentialHash: &credentialHash,
+		LoginType:           "guest",
+		Status:              1,
+	}
+	if guestIdentity != nil {
+		user.DeviceID = *guestIdentity
+		user.GuestIdentity = guestIdentity
 	}
 	user, err := s.userDAO.CreateOrGetGuest(ctx, user)
 	if err != nil {
@@ -81,32 +115,32 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 	return user, tokens, nil
 }
 
+func hashGuestCredential(credential string) string {
+	mac := hmac.New(sha256.New, []byte(conf.GlobalConfig.JWT.Secret))
+	mac.Write([]byte("guest-credential:" + credential))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
 func hashGuestIdentity(platformSuffix, identity string) string {
 	mac := hmac.New(sha256.New, []byte(conf.GlobalConfig.JWT.Secret))
 	mac.Write([]byte(platformSuffix + ":" + identity))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func selectGuestIdentity(params GuestLoginParams) (string, string) {
+func selectLegacyGuestIdentity(params GuestLoginParams) (string, string) {
 	switch strings.ToLower(params.Platform) {
 	case "android":
 		if params.AndroidID != "" {
 			return params.AndroidID, "3"
 		}
-		if params.OAID != "" {
-			return params.OAID, "3"
-		}
-		return strings.ReplaceAll(uuid.New().String(), "-", ""), "3"
+		return params.OAID, "3"
 	case "ios":
 		if params.IDFV != "" {
 			return params.IDFV, "2"
 		}
-		if params.IDFA != "" {
-			return params.IDFA, "2"
-		}
-		return strings.ReplaceAll(uuid.New().String(), "-", ""), "2"
+		return params.IDFA, "2"
 	default:
-		return strings.ReplaceAll(uuid.New().String(), "-", ""), ""
+		return "", ""
 	}
 }
 

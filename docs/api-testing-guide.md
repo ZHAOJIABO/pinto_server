@@ -82,12 +82,15 @@ POST /api/v1/auth/guest
 {
   "header": {
     "platform": "android",
+    "guestCredential": "46d2672e-42c3-4cff-8d4d-8c7ee0bd328c",
     "device": {
       "androidId": "test-android-id-001"
     }
   }
 }
 ```
+
+`guestCredential` 是客户端安全随机生成并持久化的游客恢复凭证。服务端只保存其带服务端密钥的哈希值；`device` 中的设备标识仅用于兼容存量游客账号、风控和归因。
 
 **Response:**
 ```json

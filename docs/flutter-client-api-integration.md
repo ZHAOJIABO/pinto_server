@@ -283,7 +283,7 @@ final clientRequestId = const Uuid().v4();
 sequenceDiagram
     participant App
     participant API
-    App->>API: POST /api/v1/auth/guest(header.device)
+    App->>API: POST /api/v1/auth/guest(header.guestCredential, header.device)
     API-->>App: accessToken, refreshToken, user
     App->>API: GET /api/v1/system/config
     App->>API: GET /api/v1/system/board-specs
@@ -573,6 +573,8 @@ POST /api/v1/auth/guest
 ```json
 {
   "header": {
+    "platform": "ios",
+    "guestCredential": "46d2672e-42c3-4cff-8d4d-8c7ee0bd328c",
     "device": {
       "idfv": "ios-idfv"
     }
@@ -598,7 +600,7 @@ POST /api/v1/auth/guest
 }
 ```
 
-游客 `userId` 为 `86 + 平台位 + SHA-256(设备标识) 十进制前 10 位`；Android 平台位为 `3`，iOS 为 `2`。
+`guestCredential` 必须由客户端安全随机生成并持久化。它是游客账号的恢复凭证；服务端仅保存带服务端密钥的哈希值。设备标识只用于存量游客账号迁移、风控和归因。游客 `userId` 由凭证哈希生成，Android 平台位为 `3`，iOS 为 `2`。
 
 ### 7.2 手机号登录
 
@@ -1400,7 +1402,7 @@ GET /api/v1/system/board-specs
 6. `AIGenerationItem.inputImageUrl` 当前可能为空，显示输入图时用本地文件或 `ReportUploadResponse.fileUrl`。
 7. 本地开发 AI provider 是 fake provider，输出的是一张占位图，但和线上一样落在我们的 OSS `ai_output/` 下。
 8. `CreditService.GetBalance.dailyFreeRemaining` 当前没有计算，UI 不要展示为真实剩余次数。
-9. `RequestHeader` 在 proto 中存在，但 REST 客户端主要通过 HTTP headers 传平台、token 和 device id。
+9. 游客登录的 `header.guestCredential` 必填；REST 客户端仍可通过 HTTP headers 传平台、token 和 device id。
 10. 业务错误通常在 HTTP 200 的 `header.code` 中，不能只看 HTTP status。
 
 ## 10. 最小联调清单

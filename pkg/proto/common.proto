@@ -29,6 +29,8 @@ message RequestHeader {
   string language = 5;
   // 设备身份标识。
   Device device = 6;
+  // 游客账号恢复凭证。由客户端安全随机生成；服务端仅保存带密钥的哈希值。
+  string guest_credential = 7;
 }
 
 message ResponseHeader {
