@@ -12,6 +12,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/conf"
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/auth"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/user"
 )
@@ -64,6 +65,90 @@ func TestGuestLogin(t *testing.T) {
 	}
 
 	t.Logf("Guest login success: user_id=%d, uuid=%s", user.ID, user.UUID)
+}
+
+func TestGuestLogin_PersistsFullDeviceProfile(t *testing.T) {
+	SetupTestDB(t)
+	userDAO := dao.NewUserDAO()
+	authService := auth.NewService(userDAO)
+
+	user, _, err := authService.GuestLoginWithDevice(context.Background(), auth.GuestLoginParams{
+		Platform:        "ios",
+		GuestCredential: "credential-full-device-profile",
+		Device: &pb.Device{
+			Ip:           "203.0.113.10",
+			UserAgent:    "Mozilla/5.0 test",
+			Idfa:         "idfa",
+			IdfaMd5:      "idfa-md5",
+			Imei:         "imei",
+			ImeiMd5:      "imei-md5",
+			Oaid:         "oaid",
+			OaidMd5:      "oaid-md5",
+			AndroidId:    "android-id",
+			DeviceType:   1,
+			Brand:        "Apple",
+			Model:        "iPhone17,1",
+			Os:           2,
+			Osv:          "18.0",
+			Network:      5,
+			Operator:     1,
+			Width:        1179,
+			Height:       2556,
+			Orientation:  1,
+			Geo:          &pb.Device_Geo{Lat: 31.2304, Lon: 121.4737},
+			InstalledApp: []string{"com.example.one", "com.example.two"},
+			Caids:        []*pb.Device_CAID{{Ver: "20201201", Caid: "caid-value"}},
+			BootMark:     "boot-mark",
+			UpdateMark:   "update-mark",
+			Mac:          "00:0A:D5:B7:80:5E",
+			AndroidIdMd5: "android-id-md5",
+			Ipv6:         "2001:db8::1",
+			UserInfo:     &pb.Device_UserInfo{Age: 24, Gender: 1},
+			BirthTime:    "2024-01-01T00:00:00Z",
+			BootTime:     "2024-01-02T00:00:00Z",
+			UpdateTime:   "2024-01-03T00:00:00Z",
+			Idfv:         "idfv",
+			IdfvMd5:      "idfv-md5",
+			Language:     pb.Language_ENGLISH,
+			Timezone:     "Asia/Shanghai",
+		},
+	})
+	if err != nil {
+		t.Fatalf("GuestLoginWithDevice failed: %v", err)
+	}
+
+	persisted, err := userDAO.GetByID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if persisted.DeviceIP != "203.0.113.10" || persisted.DeviceUserAgent != "Mozilla/5.0 test" || persisted.DeviceIDFA != "idfa" {
+		t.Fatalf("basic device data was not persisted: %+v", persisted)
+	}
+	if persisted.DeviceIDFAMD5 != "idfa-md5" || persisted.DeviceIMEI != "imei" || persisted.DeviceIMEIMD5 != "imei-md5" ||
+		persisted.DeviceOAID != "oaid" || persisted.DeviceOAIDMD5 != "oaid-md5" || persisted.DeviceAndroidID != "android-id" {
+		t.Fatalf("device identifiers were not persisted: %+v", persisted)
+	}
+	if persisted.DeviceType != 1 || persisted.DeviceBrand != "Apple" || persisted.DeviceModel != "iPhone17,1" ||
+		persisted.DeviceOS != 2 || persisted.DeviceOSVersion != "18.0" || persisted.DeviceNetwork != 5 ||
+		persisted.DeviceOperator != 1 || persisted.DeviceWidth != 1179 || persisted.DeviceHeight != 2556 || persisted.DeviceOrientation != 1 {
+		t.Fatalf("device hardware data was not persisted: %+v", persisted)
+	}
+	if persisted.DeviceGeoLatitude != 31.2304 || persisted.DeviceGeoLongitude != 121.4737 || persisted.DeviceUserAge != 24 || persisted.DeviceUserGender != 1 {
+		t.Fatalf("nested device data was not persisted: %+v", persisted)
+	}
+	if persisted.DeviceInstalledApps != `["com.example.one","com.example.two"]` || persisted.DeviceCAIDs != `[{"ver":"20201201","caid":"caid-value"}]` {
+		t.Fatalf("device collections were not persisted: apps=%q caids=%q", persisted.DeviceInstalledApps, persisted.DeviceCAIDs)
+	}
+	if persisted.DeviceTimezone != "Asia/Shanghai" || persisted.DeviceLanguage != int32(pb.Language_ENGLISH) || persisted.DeviceIDFV != "idfv" {
+		t.Fatalf("remaining device data was not persisted: %+v", persisted)
+	}
+	if persisted.DeviceBootMark != "boot-mark" || persisted.DeviceUpdateMark != "update-mark" ||
+		persisted.DeviceMAC != "00:0A:D5:B7:80:5E" || persisted.DeviceAndroidIDMD5 != "android-id-md5" ||
+		persisted.DeviceIPv6 != "2001:db8::1" || persisted.DeviceBirthTime != "2024-01-01T00:00:00Z" ||
+		persisted.DeviceBootTime != "2024-01-02T00:00:00Z" || persisted.DeviceUpdateTime != "2024-01-03T00:00:00Z" ||
+		persisted.DeviceIDFVMD5 != "idfv-md5" {
+		t.Fatalf("device system data was not persisted: %+v", persisted)
+	}
 }
 
 func TestGuestLogin_UsesCredentialBasedPublicUserID(t *testing.T) {

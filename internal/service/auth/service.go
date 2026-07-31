@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 )
 
 type Service struct {
@@ -35,10 +37,12 @@ type TokenPair struct {
 type GuestLoginParams struct {
 	Platform        string
 	GuestCredential string
-	AndroidID       string
-	OAID            string
-	IDFV            string
-	IDFA            string
+	Device          *pb.Device
+	// 以下字段仅兼容旧的服务调用；新调用应通过 Device 传递设备身份。
+	AndroidID string
+	OAID      string
+	IDFV      string
+	IDFA      string
 }
 
 func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginParams) (*model.User, *TokenPair, error) {
@@ -51,6 +55,9 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 	if existing, err := s.userDAO.GetByGuestCredentialHash(ctx, credentialHash); err != nil {
 		return nil, nil, apperr.Internal("get guest user by credential", err)
 	} else if existing != nil {
+		if err := s.UpdateDeviceInfo(ctx, existing, params.Device); err != nil {
+			return nil, nil, err
+		}
 		tokens, err := s.generateTokens(existing.ID)
 		if err != nil {
 			return nil, nil, err
@@ -77,6 +84,9 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 				}
 				return nil, nil, apperr.Internal("bind guest credential", err)
 			}
+			if err := s.UpdateDeviceInfo(ctx, bound, params.Device); err != nil {
+				return nil, nil, err
+			}
 			tokens, err := s.generateTokens(bound.ID)
 			if err != nil {
 				return nil, nil, err
@@ -100,6 +110,9 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 		user.DeviceID = *guestIdentity
 		user.GuestIdentity = guestIdentity
 	}
+	if err := applyDeviceInfo(user, params.Device); err != nil {
+		return nil, nil, apperr.Internal("encode device profile", err)
+	}
 	user, err := s.userDAO.CreateOrGetGuest(ctx, user)
 	if err != nil {
 		if err == dao.ErrGuestUserIDCollision {
@@ -115,6 +128,74 @@ func (s *Service) GuestLoginWithDevice(ctx context.Context, params GuestLoginPar
 	return user, tokens, nil
 }
 
+// UpdateDeviceInfo records the most recently reported device profile for a user.
+// It intentionally does not affect the HMAC-based guest identity fields.
+func (s *Service) UpdateDeviceInfo(ctx context.Context, user *model.User, device *pb.Device) error {
+	if device == nil {
+		return nil
+	}
+	if err := applyDeviceInfo(user, device); err != nil {
+		return apperr.Internal("encode device profile", err)
+	}
+	if err := s.userDAO.Update(ctx, user); err != nil {
+		return apperr.Internal("update device profile", err)
+	}
+	return nil
+}
+
+func applyDeviceInfo(user *model.User, device *pb.Device) error {
+	if device == nil {
+		return nil
+	}
+	installedApps, err := json.Marshal(device.GetInstalledApp())
+	if err != nil {
+		return err
+	}
+	caids, err := json.Marshal(device.GetCaids())
+	if err != nil {
+		return err
+	}
+
+	user.DeviceIP = device.GetIp()
+	user.DeviceUserAgent = device.GetUserAgent()
+	user.DeviceIDFA = device.GetIdfa()
+	user.DeviceIDFAMD5 = device.GetIdfaMd5()
+	user.DeviceIMEI = device.GetImei()
+	user.DeviceIMEIMD5 = device.GetImeiMd5()
+	user.DeviceOAID = device.GetOaid()
+	user.DeviceOAIDMD5 = device.GetOaidMd5()
+	user.DeviceAndroidID = device.GetAndroidId()
+	user.DeviceType = device.GetDeviceType()
+	user.DeviceBrand = device.GetBrand()
+	user.DeviceModel = device.GetModel()
+	user.DeviceOS = device.GetOs()
+	user.DeviceOSVersion = device.GetOsv()
+	user.DeviceNetwork = device.GetNetwork()
+	user.DeviceOperator = device.GetOperator()
+	user.DeviceWidth = device.GetWidth()
+	user.DeviceHeight = device.GetHeight()
+	user.DeviceOrientation = device.GetOrientation()
+	user.DeviceGeoLatitude = device.GetGeo().GetLat()
+	user.DeviceGeoLongitude = device.GetGeo().GetLon()
+	user.DeviceInstalledApps = string(installedApps)
+	user.DeviceCAIDs = string(caids)
+	user.DeviceBootMark = device.GetBootMark()
+	user.DeviceUpdateMark = device.GetUpdateMark()
+	user.DeviceMAC = device.GetMac()
+	user.DeviceAndroidIDMD5 = device.GetAndroidIdMd5()
+	user.DeviceIPv6 = device.GetIpv6()
+	user.DeviceUserAge = device.GetUserInfo().GetAge()
+	user.DeviceUserGender = device.GetUserInfo().GetGender()
+	user.DeviceBirthTime = device.GetBirthTime()
+	user.DeviceBootTime = device.GetBootTime()
+	user.DeviceUpdateTime = device.GetUpdateTime()
+	user.DeviceIDFV = device.GetIdfv()
+	user.DeviceIDFVMD5 = device.GetIdfvMd5()
+	user.DeviceLanguage = int32(device.GetLanguage())
+	user.DeviceTimezone = device.GetTimezone()
+	return nil
+}
+
 func hashGuestCredential(credential string) string {
 	mac := hmac.New(sha256.New, []byte(conf.GlobalConfig.JWT.Secret))
 	mac.Write([]byte("guest-credential:" + credential))
@@ -128,17 +209,27 @@ func hashGuestIdentity(platformSuffix, identity string) string {
 }
 
 func selectLegacyGuestIdentity(params GuestLoginParams) (string, string) {
+	androidID := params.AndroidID
+	oaid := params.OAID
+	idfv := params.IDFV
+	idfa := params.IDFA
+	if params.Device != nil {
+		androidID = params.Device.GetAndroidId()
+		oaid = params.Device.GetOaid()
+		idfv = params.Device.GetIdfv()
+		idfa = params.Device.GetIdfa()
+	}
 	switch strings.ToLower(params.Platform) {
 	case "android":
-		if params.AndroidID != "" {
-			return params.AndroidID, "3"
+		if androidID != "" {
+			return androidID, "3"
 		}
-		return params.OAID, "3"
+		return oaid, "3"
 	case "ios":
-		if params.IDFV != "" {
-			return params.IDFV, "2"
+		if idfv != "" {
+			return idfv, "2"
 		}
-		return params.IDFA, "2"
+		return idfa, "2"
 	default:
 		return "", ""
 	}
@@ -166,6 +257,17 @@ func (s *Service) PhoneLogin(ctx context.Context, phone, code string) (*model.Us
 	}
 	tokens, err := s.generateTokens(user.ID)
 	if err != nil {
+		return nil, nil, err
+	}
+	return user, tokens, nil
+}
+
+func (s *Service) PhoneLoginWithDevice(ctx context.Context, phone, code string, device *pb.Device) (*model.User, *TokenPair, error) {
+	user, tokens, err := s.PhoneLogin(ctx, phone, code)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := s.UpdateDeviceInfo(ctx, user, device); err != nil {
 		return nil, nil, err
 	}
 	return user, tokens, nil
@@ -202,6 +304,17 @@ func (s *Service) RefreshToken(ctx context.Context, refreshToken string) (*model
 	}
 	tokens, err := s.generateTokens(user.ID)
 	if err != nil {
+		return nil, nil, err
+	}
+	return user, tokens, nil
+}
+
+func (s *Service) RefreshTokenWithDevice(ctx context.Context, refreshToken string, device *pb.Device) (*model.User, *TokenPair, error) {
+	user, tokens, err := s.RefreshToken(ctx, refreshToken)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := s.UpdateDeviceInfo(ctx, user, device); err != nil {
 		return nil, nil, err
 	}
 	return user, tokens, nil

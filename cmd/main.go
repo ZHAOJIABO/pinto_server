@@ -38,6 +38,11 @@ func main() {
 	logger.Init()
 	defer logger.Sync()
 
+	clientIPResolver, err := middleware.NewClientIPResolver(conf.GlobalConfig.Server.TrustedProxyCIDRs)
+	if err != nil {
+		zap.L().Fatal("invalid trusted proxy configuration", zap.Error(err))
+	}
+
 	if err := db.InitMySQL(); err != nil {
 		zap.L().Fatal("failed to init mysql", zap.Error(err))
 	}
@@ -85,6 +90,7 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			middleware.TraceInterceptor(),
 			middleware.LoggingInterceptor(time.Second),
+			middleware.ClientIPInterceptor(),
 			middleware.ServiceAuthInterceptor(),
 			middleware.PlatformInterceptor(),
 			middleware.AuthInterceptor(sp.AuthService),
@@ -153,7 +159,7 @@ func main() {
 	httpPort := conf.GlobalConfig.Server.HTTPPort
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
-		Handler: middleware.HTTPLogging(2 * time.Second)(corsMiddleware(rootMux)),
+		Handler: middleware.ForwardClientIP(clientIPResolver)(middleware.HTTPLogging(2*time.Second, clientIPResolver)(corsMiddleware(rootMux))),
 	}
 
 	go func() {
@@ -192,7 +198,7 @@ func main() {
 // runtime.DefaultHeaderMatcher drops non-standard ones.
 func gatewayHeaderMatcher(key string) (string, bool) {
 	switch strings.ToLower(key) {
-	case "x-request-id", "x-platform", "x-app-version", "x-device-id":
+	case "x-request-id", "x-platform", "x-app-version", "x-device-id", "x-client-ip":
 		return strings.ToLower(key), true
 	}
 	return runtime.DefaultHeaderMatcher(key)

@@ -3,6 +3,8 @@ server:
   mode: local
   grpc_port: 9090
   http_port: 8080
+  # 留空时不信任 X-Forwarded-For，仅使用直连地址。
+  trusted_proxy_cidrs: []
 
 mysql:
   host: 127.0.0.1

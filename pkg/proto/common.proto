@@ -4,16 +4,103 @@ package bobobeads.v1;
 
 option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
 
-// 设备身份标识。仅用于游客身份的稳定生成，不应写入日志。
+// 客户端设备信息。
 message Device {
-  // Android 系统标识。
-  string android_id = 1;
+  // ipv4 点分十进制, 必须为终端真实 IP 地址。
+  string ip = 1;
+  // User-Agent，来自 HTTP 头。
+  string user_agent = 2;
+  // iOS 6.0 及以上的 IDFA。
+  string idfa = 3;
+  string idfa_md5 = 4;
+  // Android 设备的 IMEI。
+  string imei = 5;
+  string imei_md5 = 6;
   // Android 开放匿名设备标识。
-  string oaid = 2;
+  string oaid = 7;
+  string oaid_md5 = 8;
+  // Android 系统标识。
+  string android_id = 9;
+  // 设备类型：0-手机；1-平板；2-PC；3-互联网电视。
+  int32 device_type = 10;
+  // 设备品牌。
+  string brand = 11;
+  // 设备型号。
+  string model = 12;
+  // 操作系统：例如 1-Android；2-iOS。
+  int32 os = 13;
+  // 操作系统版本。
+  string osv = 14;
+  // 网络环境：0-未识别；1-wifi；2-2G；3-3G；4-4G；5-5G。
+  int32 network = 15;
+  // 网络运营商：0-未知；1-移动；2-联通；3-电信。
+  int32 operator = 16;
+  // 屏幕宽度。
+  int32 width = 17;
+  // 屏幕高度。
+  int32 height = 18;
+  // 屏幕方向：0-未知；1-竖屏；2-横屏。
+  int32 orientation = 20;
+
+  message Geo {
+    // 纬度，范围 [-90.0, +90.0]。
+    double lat = 1;
+    // 经度，范围 [-180.0, +180.0]。
+    double lon = 2;
+  }
+  Geo geo = 21;
+
+  // 已安装的应用列表。
+  repeated string installed_app = 22;
+
+  // 广协 CAID。
+  message CAID {
+    // 与 caid 配套的版本，例如 "20201201"。
+    string ver = 1;
+    string caid = 2;
+  }
+  repeated CAID caids = 23;
+
+  // 系统启动标识。
+  string boot_mark = 24;
+  // 系统启动更新标识。
+  string update_mark = 25;
+  // MAC 地址。
+  string mac = 26;
+  // Android ID 的 MD5 值。
+  string android_id_md5 = 27;
+  // 终端真实 IPv6 地址。
+  string ipv6 = 28;
+
+  message UserInfo {
+    int32 age = 1;
+    int32 gender = 2;
+  }
+  UserInfo user_info = 29;
+  // iOS 设备初始化时间。
+  string birth_time = 30;
+  // iOS 设备系统启动时间。
+  string boot_time = 31;
+  // iOS 设备系统更新时间。
+  string update_time = 32;
   // iOS Vendor 标识。
-  string idfv = 3;
-  // iOS 广告标识。
-  string idfa = 4;
+  string idfv = 33;
+  string idfv_md5 = 34;
+  Language language = 35;
+  // 时区。
+  string timezone = 36;
+}
+
+enum Language {
+  CHINESE = 0;
+  ENGLISH = 1;
+  RUSSIAN = 2;
+  VIETNAMESE = 3;
+  PORTUGUESE = 4;
+  INDONESIAN = 5;
+  MALAY = 6;
+  THAI = 7;
+  FILIPINO = 8;
 }
 
 message RequestHeader {

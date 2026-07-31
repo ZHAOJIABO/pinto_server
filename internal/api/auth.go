@@ -27,10 +27,7 @@ func (h *AuthHandler) GuestLogin(ctx context.Context, req *pb.GuestLoginRequest)
 	user, tokens, err := h.authService.GuestLoginWithDevice(ctx, auth.GuestLoginParams{
 		Platform:        platform,
 		GuestCredential: req.GetHeader().GetGuestCredential(),
-		AndroidID:       device.GetAndroidId(),
-		OAID:            device.GetOaid(),
-		IDFV:            device.GetIdfv(),
-		IDFA:            device.GetIdfa(),
+		Device:          device,
 	})
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil
@@ -49,7 +46,7 @@ func (h *AuthHandler) PhoneLogin(ctx context.Context, req *pb.PhoneLoginRequest)
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, apperr.InvalidArgument("phone is required"))}, nil
 	}
 
-	user, tokens, err := h.authService.PhoneLogin(ctx, req.Phone, req.Code)
+	user, tokens, err := h.authService.PhoneLoginWithDevice(ctx, req.Phone, req.Code, req.GetHeader().GetDevice())
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
@@ -96,7 +93,7 @@ func (h *AuthHandler) AppleLogin(ctx context.Context, req *pb.AppleLoginRequest)
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.LoginResponse, error) {
-	user, tokens, err := h.authService.RefreshToken(ctx, req.RefreshToken)
+	user, tokens, err := h.authService.RefreshTokenWithDevice(ctx, req.RefreshToken, req.GetHeader().GetDevice())
 	if err != nil {
 		return &pb.LoginResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}

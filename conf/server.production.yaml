@@ -4,6 +4,8 @@ server:
   # gRPC remains internal to the backend container. Only Nginx publishes HTTP.
   grpc_port: 9090
   http_port: 8080
+  # 填写实际 Nginx / 负载均衡器的来源 CIDR；未配置时不会信任转发 IP 头。
+  trusted_proxy_cidrs: []
 
 mysql:
   host: mysql

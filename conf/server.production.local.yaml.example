@@ -2,6 +2,14 @@
 # values, then restrict it with: chmod 600 conf/server.production.local.yaml
 # This file is intentionally excluded from Git and the Docker build context.
 
+server:
+  # Use the CIDR of the container/network that terminates client HTTP requests.
+  # Do not use 0.0.0.0/0: that would let any direct client spoof X-Forwarded-For.
+  # Determine the Docker network CIDR on the host, for example with:
+  # docker network inspect <compose-project>_default
+  # Example only: - "172.18.0.0/16"
+  trusted_proxy_cidrs: []
+
 mysql:
   # Must match MYSQL_PASSWORD in .env.production.
   password: "replace-with-a-long-random-mysql-password"

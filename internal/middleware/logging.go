@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -88,13 +87,10 @@ func responseStatus(resp interface{}) (int32, string) {
 }
 
 func clientIP(ctx context.Context) string {
-	if ip := metadataValue(ctx, "x-forwarded-for"); ip != "" {
+	if ip := gatewayClientIP(ctx); ip != "" {
 		return ip
 	}
-	if p, ok := peer.FromContext(ctx); ok {
-		return p.Addr.String()
-	}
-	return ""
+	return clientPeerIP(ctx)
 }
 
 func metadataValue(ctx context.Context, key string) string {

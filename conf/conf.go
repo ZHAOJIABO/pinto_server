@@ -48,10 +48,11 @@ type AdminAccountConfig struct {
 }
 
 type ServerConfig struct {
-	Name     string `mapstructure:"name"`
-	Mode     string `mapstructure:"mode"` // local, dev, prod
-	GRPCPort int    `mapstructure:"grpc_port"`
-	HTTPPort int    `mapstructure:"http_port"`
+	Name              string   `mapstructure:"name"`
+	Mode              string   `mapstructure:"mode"` // local, dev, prod
+	GRPCPort          int      `mapstructure:"grpc_port"`
+	HTTPPort          int      `mapstructure:"http_port"`
+	TrustedProxyCIDRs []string `mapstructure:"trusted_proxy_cidrs"`
 }
 
 type MySQLConfig struct {

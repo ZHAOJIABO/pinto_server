@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
 	"time"
 
@@ -32,7 +31,7 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 // HTTPLogging logs one line per HTTP request and makes sure every request carries
 // an X-Request-Id, so the gateway can forward it and the gRPC layer logs the same
 // trace_id for the same request.
-func HTTPLogging(slowThreshold time.Duration) func(http.Handler) http.Handler {
+func HTTPLogging(slowThreshold time.Duration, clientIPResolver ClientIPResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			traceID := r.Header.Get(requestIDHeader)
@@ -56,7 +55,7 @@ func HTTPLogging(slowThreshold time.Duration) func(http.Handler) http.Handler {
 				zap.Int("status", rec.status),
 				zap.Int("bytes", rec.bytes),
 				zap.Duration("elapsed", elapsed),
-				zap.String("ip", httpClientIP(r)),
+				zap.String("ip", clientIPResolver.Resolve(r)),
 			}
 
 			switch {
@@ -71,14 +70,4 @@ func HTTPLogging(slowThreshold time.Duration) func(http.Handler) http.Handler {
 			}
 		})
 	}
-}
-
-func httpClientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return xff
-	}
-	if ip, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return ip
-	}
-	return r.RemoteAddr
 }

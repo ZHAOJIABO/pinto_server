@@ -31,6 +31,44 @@ type User struct {
 	WechatOpenIDWeb     string  `gorm:"type:varchar(64)" json:"wechat_openid_web"`
 	AppleID             string  `gorm:"type:varchar(128)" json:"apple_id"`
 	Status              int8    `gorm:"type:tinyint;default:1" json:"status"` // 1:正常 2:禁用 3:注销
+	// 最近一次登录时上报的完整设备资料。设备身份 HMAC 字段仍用于游客账号迁移。
+	DeviceIP            string  `gorm:"type:varchar(45)" json:"-"`
+	DeviceUserAgent     string  `gorm:"type:varchar(2048)" json:"-"`
+	DeviceIDFA          string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceIDFAMD5       string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceIMEI          string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceIMEIMD5       string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceOAID          string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceOAIDMD5       string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceAndroidID     string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceType          int32   `json:"-"`
+	DeviceBrand         string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceModel         string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceOS            int32   `json:"-"`
+	DeviceOSVersion     string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceNetwork       int32   `json:"-"`
+	DeviceOperator      int32   `json:"-"`
+	DeviceWidth         int32   `json:"-"`
+	DeviceHeight        int32   `json:"-"`
+	DeviceOrientation   int32   `json:"-"`
+	DeviceGeoLatitude   float64 `json:"-"`
+	DeviceGeoLongitude  float64 `json:"-"`
+	DeviceInstalledApps string  `gorm:"type:text" json:"-"`
+	DeviceCAIDs         string  `gorm:"type:text" json:"-"`
+	DeviceBootMark      string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceUpdateMark    string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceMAC           string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceAndroidIDMD5  string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceIPv6          string  `gorm:"type:varchar(45)" json:"-"`
+	DeviceUserAge       int32   `json:"-"`
+	DeviceUserGender    int32   `json:"-"`
+	DeviceBirthTime     string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceBootTime      string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceUpdateTime    string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceIDFV          string  `gorm:"type:varchar(255)" json:"-"`
+	DeviceIDFVMD5       string  `gorm:"type:varchar(64)" json:"-"`
+	DeviceLanguage      int32   `json:"-"`
+	DeviceTimezone      string  `gorm:"type:varchar(64)" json:"-"`
 }
 
 func (u *User) PublicUserID() string {
