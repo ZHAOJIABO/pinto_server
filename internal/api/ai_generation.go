@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
@@ -14,11 +15,18 @@ import (
 
 type AIGenerationHandler struct {
 	pb.UnimplementedAIGenerationServiceServer
-	aiService *ai_generation.Service
+	aiService   *ai_generation.Service
+	avgDuration time.Duration
 }
 
-func NewAIGenerationHandler(aiService *ai_generation.Service) *AIGenerationHandler {
-	return &AIGenerationHandler{aiService: aiService}
+func NewAIGenerationHandler(aiService *ai_generation.Service, avgDurationSec int) *AIGenerationHandler {
+	if avgDurationSec <= 0 {
+		avgDurationSec = 120
+	}
+	return &AIGenerationHandler{
+		aiService:   aiService,
+		avgDuration: time.Duration(avgDurationSec) * time.Second,
+	}
 }
 
 func (h *AIGenerationHandler) ListAIStyles(ctx context.Context, req *pb.ListAIStylesRequest) (*pb.ListAIStylesResponse, error) {
@@ -62,6 +70,22 @@ func (h *AIGenerationHandler) CreateStyleGeneration(ctx context.Context, req *pb
 	}, nil
 }
 
+func (h *AIGenerationHandler) RetryStyleGeneration(ctx context.Context, req *pb.RetryStyleGenerationRequest) (*pb.RetryStyleGenerationResponse, error) {
+	userID := middleware.GetUserID(ctx)
+	result, err := h.aiService.RetryStyleGeneration(ctx, userID, req.TaskId, req.ClientRequestId)
+	if err != nil {
+		return &pb.RetryStyleGenerationResponse{Header: errHeaderCtx(ctx, err)}, nil
+	}
+	return &pb.RetryStyleGenerationResponse{
+		Header:           okHeaderCtx(ctx),
+		TaskId:           result.TaskID,
+		Status:           int32(result.Status),
+		CreditsDeducted:  int32(result.CreditsDeducted),
+		RemainingBalance: int32(result.RemainingBalance),
+		Duplicated:       result.Duplicated,
+	}, nil
+}
+
 func (h *AIGenerationHandler) GetStyleGeneration(ctx context.Context, req *pb.GetStyleGenerationRequest) (*pb.GetStyleGenerationResponse, error) {
 	userID := middleware.GetUserID(ctx)
 	task, err := h.aiService.GetStyleGeneration(ctx, userID, req.TaskId)
@@ -70,7 +94,7 @@ func (h *AIGenerationHandler) GetStyleGeneration(ctx context.Context, req *pb.Ge
 	}
 	return &pb.GetStyleGenerationResponse{
 		Header: okHeaderCtx(ctx),
-		Task:   aiTaskToProto(task),
+		Task:   h.aiTaskToProto(task),
 	}, nil
 }
 
@@ -83,7 +107,7 @@ func (h *AIGenerationHandler) ListStyleGenerations(ctx context.Context, req *pb.
 	}
 	var items []*pb.AIGenerationItem
 	for _, t := range tasks {
-		items = append(items, aiTaskToProto(t))
+		items = append(items, h.aiTaskToProto(t))
 	}
 	return &pb.ListStyleGenerationsResponse{
 		Header: okHeaderCtx(ctx),
@@ -92,19 +116,60 @@ func (h *AIGenerationHandler) ListStyleGenerations(ctx context.Context, req *pb.
 	}, nil
 }
 
-func aiTaskToProto(t *model.AIGeneration) *pb.AIGenerationItem {
+func (h *AIGenerationHandler) aiTaskToProto(t *model.AIGeneration) *pb.AIGenerationItem {
 	item := &pb.AIGenerationItem{
-		TaskId:          t.TaskID,
-		StyleId:         fmt.Sprintf("%d", t.StyleID),
-		InputImageUrl:   t.InputImageURL,
-		OutputImageUrl:  t.OutputImageURL,
-		Status:          int32(t.Status),
-		CreditsDeducted: int32(t.CreditsDeducted),
-		ErrorMessage:    t.ErrorMessage,
-		CreatedAt:       t.CreatedAt.Unix(),
+		TaskId:             t.TaskID,
+		StyleId:            fmt.Sprintf("%d", t.StyleID),
+		InputImageUrl:      t.InputImageURL,
+		InputThumbnailUrl:  t.InputThumbnailURL,
+		OutputImageUrl:     t.OutputImageURL,
+		OutputThumbnailUrl: t.OutputThumbnailURL,
+		Status:             int32(t.Status),
+		CreditsDeducted:    int32(t.CreditsDeducted),
+		ErrorMessage:       t.ErrorMessage,
+		CreatedAt:          t.CreatedAt.Unix(),
+		Progress:           h.progressOf(t),
+	}
+	if t.StartedAt != nil {
+		item.StartedAt = t.StartedAt.Unix()
 	}
 	if t.CompletedAt != nil {
 		item.CompletedAt = t.CompletedAt.Unix()
 	}
 	return item
+}
+
+// progressOf estimates a percentage from elapsed time. No provider reports real
+// progress, so this exists purely so the client can animate a bar instead of a
+// spinner. It never reaches 100 before the task is actually done, because a bar
+// that sits at 100% while the user still waits reads as a hang.
+func (h *AIGenerationHandler) progressOf(t *model.AIGeneration) int32 {
+	const (
+		queued  = 5
+		started = 10
+		ceiling = 95
+	)
+	switch t.Status {
+	case model.AIGenStatusPending:
+		return queued
+	case model.AIGenStatusSucceeded:
+		return 100
+	case model.AIGenStatusRunning:
+		if t.StartedAt == nil {
+			return started
+		}
+		elapsed := time.Since(*t.StartedAt)
+		if elapsed <= 0 {
+			return started
+		}
+		progress := started + int64(float64(ceiling-started)*elapsed.Seconds()/h.avgDuration.Seconds())
+		if progress > ceiling {
+			return ceiling
+		}
+		return int32(progress)
+	default:
+		// Failed, cancelled and expired: the client branches on status and shows
+		// error_message, so any number here would only be noise.
+		return 0
+	}
 }

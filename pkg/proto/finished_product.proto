@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+// 我的成品服务。
+service FinishedProductService {
+  // 获取当前用户的成品列表。
+  rpc ListFinishedProducts(ListFinishedProductsRequest) returns (ListFinishedProductsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/finished-products"
+    };
+  }
+
+  // 创建成品记录。
+  rpc CreateFinishedProduct(CreateFinishedProductRequest) returns (CreateFinishedProductResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/finished-products"
+      body: "*"
+    };
+  }
+}
+
+message FinishedProductItem {
+  // 成品 ID。
+  string finished_product_id = 1;
+  // 原图访问地址。
+  string image_url = 2;
+  // 缩略图地址；为空时客户端降级使用 image_url。
+  string thumbnail_url = 3;
+  // 创建时间戳，秒级。
+  int64 created_at = 4;
+}
+
+message ListFinishedProductsRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 每页数量，缺省 12，上限 50。
+  int32 limit = 2;
+  // 下一页游标，首页不传。
+  string cursor = 3;
+}
+
+message ListFinishedProductsResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 成品列表，按创建时间倒序。
+  repeated FinishedProductItem items = 2;
+  // 下一页游标；没有下一页时为空。
+  string next_cursor = 3;
+}
+
+message CreateFinishedProductRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 媒体文件 key，来自 GetUploadToken 且已完成 ReportUpload。
+  string media_file_key = 2;
+  // 客户端生成的幂等键。
+  string client_request_id = 3;
+}
+
+message CreateFinishedProductResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 新创建或已存在的成品。
+  FinishedProductItem item = 2;
+}

@@ -23,21 +23,25 @@ func (AIStyle) TableName() string { return "bb_ai_style" }
 
 type AIGeneration struct {
 	BaseModel
-	TaskID          string     `gorm:"type:varchar(36);uniqueIndex;not null" json:"task_id"`
-	UserID          uint64     `gorm:"not null;uniqueIndex:uk_ai_gen_user_request;index:idx_ai_gen_user_created;index:idx_ai_gen_user_status,priority:1" json:"user_id"`
-	ClientRequestID string     `gorm:"type:varchar(64);not null;uniqueIndex:uk_ai_gen_user_request" json:"client_request_id"`
-	StyleID         uint64     `gorm:"not null" json:"style_id"`
-	InputFileKey    string     `gorm:"type:varchar(512)" json:"input_file_key"`
-	InputImageURL   string     `gorm:"type:varchar(1024)" json:"input_image_url"`
-	OutputFileKey   string     `gorm:"type:varchar(512)" json:"output_file_key"`
-	OutputImageURL  string     `gorm:"type:varchar(1024)" json:"output_image_url"`
-	Provider        string     `gorm:"type:varchar(32)" json:"provider"`
-	ProviderJobID   string     `gorm:"type:varchar(128);index:idx_ai_gen_provider_job" json:"provider_job_id"`
-	CreditsDeducted int        `gorm:"not null;default:0" json:"credits_deducted"`
-	Status          int8       `gorm:"type:tinyint;default:0;index:idx_ai_gen_status_created;index:idx_ai_gen_user_status,priority:2" json:"status"`
-	ErrorCode       string     `gorm:"type:varchar(64)" json:"error_code"`
-	ErrorMessage    string     `gorm:"type:varchar(512)" json:"error_message"`
-	ExpiredAt       *time.Time `gorm:"index" json:"expired_at"`
+	TaskID          string `gorm:"type:varchar(36);uniqueIndex;not null" json:"task_id"`
+	UserID          uint64 `gorm:"not null;uniqueIndex:uk_ai_gen_user_request;index:idx_ai_gen_user_created;index:idx_ai_gen_user_status,priority:1" json:"user_id"`
+	ClientRequestID string `gorm:"type:varchar(64);not null;uniqueIndex:uk_ai_gen_user_request" json:"client_request_id"`
+	StyleID         uint64 `gorm:"not null" json:"style_id"`
+	InputFileKey    string `gorm:"type:varchar(512)" json:"input_file_key"`
+	InputImageURL   string `gorm:"type:varchar(1024)" json:"input_image_url"`
+	OutputFileKey   string `gorm:"type:varchar(512)" json:"output_file_key"`
+	OutputImageURL  string `gorm:"type:varchar(1024)" json:"output_image_url"`
+	// Thumbnails are generated server-side and stored beside the originals. An
+	// empty value means generation failed; clients fall back to the full image.
+	InputThumbnailURL  string     `gorm:"type:varchar(1024)" json:"input_thumbnail_url"`
+	OutputThumbnailURL string     `gorm:"type:varchar(1024)" json:"output_thumbnail_url"`
+	Provider           string     `gorm:"type:varchar(32)" json:"provider"`
+	ProviderJobID      string     `gorm:"type:varchar(128);index:idx_ai_gen_provider_job" json:"provider_job_id"`
+	CreditsDeducted    int        `gorm:"not null;default:0" json:"credits_deducted"`
+	Status             int8       `gorm:"type:tinyint;default:0;index:idx_ai_gen_status_created;index:idx_ai_gen_user_status,priority:2" json:"status"`
+	ErrorCode          string     `gorm:"type:varchar(64)" json:"error_code"`
+	ErrorMessage       string     `gorm:"type:varchar(512)" json:"error_message"`
+	ExpiredAt          *time.Time `gorm:"index" json:"expired_at"`
 	// StartedAt records when the current attempt was claimed, not when the task
 	// was submitted. The stuck-running reaper depends on that meaning.
 	StartedAt   *time.Time `json:"started_at"`

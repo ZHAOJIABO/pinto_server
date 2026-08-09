@@ -3,6 +3,10 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
+# The WebP encoder used for thumbnails wraps libwebp, so the build needs cgo and
+# a C toolchain.
+RUN apk add --no-cache build-base
+
 # proxy.golang.org is often unreachable from mainland-China ECS instances.
 # Use Alibaba Cloud's Go module mirror for the image build, then fall back to
 # direct module downloads only when the mirror reports a module as missing.
@@ -12,7 +16,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-extldflags=-static" -o /server ./cmd/
 
 # Runtime stage
 FROM alpine:3.19

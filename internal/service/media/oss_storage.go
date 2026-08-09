@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -29,6 +30,10 @@ type ObjectStorage interface {
 	PutPublic(ctx context.Context, fileKey, contentType string, content []byte) error
 	Get(ctx context.Context, fileKey string, maxSize int64) ([]byte, string, error)
 	PublicURL(fileKey string) string
+	// FileKeyFromPublicURL inverts PublicURL. It reports false for URLs that do
+	// not belong to this bucket, so callers cannot be tricked into treating a
+	// foreign URL as one of our objects.
+	FileKeyFromPublicURL(publicURL string) (string, bool)
 }
 
 type ossStorage struct {
@@ -134,6 +139,30 @@ func (s *ossStorage) PublicURL(fileKey string) string {
 		return ""
 	}
 	return s.publicBaseURL + "/" + escapeObjectKey(fileKey)
+}
+
+func (s *ossStorage) FileKeyFromPublicURL(publicURL string) (string, bool) {
+	return fileKeyFromPublicURL(s.publicBaseURL, publicURL)
+}
+
+func fileKeyFromPublicURL(publicBaseURL, publicURL string) (string, bool) {
+	publicURL = strings.TrimSpace(publicURL)
+	if publicBaseURL == "" || publicURL == "" {
+		return "", false
+	}
+	// Query strings and fragments are not part of the object key.
+	if index := strings.IndexAny(publicURL, "?#"); index >= 0 {
+		publicURL = publicURL[:index]
+	}
+	escapedKey, found := strings.CutPrefix(publicURL, publicBaseURL+"/")
+	if !found || escapedKey == "" {
+		return "", false
+	}
+	fileKey, err := url.PathUnescape(escapedKey)
+	if err != nil {
+		return "", false
+	}
+	return fileKey, true
 }
 
 func escapeObjectKey(fileKey string) string {

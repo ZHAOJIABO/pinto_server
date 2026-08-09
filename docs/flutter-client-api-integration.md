@@ -20,7 +20,7 @@
 | 官方图纸 | `GET /api/v1/templates`、`GET /api/v1/templates/{templateId}` |
 | 官方图纸收藏 | `POST/DELETE /api/v1/templates/{templateId}/favorite`、`GET /api/v1/templates/favorites` |
 | 图片上传 | `POST /api/v1/media/upload-token`、OSS `PUT`、`POST /api/v1/media/report-upload` |
-| AI 风格转换 | `GET /api/v1/ai/styles`、`POST /api/v1/ai/style-generations`、`GET /api/v1/ai/style-generations/{taskId}` |
+| AI 风格转换 | `GET /api/v1/ai/styles`、`POST /api/v1/ai/style-generations`、`GET /api/v1/ai/style-generations/{taskId}`、`POST /api/v1/ai/style-generations/{taskId}/retry` |
 | 拼豆图纸生成记录 | `POST /api/v1/generation/create`、`POST /api/v1/generation/{generationId}/complete`、`GET /api/v1/works` |
 
 ## 2. 服务地址
@@ -265,6 +265,7 @@ class ApiClient {
 | 接口 | 建议生成时机 |
 |---|---|
 | `CreateStyleGeneration` | 用户点击“生成风格图”时生成，并持久化到本地直到任务创建成功 |
+| `RetryStyleGeneration` | 用户点击“重新生成”时生成新值，并持久化到本地直到重试任务创建成功 |
 | `CreateGeneration` | 用户点击“生成拼豆图纸”时生成，并持久化到本地直到 complete/cancel/expired |
 
 Flutter 可以用 `uuid` 包生成：
@@ -346,6 +347,10 @@ sequenceDiagram
     API-->>App: taskId, status, creditsDeducted
     App->>API: GET /api/v1/ai/style-generations/{taskId}
     API-->>App: outputImageUrl when status=2
+    opt status=3/5 用户点「重新生成」
+        App->>API: POST /api/v1/ai/style-generations/{taskId}/retry
+        API-->>App: 新 taskId，回到轮询（无需重新上传原图）
+    end
 ```
 
 任务状态：
@@ -355,9 +360,9 @@ sequenceDiagram
 | `0` | pending | 展示生成中，继续轮询 |
 | `1` | running | 展示生成中，继续轮询 |
 | `2` | succeeded | 展示 `outputImageUrl`，允许继续生成拼豆图纸 |
-| `3` | failed | 展示 `errorMessage`，允许重试 |
+| `3` | failed | 展示 `errorMessage`，重试走 7.16 |
 | `4` | cancelled | 当前没有取消接口，按失败态处理 |
-| `5` | expired | 提示任务超时，允许重新创建 |
+| `5` | expired | 提示任务超时，重试走 7.16 |
 
 创建任务只入队，返回 `status=0(pending)`，客户端必须轮询。本地开发环境使用 fake provider，通常 1~2 秒内变为 `status=2`，输出图与线上一样存在我们自己的 OSS 上。
 
@@ -974,7 +979,45 @@ GET /api/v1/ai/style-generations/{taskId}
 - failed/expired：停止轮询，展示错误。
 - App 退出后，可以通过 `ListStyleGenerations` 恢复任务列表。
 
-### 7.16 我的 AI 风格转换记录
+### 7.16 重试失败的 AI 风格转换任务
+
+```http
+POST /api/v1/ai/style-generations/{taskId}/retry
+```
+
+`{taskId}` 是失败（`status=3`）或过期（`status=5`）的原任务 ID。服务端复用原任务的原图与风格，客户端无需重新走上传流程。
+
+重试默认由**另一个模型**出图（刚失败的模型再试一次多半还会失败），所以结果风格可能与首发略有差异。这个映射在服务端配置，客户端不用传参也不用关心。
+
+请求：
+
+```json
+{
+  "clientRequestId": "b7f1c0e2-1d44-4f2b-8a6c-3e9d5f0a71bc"
+}
+```
+
+响应字段与 7.14 完全一致：
+
+```json
+{
+  "header": {"code": 0, "message": "success"},
+  "taskId": "9c1e7a55-2f88-4d31-b0ab-5e6c4d3a2f10",
+  "status": 0,
+  "creditsDeducted": 2,
+  "remainingBalance": 8,
+  "duplicated": false
+}
+```
+
+说明：
+
+- 返回的 `taskId` 是**新任务**，与请求路径里的原任务 ID 不同；拿新 ID 去轮询，原任务保持 failed/expired 不变。
+- 只有 failed/expired 可重试。pending/running/succeeded 会被拒绝且不扣费；成功任务想「换一张」请走 7.14。
+- 是一次新扣费。原任务失败时积分已自动退回，不会为同一张图付两次。
+- `clientRequestId` 必填，规则同 7.14：同一次重试操作的网络重发复用同一个值。
+
+### 7.17 我的 AI 风格转换记录
 
 ```http
 GET /api/v1/ai/style-generations?page.page=1&page.pageSize=20
@@ -990,7 +1033,7 @@ GET /api/v1/ai/style-generations?page.page=1&page.pageSize=20
 }
 ```
 
-### 7.17 创建拼豆图纸生成凭证
+### 7.18 创建拼豆图纸生成凭证
 
 普通图片生成：
 
@@ -1038,7 +1081,7 @@ AI 风格图生成：
 3. 超出免费次数后每次默认扣 1 积分。
 4. 积分不足返回 `2001`。
 
-### 7.18 完成拼豆图纸生成
+### 7.19 完成拼豆图纸生成
 
 ```http
 POST /api/v1/generation/{generationId}/complete
@@ -1079,7 +1122,7 @@ POST /api/v1/generation/{generationId}/complete
 
 `patternData.boardSpec` 必须和创建凭证时发送的 `boardSpec` 相同。`beadCount`、`colorCount` 会由服务端重新计算，详情和列表中的统计值才是最终值。
 
-### 7.19 取消拼豆图纸生成
+### 7.20 取消拼豆图纸生成
 
 ```http
 POST /api/v1/generation/{generationId}/cancel
@@ -1104,7 +1147,7 @@ POST /api/v1/generation/{generationId}/cancel
 
 本地生成失败、用户主动退出生成页时调用。已完成、已取消、已过期的 generation 不能再取消。
 
-### 7.20 查询拼豆图纸生成状态
+### 7.21 查询拼豆图纸生成状态
 
 ```http
 GET /api/v1/generation/{generationId}
@@ -1130,7 +1173,7 @@ GET /api/v1/generation/{generationId}
 | `2` | cancelled |
 | `3` | expired |
 
-### 7.21 我的作品列表
+### 7.22 我的作品列表
 
 ```http
 GET /api/v1/works?page.page=1&page.pageSize=20
@@ -1164,7 +1207,7 @@ GET /api/v1/works?sourceType=ai_style&page.page=1&page.pageSize=20
 }
 ```
 
-### 7.22 作品详情
+### 7.23 作品详情
 
 ```http
 GET /api/v1/works/{workId}
@@ -1193,7 +1236,7 @@ GET /api/v1/works/{workId}
 }
 ```
 
-### 7.23 保存作品
+### 7.24 保存作品
 
 如果没有走 `GenerationService`，也可以直接保存作品：
 
@@ -1226,7 +1269,7 @@ POST /api/v1/works
 
 首期推荐生成类入口仍走 `generation/create -> complete`，这样服务端能统一处理免费额度、积分和幂等。
 
-### 7.24 草稿
+### 7.25 草稿
 
 保存草稿：
 
@@ -1251,7 +1294,7 @@ POST /api/v1/works/drafts
 GET /api/v1/works/drafts?page.page=1&page.pageSize=20
 ```
 
-### 7.25 积分余额
+### 7.26 积分余额
 
 ```http
 GET /api/v1/credits/balance
@@ -1270,7 +1313,7 @@ GET /api/v1/credits/balance
 
 当前 `dailyFreeRemaining` 未计算填充，客户端不要强依赖它。
 
-### 7.26 积分流水
+### 7.27 积分流水
 
 ```http
 GET /api/v1/credits/transactions?page.page=1&page.pageSize=20
@@ -1295,7 +1338,7 @@ GET /api/v1/credits/transactions?page.page=1&page.pageSize=20
 }
 ```
 
-### 7.27 系统配置和基础数据
+### 7.28 系统配置和基础数据
 
 App 启动可以预拉：
 
@@ -1407,7 +1450,7 @@ GET /api/v1/system/board-specs
 
 ## 10. 最小联调清单
 
-开发完成后，Flutter 侧至少跑通这 8 个场景：
+开发完成后，Flutter 侧至少跑通这 9 个场景：
 
 1. 首次启动游客登录，保存 token。
 2. 拉取官方图纸分类和首页图纸列表。
@@ -1415,8 +1458,9 @@ GET /api/v1/system/board-specs
 4. 收藏、取消收藏、进入我的收藏列表。
 5. 上传一张 `style_input` 图片到 OSS，并上报成功。
 6. 创建 AI 风格转换任务，轮询到 `status=2`。
-7. 使用 AI 输出图本地生成拼豆图纸，上传 `pattern` 预览图。
-8. 调用 generation create/complete，生成 work，并在我的作品列表看到 `sourceType=ai_style`。
+7. 对一个失败任务调重试接口，拿到新 `taskId` 并轮询出图。
+8. 使用 AI 输出图本地生成拼豆图纸，上传 `pattern` 预览图。
+9. 调用 generation create/complete，生成 work，并在我的作品列表看到 `sourceType=ai_style`。
 
 ## 11. 相关文件
 

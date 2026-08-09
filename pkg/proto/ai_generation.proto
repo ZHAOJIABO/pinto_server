@@ -37,6 +37,14 @@ service AIGenerationService {
       get: "/api/v1/ai/style-generations"
     };
   }
+
+  // 重试已失败或已过期的 AI 风格转换任务，复用原任务的原图与风格，客户端无需重新上传原图。
+  rpc RetryStyleGeneration(RetryStyleGenerationRequest) returns (RetryStyleGenerationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/ai/style-generations/{task_id}/retry"
+      body: "*"
+    };
+  }
 }
 
 message AIStyleItem {
@@ -77,6 +85,15 @@ message AIGenerationItem {
   int64 created_at = 9;
   // 完成时间戳。
   int64 completed_at = 10;
+  // 输出图缩略图地址；为空时客户端降级使用 output_image_url。
+  string output_thumbnail_url = 11;
+  // 输入原图缩略图地址；为空时客户端降级使用 input_image_url。
+  string input_thumbnail_url = 12;
+  // 开始生成的时间戳；0 表示仍在排队。用于把排队耗时和生成耗时分开显示。
+  int64 started_at = 13;
+  // 生成进度百分比（0-100）。服务端按已耗时估算，不是第三方回传的真实进度：
+  // 排队中固定 5，生成中随耗时递增但封顶 95，成功才是 100。
+  int32 progress = 14;
 }
 
 message ListAIStylesRequest {
@@ -147,4 +164,28 @@ message ListStyleGenerationsResponse {
   repeated AIGenerationItem tasks = 2;
   // 分页信息。
   PageResponse page = 3;
+}
+
+message RetryStyleGenerationRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 待重试的原任务 ID；仅失败或过期的任务可重试。
+  string task_id = 2;
+  // 客户端请求幂等 ID；同一次重试操作的所有网络重发必须复用同一个值。
+  string client_request_id = 3;
+}
+
+message RetryStyleGenerationResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 新建的 AI 生成任务 ID，与请求中的原任务 ID 不同。
+  string task_id = 2;
+  // 任务状态。
+  int32 status = 3;
+  // 本次扣除积分。
+  int32 credits_deducted = 4;
+  // 剩余积分余额。
+  int32 remaining_balance = 5;
+  // 是否命中重复请求。
+  bool duplicated = 6;
 }

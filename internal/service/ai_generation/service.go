@@ -2,6 +2,7 @@ package ai_generation
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"path"
 	"strings"
@@ -24,17 +25,46 @@ const (
 	retryBackoff      = 2 * time.Second
 	persistTimeout    = 30 * time.Second
 	settleTimeout     = 15 * time.Second
+
+	// ActiveModelConfigKey is the bb_config row that forces the first attempt of
+	// every task onto one configured model, so switching the model online is a
+	// single UPDATE and does not need a deploy or a per-style edit. It does not
+	// govern user-initiated retries: those go through RetryModelConfigKey.
+	ActiveModelConfigKey = "ai_active_model"
+
+	// RetryModelConfigKey is the bb_config row that overrides which model serves
+	// a user-initiated retry. It wins over ActiveModelConfigKey, otherwise a
+	// global override would send the retry straight back to the model that just
+	// failed.
+	RetryModelConfigKey = "ai_retry_model"
+)
+
+// submitOrigin distinguishes a first submission from a user-initiated retry,
+// which is the only thing that decides whether the retry model applies.
+type submitOrigin int
+
+const (
+	originFirstAttempt submitOrigin = iota
+	originRetry
 )
 
 // ImageStore is the slice of the media service this package needs: read the
-// private input object, write the public output object.
+// private input object, write the public output object, and write a thumbnail
+// beside either of them.
 type ImageStore interface {
 	GetObjectBytes(ctx context.Context, userID uint64, fileKey, purpose string) ([]byte, string, error)
 	UploadAIOutput(ctx context.Context, userID uint64, contentType string, content []byte) (string, string, error)
+	PutThumbnail(ctx context.Context, sourceFileKey string, content []byte) (string, error)
 }
 
 type VIPChecker interface {
 	IsVIP(ctx context.Context, userID uint64) (bool, error)
+}
+
+// ConfigStore reads runtime configuration from bb_config. Only the active model
+// key is needed here, so the whole system DAO is not pulled in.
+type ConfigStore interface {
+	GetConfig(ctx context.Context, key string) (string, error)
 }
 
 type Config struct {
@@ -44,6 +74,12 @@ type Config struct {
 	FreeQueueSize       int
 	VIPConcurrent       int
 	VIPQueueSize        int
+	// DefaultModel is the last link in the model resolution chain, used when
+	// neither bb_config nor the style row names one.
+	DefaultModel string
+	// RetryModel serves user-initiated retries. Empty means a retry reuses the
+	// first-attempt chain.
+	RetryModel string
 }
 
 // quotaTier splits two different knobs: QueueSize bounds how much a user may
@@ -60,6 +96,7 @@ type Service struct {
 	creditService *credit.Service
 	store         ImageStore
 	vip           VIPChecker
+	configStore   ConfigStore
 	providers     *Registry
 	config        Config
 	notify        func()
@@ -71,6 +108,7 @@ func NewService(
 	creditService *credit.Service,
 	store ImageStore,
 	vip VIPChecker,
+	configStore ConfigStore,
 	providers *Registry,
 	cfg Config,
 ) *Service {
@@ -98,6 +136,7 @@ func NewService(
 		creditService: creditService,
 		store:         store,
 		vip:           vip,
+		configStore:   configStore,
 		providers:     providers,
 		config:        cfg,
 	}
@@ -129,7 +168,40 @@ func (s *Service) CreateStyleGeneration(ctx context.Context, userID uint64, styl
 	if inputFileKey == "" {
 		return nil, apperr.InvalidArgument("input_file_key required")
 	}
+	return s.submitTask(ctx, userID, styleID, inputFileKey, clientRequestID, originFirstAttempt)
+}
 
+// RetryStyleGeneration submits a new task from a failed or expired one, reusing
+// the original input image so the client does not have to still hold it. The
+// original row is left untouched: this is a new task, separately charged, and
+// the original was already refunded when it failed.
+func (s *Service) RetryStyleGeneration(ctx context.Context, userID uint64, sourceTaskID, clientRequestID string) (*CreateTaskResult, error) {
+	if clientRequestID == "" {
+		return nil, apperr.InvalidArgument("client_request_id required")
+	}
+	if sourceTaskID == "" {
+		return nil, apperr.InvalidArgument("task_id required")
+	}
+
+	source, err := s.GetStyleGeneration(ctx, userID, sourceTaskID)
+	if err != nil {
+		return nil, err
+	}
+	if source.Status != model.AIGenStatusFailed && source.Status != model.AIGenStatusExpired {
+		return nil, apperr.InvalidArgument("只有失败或过期的任务可以重试")
+	}
+	if source.InputFileKey == "" {
+		return nil, apperr.InvalidArgument("原任务缺少原图，无法重试")
+	}
+
+	return s.submitTask(ctx, userID, source.StyleID, source.InputFileKey, clientRequestID, originRetry)
+}
+
+// submitTask is the whole accept-and-charge path, shared by first submission and
+// retry. Everything is re-validated against current state rather than copied
+// from a previous task: a deleted input, a deactivated style or a changed price
+// must all be seen before the user is charged again.
+func (s *Service) submitTask(ctx context.Context, userID uint64, styleID uint64, inputFileKey, clientRequestID string, origin submitOrigin) (*CreateTaskResult, error) {
 	asset, err := s.mediaDAO.GetUploadedAsset(ctx, inputFileKey, userID, styleInputPurpose)
 	if err != nil {
 		return nil, apperr.Internal("validate input file", err)
@@ -142,9 +214,11 @@ func (s *Service) CreateStyleGeneration(ctx context.Context, userID uint64, styl
 	if err != nil {
 		return nil, apperr.NotFound("style not found")
 	}
-	// Resolve before charging: an unconfigured provider must not produce a task
-	// that can only ever fail.
-	if _, err := s.providers.Resolve(style.Provider); err != nil {
+	// Resolve before charging: an unconfigured model must not produce a task
+	// that can only ever fail. The result is pinned onto the task row below so
+	// a later config change cannot move an in-flight task to another model.
+	modelKey := s.resolveModelKey(ctx, style, origin)
+	if _, err := s.providers.Resolve(modelKey); err != nil {
 		return nil, apperr.Internal("resolve ai provider", err)
 	}
 
@@ -212,7 +286,7 @@ func (s *Service) CreateStyleGeneration(ctx context.Context, userID uint64, styl
 			StyleID:         styleID,
 			InputFileKey:    inputFileKey,
 			InputImageURL:   asset.FileURL,
-			Provider:        style.Provider,
+			Provider:        modelKey,
 			CreditsDeducted: creditsDeducted,
 			Status:          model.AIGenStatusPending,
 			ExpiredAt:       &expiredAt,
@@ -249,6 +323,83 @@ func (s *Service) CreateStyleGeneration(ctx context.Context, userID uint64, styl
 	}
 
 	return result, nil
+}
+
+// resolveModelKey decides which configured model serves a task. A user-initiated
+// retry looks at the retry model first, so it does not go straight back to the
+// model that just failed. For a first attempt the bb_config override wins so
+// operations can move all online traffic onto another model with one UPDATE; the
+// style's own column is next, and the YAML default is the last resort.
+func (s *Service) resolveModelKey(ctx context.Context, style *model.AIStyle, origin submitOrigin) string {
+	if origin == originRetry {
+		if key := s.retryModelKey(ctx); key != "" {
+			return key
+		}
+	}
+	if s.configStore != nil {
+		active, err := s.configStore.GetConfig(ctx, ActiveModelConfigKey)
+		if err != nil {
+			// A config read failure must not take generation down: fall through
+			// to the style's own model.
+			zap.L().Warn("read active ai model config failed", zap.Error(err))
+		} else if key := strings.TrimSpace(active); key != "" {
+			return key
+		}
+	}
+	return firstNonEmpty(style.Provider, s.config.DefaultModel)
+}
+
+// retryModelKey returns the model a user-initiated retry should use, or "" to
+// fall back to the first-attempt chain. An unconfigured key degrades instead of
+// rejecting the request: unlike ActiveModelConfigKey, refusing a retry would
+// leave the user with no way forward at all, so retrying on the original model
+// beats not retrying.
+func (s *Service) retryModelKey(ctx context.Context) string {
+	key := ""
+	if s.configStore != nil {
+		configured, err := s.configStore.GetConfig(ctx, RetryModelConfigKey)
+		if err != nil {
+			zap.L().Warn("read retry ai model config failed", zap.Error(err))
+		} else {
+			key = strings.TrimSpace(configured)
+		}
+	}
+	key = firstNonEmpty(key, s.config.RetryModel)
+	if key == "" {
+		return ""
+	}
+	if _, ok := s.providers.Get(key); !ok {
+		zap.L().Warn("retry ai model is not configured, falling back to the first-attempt model",
+			zap.String("retry_model", key))
+		return ""
+	}
+	return key
+}
+
+// styleOptions parses bb_ai_style.config into the per-style knobs layered over
+// the model's YAML defaults. Malformed JSON is ignored rather than fatal, so a
+// bad edit degrades to the defaults instead of failing every task for a style.
+func styleOptions(style *model.AIStyle) map[string]string {
+	raw := strings.TrimSpace(style.Config)
+	if raw == "" {
+		return nil
+	}
+	var decoded map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+		zap.L().Warn("ignoring malformed ai style config",
+			zap.String("style_key", style.StyleKey), zap.Error(err))
+		return nil
+	}
+	options := make(map[string]string, len(decoded))
+	for key, value := range decoded {
+		var text string
+		if err := json.Unmarshal(value, &text); err == nil {
+			options[key] = text
+			continue
+		}
+		options[key] = string(value)
+	}
+	return options
 }
 
 func (s *Service) quotaTierFor(ctx context.Context, userID uint64) quotaTier {
@@ -398,7 +549,10 @@ func (s *Service) runAttempts(ctx context.Context, task *model.AIGeneration) (*R
 	if err != nil {
 		return nil, &taskFailure{code: "style_missing", message: "风格不存在", detail: err.Error()}
 	}
-	provider, err := s.providers.Resolve(firstNonEmpty(task.Provider, style.Provider))
+	// task.Provider was pinned when the task was accepted, so a config change
+	// mid-flight cannot move it to another model. The fallback only covers rows
+	// written before the column existed, where the retry origin is unknowable.
+	provider, err := s.providers.Resolve(firstNonEmpty(task.Provider, s.resolveModelKey(ctx, style, originFirstAttempt)))
 	if err != nil {
 		return nil, &taskFailure{code: "provider_not_configured", message: "生成服务不可用", detail: err.Error()}
 	}
@@ -410,12 +564,14 @@ func (s *Service) runAttempts(ctx context.Context, task *model.AIGeneration) (*R
 	if err != nil {
 		return nil, &taskFailure{code: "input_unreadable", message: "原图读取失败", detail: err.Error()}
 	}
+	s.storeInputThumbnail(ctx, task, content)
 
 	req := &SubmitRequest{
 		StyleKey:   style.StyleKey,
 		Prompt:     style.PromptTemplate,
 		Negative:   style.NegativePrompt,
 		ModelName:  style.ModelName,
+		Options:    styleOptions(style),
 		InputImage: content,
 		InputName:  path.Base(task.InputFileKey),
 		InputMIME:  contentType,
@@ -448,6 +604,25 @@ func (s *Service) runAttempts(ctx context.Context, task *model.AIGeneration) (*R
 	}
 }
 
+// storeInputThumbnail reuses the input bytes already buffered for the provider
+// call, so it costs one encode and one upload instead of a second download. It
+// is persisted on its own rather than with the task result so that a failed
+// generation still gets a cheap image in the history list.
+func (s *Service) storeInputThumbnail(ctx context.Context, task *model.AIGeneration, content []byte) {
+	thumbnailURL, err := s.store.PutThumbnail(ctx, task.InputFileKey, content)
+	if err != nil {
+		zap.L().Warn("ai input thumbnail generation failed",
+			zap.String("task_id", task.TaskID), zap.Error(err))
+		return
+	}
+	if err := s.aiDAO.UpdateTask(ctx, task.TaskID, map[string]interface{}{
+		"input_thumbnail_url": thumbnailURL,
+	}); err != nil {
+		zap.L().Warn("persist ai input thumbnail failed",
+			zap.String("task_id", task.TaskID), zap.Error(err))
+	}
+}
+
 func (s *Service) persistSuccess(ctx context.Context, task *model.AIGeneration, result *Result) error {
 	// The image is already generated and paid for, so the transfer to our own
 	// storage must not die with the attempt deadline.
@@ -475,6 +650,14 @@ func (s *Service) persistSuccess(ctx context.Context, task *model.AIGeneration, 
 		}
 		updates["output_file_key"] = fileKey
 		updates["output_image_url"] = fileURL
+		// A missing thumbnail only costs the client extra bytes, so it must not
+		// discard an image the user has already paid for.
+		if thumbnailURL, thumbErr := s.store.PutThumbnail(persistCtx, fileKey, result.ImageBytes); thumbErr != nil {
+			zap.L().Warn("ai output thumbnail generation failed",
+				zap.String("task_id", task.TaskID), zap.Error(thumbErr))
+		} else {
+			updates["output_thumbnail_url"] = thumbnailURL
+		}
 	case result.OutputURL != "":
 		updates["output_image_url"] = result.OutputURL
 	default:

@@ -44,7 +44,9 @@ func (h *GenerationHandler) CompleteGeneration(ctx context.Context, req *pb.Comp
 		Title:            req.Title,
 		OriginalImageURL: req.OriginalImageUrl,
 		PatternImageURL:  req.PatternImageUrl,
-		ThumbnailURL:     req.ThumbnailUrl,
+		// Carries the client's preferred source image into the service, which
+		// replaces it with the URL of the thumbnail it generates from that source.
+		ThumbnailURL: req.ThumbnailUrl,
 	}
 
 	workData.PatternData = work.PatternDataToJSONMap(req.PatternData)

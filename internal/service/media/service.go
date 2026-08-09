@@ -2,6 +2,7 @@ package media
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -13,9 +14,14 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 const AdminPreviewMaxFileSize = 10 * 1024 * 1024
+
+// PurposeFinishedProduct 标记用户「我的成品」照片。
+const PurposeFinishedProduct = "finished_product"
 
 var purposeConfig = map[string]struct {
 	MaxSize      int64
@@ -28,6 +34,8 @@ var purposeConfig = map[string]struct {
 	"style_input":   {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp", "image/heic"}},
 	"ai_output":     {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 	"admin_preview": {MaxSize: AdminPreviewMaxFileSize, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
+
+	PurposeFinishedProduct: {MaxSize: 20 * 1024 * 1024, AllowedTypes: []string{"image/jpeg", "image/png", "image/webp"}},
 }
 
 const adminMediaOwnerID uint64 = 0
@@ -101,9 +109,14 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 		return nil, apperr.Internal("create OSS upload token", err)
 	}
 
+	// The public URL is a pure join of the base URL and the key, so it is known
+	// before the upload happens and is stored with the record.
+	publicURL := storage.PublicURL(fileKey)
+
 	asset := &model.MediaAsset{
 		UserID:      userID,
 		FileKey:     fileKey,
+		FileURL:     publicURL,
 		Purpose:     purpose,
 		ContentType: contentType,
 		Status:      model.MediaStatusPending,
@@ -118,8 +131,6 @@ func (s *Service) GetUploadToken(ctx context.Context, userID uint64, fileName, c
 	for name, value := range presignedUpload.Headers {
 		headers[name] = value
 	}
-
-	publicURL := storage.PublicURL(fileKey)
 
 	return &UploadToken{
 		UploadURL:    presignedUpload.URL,
@@ -154,6 +165,139 @@ func (s *Service) ReportUpload(ctx context.Context, userID uint64, fileKey strin
 	}
 	publicURL := storage.PublicURL(fileKey)
 	return publicURL, nil
+}
+
+// ResolveUploadedAsset proves a file key is owned by userID, was created for the
+// given purpose, and finished uploading, then returns it with its public URL.
+// Unlike GetUploadedAsset it reports each failure distinctly so callers can map
+// them to not-found / forbidden / invalid-argument.
+func (s *Service) ResolveUploadedAsset(ctx context.Context, userID uint64, fileKey, purpose string) (*model.MediaAsset, string, error) {
+	if _, ok := purposeConfig[purpose]; !ok {
+		return nil, "", apperr.InvalidArgument("invalid purpose: " + purpose)
+	}
+
+	asset, err := s.mediaDAO.GetByFileKey(ctx, fileKey)
+	if stderrors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, "", apperr.NotFound("media file not found")
+	}
+	if err != nil {
+		return nil, "", apperr.Internal("get media asset", err)
+	}
+	if asset.UserID != userID {
+		return nil, "", apperr.Forbidden("media file not owned by user")
+	}
+	if asset.Purpose != purpose {
+		return nil, "", apperr.InvalidArgument("media file purpose is not " + purpose)
+	}
+	if asset.Status != model.MediaStatusUploaded {
+		return nil, "", apperr.InvalidArgument("media file upload is not confirmed")
+	}
+
+	storage, err := s.objectStorage()
+	if err != nil {
+		return nil, "", err
+	}
+	publicURL := storage.PublicURL(asset.FileKey)
+	if publicURL == "" {
+		// Persisting an empty URL would be permanent; fail loudly instead.
+		return nil, "", apperr.Internal("resolve media public url", fmt.Errorf("public base URL is not configured"))
+	}
+	return asset, publicURL, nil
+}
+
+// PutThumbnail generates a thumbnail from bytes the caller already holds and
+// stores it as a public object beside the original. It returns the public
+// thumbnail URL.
+func (s *Service) PutThumbnail(ctx context.Context, sourceFileKey string, content []byte) (string, error) {
+	thumbnailKey := ThumbnailFileKey(sourceFileKey)
+	if thumbnailKey == "" {
+		return "", apperr.InvalidArgument("source file key is required")
+	}
+	thumbnail, err := GenerateThumbnail(content)
+	if err != nil {
+		return "", apperr.Internal("generate thumbnail", err)
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", err
+	}
+	if err := storage.PutPublic(ctx, thumbnailKey, ThumbnailContentType, thumbnail); err != nil {
+		return "", apperr.Internal("upload thumbnail to object storage", err)
+	}
+	publicURL := storage.PublicURL(thumbnailKey)
+	if publicURL == "" {
+		return "", apperr.Internal("resolve thumbnail public url", fmt.Errorf("public base URL is not configured"))
+	}
+	return publicURL, nil
+}
+
+// ThumbnailForFileKey downloads an uploaded object owned by userID and stores a
+// thumbnail beside it. Use it on paths where the server never saw the bytes
+// because the client uploaded straight to object storage.
+func (s *Service) ThumbnailForFileKey(ctx context.Context, userID uint64, fileKey string) (string, error) {
+	asset, err := s.mediaDAO.GetByFileKeyAndUser(ctx, fileKey, userID)
+	if err != nil {
+		return "", apperr.Forbidden("file not found or not owned by user")
+	}
+	if asset.Status != model.MediaStatusUploaded {
+		return "", apperr.InvalidArgument("media file upload is not confirmed")
+	}
+
+	maxSize, ok := GetPurposeMaxSize(asset.Purpose)
+	if !ok {
+		return "", apperr.InvalidArgument("invalid purpose: " + asset.Purpose)
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		return "", err
+	}
+	content, _, err := storage.Get(ctx, asset.FileKey, maxSize)
+	if err != nil {
+		return "", apperr.Internal("read object from object storage", err)
+	}
+	return s.PutThumbnail(ctx, asset.FileKey, content)
+}
+
+// ThumbnailURLByFileKey is the non-fatal form of ThumbnailForFileKey. A
+// thumbnail is only a bandwidth optimisation, so a failure is logged and
+// reported as "", and the client falls back to the full-size image.
+func (s *Service) ThumbnailURLByFileKey(ctx context.Context, userID uint64, fileKey string) string {
+	thumbnailURL, err := s.ThumbnailForFileKey(ctx, userID, fileKey)
+	if err != nil {
+		zap.L().Warn("thumbnail generation failed",
+			zap.Uint64("user_id", userID),
+			zap.String("file_key", fileKey),
+			zap.Error(err))
+		return ""
+	}
+	return thumbnailURL
+}
+
+// ThumbnailURLByImageURL is for callers that only hold a public image URL, such
+// as the work APIs where the client submits pattern_image_url rather than a file
+// key. URLs outside our own bucket yield "".
+func (s *Service) ThumbnailURLByImageURL(ctx context.Context, userID uint64, imageURL string) string {
+	if strings.TrimSpace(imageURL) == "" {
+		return ""
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		zap.L().Warn("skip thumbnail: object storage unavailable", zap.Error(err))
+		return ""
+	}
+	fileKey, ok := storage.FileKeyFromPublicURL(imageURL)
+	if !ok {
+		// A legacy record or an externally hosted image, not one of our objects.
+		return ""
+	}
+	return s.ThumbnailURLByFileKey(ctx, userID, fileKey)
+}
+
+// AdminPreviewThumbnailURL stores a thumbnail for an uploaded official-template
+// preview. Both admin upload paths end holding only the key, so the bytes are
+// read back from object storage here rather than at upload time.
+func (s *Service) AdminPreviewThumbnailURL(ctx context.Context, fileKey string) string {
+	return s.ThumbnailURLByFileKey(ctx, adminMediaOwnerID, fileKey)
 }
 
 // GetAdminPreviewUploadToken only creates assets intended to become a public

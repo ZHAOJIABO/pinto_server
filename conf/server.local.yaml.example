@@ -12,11 +12,14 @@ oss:
   access_key_secret: "replace-with-ram-access-key-secret"
 
 ai_generation:
-  # 只有需要打真实第三方生图接口时才取消下面两行的注释，平时保持 fake_provider: true。
+  # 只有需要打真实第三方生图接口时才取消下面这行的注释，平时保持 fake_provider: true。
   # fake_provider: false
-  # provider_name: "vectorengine"
-  vector_engine:
-    api_key: "replace-with-vectorengine-api-key"
+  # 每个模型各自一把 key（同一家供应商可以填同一个）。
+  models:
+    gpt-image-2:
+      api_key: "replace-with-vectorengine-api-key"
+    gemini-3-1-flash-image-preview:
+      api_key: "replace-with-vectorengine-api-key"
 
 admin:
   jwt_secret: "replace-with-a-random-local-secret"

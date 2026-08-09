@@ -5,16 +5,16 @@ import (
 	"sort"
 )
 
-// Registry resolves a style's configured provider by name. Selection is driven
-// by bb_ai_style.provider rather than by ordered pattern matching, so which
-// vendor served a task is explicit and auditable.
+// Registry maps a configured model key to the adapter that serves it. Selection
+// is driven by that key (bb_config, then bb_ai_style.provider, then the YAML
+// default) rather than by ordered pattern matching, so which model served a task
+// is explicit and auditable.
 type Registry struct {
 	providers map[string]Provider
-	fallback  string
 }
 
-func NewRegistry(fallback string, providers ...Provider) *Registry {
-	registry := &Registry{providers: make(map[string]Provider, len(providers)), fallback: fallback}
+func NewRegistry(providers ...Provider) *Registry {
+	registry := &Registry{providers: make(map[string]Provider, len(providers))}
 	for _, provider := range providers {
 		if provider != nil {
 			registry.providers[provider.Name()] = provider
@@ -28,17 +28,12 @@ func (r *Registry) Get(name string) (Provider, bool) {
 	return provider, ok
 }
 
-// Resolve returns the provider for a style, falling back to the configured
-// default when the style leaves it unset. It returns an error rather than a nil
-// provider so the submit path can reject the request before charging credits.
-func (r *Registry) Resolve(styleProvider string) (Provider, error) {
-	name := styleProvider
-	if name == "" {
-		name = r.fallback
-	}
+// Resolve returns an error rather than a nil provider so the submit path can
+// reject the request before charging credits.
+func (r *Registry) Resolve(name string) (Provider, error) {
 	provider, ok := r.providers[name]
 	if !ok {
-		return nil, fmt.Errorf("ai provider %q is not configured", name)
+		return nil, fmt.Errorf("ai model %q is not configured", name)
 	}
 	return provider, nil
 }

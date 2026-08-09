@@ -58,6 +58,62 @@ ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);
 
 仅需切换策略时，更新 `export_watermark_mode` 即可；未写当前模式对应的 CDN URL 时，服务会使用 YAML 中相应的 URL。服务端只向客户端下发最终的 `export_watermark_url`，不再托管水印图片。CDN 必须提供 HTTPS 地址，并为 Web Canvas 导出允许跨域读取（如 `Access-Control-Allow-Origin: *`）。
 
+## AI 生图模型切换
+
+`ai_generation.models` 是一张「逻辑模型名 → 适配器」的映射表，新增一个模型通常只改 YAML：
+
+```yaml
+ai_generation:
+  # 兜底模型，必须是下面 models 里已配置的 key
+  default_model: "gpt-image-2"
+  # 用户主动重试用的模型，留空则重试沿用首发链条
+  retry_model: "gemini-3-1-flash-image-preview"
+  models:
+    gpt-image-2:
+      adapter: openai_image_edit        # OpenAI 兼容的 /v1/images/edits
+      base_url: "https://api.vectorengine.cn"
+      model: "gpt-image-2"
+      options: { size: "1024x1024", quality: "medium" }
+    gemini-3-1-flash-image-preview:
+      adapter: gemini_generate_content  # Gemini 原生 :generateContent
+      base_url: "https://api.vectorengine.cn"
+      model: "gemini-3.1-flash-image-preview"
+      options: { aspect_ratio: "1:1", image_size: "1K" }
+```
+
+- `models` 的 key 是对外的逻辑模型名，**不能带小数点**：viper 把点当层级分隔符，`gemini-3.1-flash` 会被拆成 `gemini-3`。上游真实模型名写在 `model` 字段里，它可以带点。
+- `options` 原样透传给上游，`bb_ai_style.config` 里的同名字段可以逐个覆盖，所以调分辨率、比例不需要改代码。
+- `api_key` 不要提交，按模型 key 分别写进未提交的 `conf/server.local.yaml` / `conf/server.production.local.yaml`。
+
+**首次提交**用哪个模型，优先级是 `bb_config.ai_active_model` > `bb_ai_style.provider` > `default_model`：
+
+```sql
+-- 全局强制切到某个模型，立即对下一个提交的任务生效（只影响第一次尝试）
+INSERT INTO bb_config (config_key, config_value, description)
+VALUES ('ai_active_model', 'gemini-3-1-flash-image-preview', 'AI 生图首次提交使用的模型 key，留空则回退风格表和 YAML')
+ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);
+
+-- 只让某个风格换模型：把上面这个键置空或删除，再改风格表
+UPDATE bb_ai_style SET provider = 'gemini-3-1-flash-image-preview' WHERE style_key = 'watercolor';
+```
+
+**用户主动重试**（`RetryStyleGeneration`）走另一条链：`bb_config.ai_retry_model` > YAML `retry_model` > 首发链条。刚失败的模型再试一次多半还会失败，所以重试默认换一家。
+
+```sql
+-- 换重试模型，不用发版
+INSERT INTO bb_config (config_key, config_value, description)
+VALUES ('ai_retry_model', 'gemini-3-1-flash-image-preview', 'AI 生图主动重试使用的模型 key，留空则沿用首发链条')
+ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);
+```
+
+- **重试模型优先于 `ai_active_model`**：后者只管所有任务的第一次尝试，若它压过重试模型，重试就又回到刚失败的那个模型上了。
+- 两个重试配置都为空时，重试行为与首发完全一致。
+- 只有一个重试模型，所以第二次、第三次重试仍然是它。
+- 重试模型名若不在 `models` 里，会打 warn 并退回首发模型继续重试——拒绝重试等于让用户彻底没路可走。
+- 进程内的自动重试（同一个任务失败后立刻再试一次）不换模型。
+
+模型名在提交时会固化到 `bb_ai_generation.provider`，所以切换配置不会把已经扣费、正在执行的任务挪到另一个模型上。提交时若模型名没有对应配置，请求会在扣积分之前被拒绝——因此改动 key 之后要确认历史的 `bb_ai_style.provider` 值仍然在 `models` 里。
+
 ## ECS Docker 部署（HTTPS 域名）
 
 根目录的 `docker-compose.yml` 会启动 MySQL、Redis、`backend` 和

@@ -61,16 +61,17 @@ func newAITestEnv(t *testing.T, cfg ai_generation.Config) *aiTestEnv {
 	storage := newMemoryObjectStorage("https://cdn.example.test")
 	mediaService := media.NewServiceWithStorage(dao.NewMediaDAO(), storage)
 	creditService := credit.NewService(dao.NewCreditDAO())
-	provider := &stubProvider{
-		name: "fake",
-		submit: func(context.Context, *ai_generation.SubmitRequest) (*ai_generation.Result, error) {
-			return &ai_generation.Result{
-				Status:     ai_generation.StatusSucceeded,
-				ImageBytes: []byte("generated-png-bytes"),
-				ImageMIME:  "image/png",
-			}, nil
-		},
+	succeed := func(context.Context, *ai_generation.SubmitRequest) (*ai_generation.Result, error) {
+		return &ai_generation.Result{
+			Status:     ai_generation.StatusSucceeded,
+			ImageBytes: []byte("generated-png-bytes"),
+			ImageMIME:  "image/png",
+		}, nil
 	}
+	provider := &stubProvider{name: "fake", submit: succeed}
+	// A second configured model, so tests can exercise model selection without
+	// standing up a real adapter.
+	altProvider := &stubProvider{name: "gemini-3-1-flash-image-preview", submit: succeed}
 	vip := &stubVIPChecker{}
 
 	env := &aiTestEnv{
@@ -86,7 +87,8 @@ func newAITestEnv(t *testing.T, cfg ai_generation.Config) *aiTestEnv {
 		creditService,
 		mediaService,
 		vip,
-		ai_generation.NewRegistry("fake", provider),
+		dao.NewSystemDAO(),
+		ai_generation.NewRegistry(provider, altProvider),
 		cfg,
 	)
 	return env
@@ -369,7 +371,7 @@ func TestAIGeneration_EndToEnd(t *testing.T) {
 
 	workService := work.NewService(workDAO)
 	subscribeService := subscribe.NewService(orderDAO, productDAO, subscriptionDAO)
-	genService := generation.NewService(generationDAO, creditService, subscribeService, workService)
+	genService := generation.NewService(generationDAO, creditService, subscribeService, workService, nil)
 	genService.SetAIValidator(aiService)
 
 	// Seed data
@@ -467,7 +469,7 @@ func TestCreateGeneration_AISource_Validation(t *testing.T) {
 
 	workService := work.NewService(workDAO)
 	subscribeService := subscribe.NewService(orderDAO, productDAO, subscriptionDAO)
-	genService := generation.NewService(generationDAO, env.credits, subscribeService, workService)
+	genService := generation.NewService(generationDAO, env.credits, subscribeService, workService, nil)
 	genService.SetAIValidator(env.svc)
 
 	// ai_style without source_id should fail
@@ -904,29 +906,70 @@ func (e *aiTestEnv) drainAsyncClaim(t *testing.T) []*model.AIGeneration {
 	return claimed
 }
 
-func TestRegistry_ResolveByStyleProvider(t *testing.T) {
-	fake := &stubProvider{name: "fake"}
-	other := &stubProvider{name: "vectorengine"}
-	registry := ai_generation.NewRegistry("fake", fake, other)
+// The registry no longer has a fallback entry: an unknown key must be an error
+// so the submit path can reject the request before charging credits.
+func TestRegistry_ResolveByModelKey(t *testing.T) {
+	registry := ai_generation.NewRegistry(&stubProvider{name: "fake"}, &stubProvider{name: "gemini-3-1-flash-image-preview"})
 
-	resolved, err := registry.Resolve("vectorengine")
+	resolved, err := registry.Resolve("gemini-3-1-flash-image-preview")
 	if err != nil {
 		t.Fatalf("resolve by name failed: %v", err)
 	}
-	if resolved.Name() != "vectorengine" {
-		t.Fatalf("expected vectorengine, got %s", resolved.Name())
+	if resolved.Name() != "gemini-3-1-flash-image-preview" {
+		t.Fatalf("expected gemini-3-1-flash-image-preview, got %s", resolved.Name())
 	}
 
-	resolved, err = registry.Resolve("")
-	if err != nil {
-		t.Fatalf("resolve fallback failed: %v", err)
+	for _, key := range []string{"", "nope"} {
+		if _, err := registry.Resolve(key); err == nil {
+			t.Fatalf("resolving %q must be an error, not a nil provider", key)
+		}
 	}
-	if resolved.Name() != "fake" {
-		t.Fatalf("expected the fallback provider, got %s", resolved.Name())
+}
+
+// Resolution order is bb_config > bb_ai_style.provider > yaml default, and the
+// key is pinned onto the task row so a config change mid-flight cannot move a
+// task that has already been charged.
+func TestCreateStyleGeneration_ResolvesModelInOrder(t *testing.T) {
+	ctx := context.Background()
+	userID := uint64(1)
+
+	cases := []struct {
+		name        string
+		activeModel string
+		styleModel  string
+		want        string
+	}{
+		{"bb_config wins", "gemini-3-1-flash-image-preview", "fake", "gemini-3-1-flash-image-preview"},
+		{"blank bb_config falls back to the style row", "   ", "fake", "fake"},
+		{"no style provider falls back to the yaml default", "", "", "gemini-3-1-flash-image-preview"},
 	}
 
-	if _, err := registry.Resolve("nope"); err == nil {
-		t.Fatal("an unconfigured provider must be an error, not a nil provider")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newAITestEnv(t, ai_generation.Config{
+				TaskExpireMinutes: 30,
+				DefaultModel:      "gemini-3-1-flash-image-preview",
+			})
+			if tc.activeModel != "" {
+				db.DB.Create(&model.Config{ConfigKey: ai_generation.ActiveModelConfigKey, ConfigValue: tc.activeModel})
+			}
+			style := seedAIStyle(t)
+			db.DB.Model(style).Update("provider", tc.styleModel)
+			fileKey := "style_input/resolve/input.png"
+			seedInputObject(t, env.storage, userID, fileKey)
+			env.credits.AddCredits(ctx, userID, 10, "test", "", "", "")
+
+			created, err := env.svc.CreateStyleGeneration(ctx, userID, style.ID, fileKey, tc.name)
+			if err != nil {
+				t.Fatalf("CreateStyleGeneration failed: %v", err)
+			}
+
+			var task model.AIGeneration
+			db.DB.Where("task_id = ?", created.TaskID).First(&task)
+			if task.Provider != tc.want {
+				t.Fatalf("pinned provider = %q, want %q", task.Provider, tc.want)
+			}
+		})
 	}
 }
 
@@ -946,6 +989,239 @@ func TestCreateStyleGeneration_UnconfiguredProviderDoesNotCharge(t *testing.T) {
 	}
 	if balance, _ := env.credits.GetBalance(ctx, userID); balance != 10 {
 		t.Fatalf("credits must not be charged, balance=%d", balance)
+	}
+}
+
+// failedTaskForRetry submits a task and drives it to the failed state, which is
+// the only state a retry is allowed to start from.
+func failedTaskForRetry(t *testing.T, svc *ai_generation.Service, credits *credit.Service, userID, styleID uint64, fileKey, requestID string) string {
+	t.Helper()
+	ctx := context.Background()
+	created, err := svc.CreateStyleGeneration(ctx, userID, styleID, fileKey, requestID)
+	if err != nil {
+		t.Fatalf("seed original task: %v", err)
+	}
+	svc.FailTask(ctx, created.TaskID, "provider_failed", "生成失败，请稍后重试")
+	task, err := svc.GetStyleGeneration(ctx, userID, created.TaskID)
+	if err != nil {
+		t.Fatalf("reload seeded task: %v", err)
+	}
+	if task.Status != model.AIGenStatusFailed {
+		t.Fatalf("seeded task must be failed, got status=%d", task.Status)
+	}
+	// FailTask refunds, so the retry starts from the pre-charge balance.
+	if balance, _ := credits.GetBalance(ctx, userID); balance != 10 {
+		t.Fatalf("expected refund to restore balance to 10, got %d", balance)
+	}
+	return created.TaskID
+}
+
+func TestRetryStyleGeneration_Success(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	userID := uint64(1)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	creditService.AddCredits(ctx, userID, 10, "test", "", "", "")
+	originalID := failedTaskForRetry(t, aiService, creditService, userID, style.ID, fileKey, "retry-origin")
+
+	result, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "retry-001")
+	if err != nil {
+		t.Fatalf("RetryStyleGeneration failed: %v", err)
+	}
+	if result.TaskID == originalID {
+		t.Error("retry must create a new task, not reuse the original id")
+	}
+	if result.Status != model.AIGenStatusPending {
+		t.Errorf("expected new task to be pending, got %d", result.Status)
+	}
+	if result.CreditsDeducted != 2 {
+		t.Errorf("expected 2 credits deducted, got %d", result.CreditsDeducted)
+	}
+	if result.RemainingBalance != 8 {
+		t.Errorf("expected remaining_balance=8, got %d", result.RemainingBalance)
+	}
+
+	retried, err := aiService.GetStyleGeneration(ctx, userID, result.TaskID)
+	if err != nil {
+		t.Fatalf("load retried task: %v", err)
+	}
+	if retried.InputFileKey != fileKey {
+		t.Errorf("expected input_file_key reused, got %s", retried.InputFileKey)
+	}
+	if retried.StyleID != style.ID {
+		t.Errorf("expected style_id=%d reused, got %d", style.ID, retried.StyleID)
+	}
+
+	// The original stays failed: a retry is a new row, not an in-place reset.
+	original, err := aiService.GetStyleGeneration(ctx, userID, originalID)
+	if err != nil {
+		t.Fatalf("load original task: %v", err)
+	}
+	if original.Status != model.AIGenStatusFailed {
+		t.Errorf("expected original to stay failed, got %d", original.Status)
+	}
+}
+
+// A user-initiated retry must not be handed back to the model that just failed.
+// The retry model deliberately outranks ai_active_model: that key only governs
+// first attempts, so letting it win here would make retry_model dead config.
+func TestRetryStyleGeneration_ResolvesRetryModel(t *testing.T) {
+	ctx := context.Background()
+	userID := uint64(1)
+
+	cases := []struct {
+		name             string
+		yamlRetryModel   string
+		configRetryModel string
+		activeModel      string
+		want             string
+	}{
+		{"yaml retry model serves the retry", "gemini-3-1-flash-image-preview", "", "", "gemini-3-1-flash-image-preview"},
+		{"retry model beats the global active model", "gemini-3-1-flash-image-preview", "", "fake", "gemini-3-1-flash-image-preview"},
+		{"bb_config beats the yaml retry model", "fake", "gemini-3-1-flash-image-preview", "", "gemini-3-1-flash-image-preview"},
+		// Refusing the retry would leave the user with no way forward, so an
+		// unusable retry model degrades to the first-attempt chain.
+		{"unconfigured retry model degrades", "not-configured", "", "", "fake"},
+		{"no retry model keeps the first-attempt model", "", "", "", "fake"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newAITestEnv(t, ai_generation.Config{
+				TaskExpireMinutes: 30,
+				DefaultModel:      "fake",
+				RetryModel:        tc.yamlRetryModel,
+			})
+			if tc.configRetryModel != "" {
+				db.DB.Create(&model.Config{ConfigKey: ai_generation.RetryModelConfigKey, ConfigValue: tc.configRetryModel})
+			}
+			if tc.activeModel != "" {
+				db.DB.Create(&model.Config{ConfigKey: ai_generation.ActiveModelConfigKey, ConfigValue: tc.activeModel})
+			}
+			style := seedAIStyle(t)
+			fileKey := seedUploadedMedia(t, userID)
+			env.credits.AddCredits(ctx, userID, 10, "test", "", "", "")
+			originalID := failedTaskForRetry(t, env.svc, env.credits, userID, style.ID, fileKey, "retry-origin")
+
+			result, err := env.svc.RetryStyleGeneration(ctx, userID, originalID, "retry-model")
+			if err != nil {
+				t.Fatalf("RetryStyleGeneration failed: %v", err)
+			}
+			var task model.AIGeneration
+			db.DB.Where("task_id = ?", result.TaskID).First(&task)
+			if task.Provider != tc.want {
+				t.Fatalf("retry pinned provider = %q, want %q", task.Provider, tc.want)
+			}
+		})
+	}
+}
+
+// retry_model must not leak into first submissions: they all start on the
+// first-attempt model.
+func TestCreateStyleGeneration_IgnoresRetryModel(t *testing.T) {
+	ctx := context.Background()
+	userID := uint64(1)
+
+	env := newAITestEnv(t, ai_generation.Config{
+		TaskExpireMinutes: 30,
+		DefaultModel:      "fake",
+		RetryModel:        "gemini-3-1-flash-image-preview",
+	})
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	env.credits.AddCredits(ctx, userID, 10, "test", "", "", "")
+
+	created, err := env.svc.CreateStyleGeneration(ctx, userID, style.ID, fileKey, "first-attempt")
+	if err != nil {
+		t.Fatalf("CreateStyleGeneration failed: %v", err)
+	}
+	var task model.AIGeneration
+	db.DB.Where("task_id = ?", created.TaskID).First(&task)
+	if task.Provider != "fake" {
+		t.Fatalf("first attempt pinned provider = %q, want %q", task.Provider, "fake")
+	}
+}
+
+func TestRetryStyleGeneration_RejectsNonRetryableStatus(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	userID := uint64(1)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	creditService.AddCredits(ctx, userID, 10, "test", "", "", "")
+
+	created, err := aiService.CreateStyleGeneration(ctx, userID, style.ID, fileKey, "pending-origin")
+	if err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+	balanceAfterCreate, _ := creditService.GetBalance(ctx, userID)
+
+	// Pending: still in flight, so a retry would pay twice for one image.
+	if _, err := aiService.RetryStyleGeneration(ctx, userID, created.TaskID, "retry-pending"); err == nil {
+		t.Error("expected pending task to be rejected")
+	}
+
+	db.DB.Model(&model.AIGeneration{}).Where("task_id = ?", created.TaskID).
+		Update("status", model.AIGenStatusSucceeded)
+	if _, err := aiService.RetryStyleGeneration(ctx, userID, created.TaskID, "retry-succeeded"); err == nil {
+		t.Error("expected succeeded task to be rejected")
+	}
+
+	if balance, _ := creditService.GetBalance(ctx, userID); balance != balanceAfterCreate {
+		t.Errorf("rejected retries must not charge, balance %d -> %d", balanceAfterCreate, balance)
+	}
+}
+
+func TestRetryStyleGeneration_Ownership(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	owner := uint64(1)
+	other := uint64(999)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, owner)
+	creditService.AddCredits(ctx, owner, 10, "test", "", "", "")
+	creditService.AddCredits(ctx, other, 10, "test", "", "", "")
+	originalID := failedTaskForRetry(t, aiService, creditService, owner, style.ID, fileKey, "own-origin")
+
+	if _, err := aiService.RetryStyleGeneration(ctx, other, originalID, "retry-other"); err == nil {
+		t.Error("expected another user's retry to be rejected")
+	}
+	if balance, _ := creditService.GetBalance(ctx, other); balance != 10 {
+		t.Errorf("rejected retry must not charge the caller, got %d", balance)
+	}
+}
+
+func TestRetryStyleGeneration_Idempotent(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	userID := uint64(1)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	creditService.AddCredits(ctx, userID, 10, "test", "", "", "")
+	originalID := failedTaskForRetry(t, aiService, creditService, userID, style.ID, fileKey, "idem-origin")
+
+	first, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "retry-dup")
+	if err != nil {
+		t.Fatalf("first retry failed: %v", err)
+	}
+	second, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "retry-dup")
+	if err != nil {
+		t.Fatalf("second retry failed: %v", err)
+	}
+
+	if first.TaskID != second.TaskID {
+		t.Errorf("expected same task_id, got %s vs %s", first.TaskID, second.TaskID)
+	}
+	if !second.Duplicated {
+		t.Error("expected duplicated=true on repeated retry")
+	}
+	if balance, _ := creditService.GetBalance(ctx, userID); balance != 8 {
+		t.Errorf("expected balance=8 (charged once), got %d", balance)
 	}
 }
 

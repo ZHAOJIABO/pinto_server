@@ -4,16 +4,20 @@ go 1.25.0
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.2
+	github.com/chai2010/webp v1.1.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/redis/go-redis/v9 v9.20.0
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/image v0.23.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.11
 	gorm.io/driver/mysql v1.6.0
+	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
 
@@ -41,5 +45,4 @@ require (
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.4.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260523011958-0a33c5d7ca68 // indirect
-	gorm.io/driver/sqlite v1.6.0 // indirect
 )

@@ -23,6 +23,7 @@ const (
 	AIGenerationService_CreateStyleGeneration_FullMethodName = "/bobobeads.v1.AIGenerationService/CreateStyleGeneration"
 	AIGenerationService_GetStyleGeneration_FullMethodName    = "/bobobeads.v1.AIGenerationService/GetStyleGeneration"
 	AIGenerationService_ListStyleGenerations_FullMethodName  = "/bobobeads.v1.AIGenerationService/ListStyleGenerations"
+	AIGenerationService_RetryStyleGeneration_FullMethodName  = "/bobobeads.v1.AIGenerationService/RetryStyleGeneration"
 )
 
 // AIGenerationServiceClient is the client API for AIGenerationService service.
@@ -39,6 +40,8 @@ type AIGenerationServiceClient interface {
 	GetStyleGeneration(ctx context.Context, in *GetStyleGenerationRequest, opts ...grpc.CallOption) (*GetStyleGenerationResponse, error)
 	// 获取 AI 风格转换任务列表。
 	ListStyleGenerations(ctx context.Context, in *ListStyleGenerationsRequest, opts ...grpc.CallOption) (*ListStyleGenerationsResponse, error)
+	// 重试已失败或已过期的 AI 风格转换任务，复用原任务的原图与风格，客户端无需重新上传原图。
+	RetryStyleGeneration(ctx context.Context, in *RetryStyleGenerationRequest, opts ...grpc.CallOption) (*RetryStyleGenerationResponse, error)
 }
 
 type aIGenerationServiceClient struct {
@@ -89,6 +92,16 @@ func (c *aIGenerationServiceClient) ListStyleGenerations(ctx context.Context, in
 	return out, nil
 }
 
+func (c *aIGenerationServiceClient) RetryStyleGeneration(ctx context.Context, in *RetryStyleGenerationRequest, opts ...grpc.CallOption) (*RetryStyleGenerationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetryStyleGenerationResponse)
+	err := c.cc.Invoke(ctx, AIGenerationService_RetryStyleGeneration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AIGenerationServiceServer is the server API for AIGenerationService service.
 // All implementations must embed UnimplementedAIGenerationServiceServer
 // for forward compatibility.
@@ -103,6 +116,8 @@ type AIGenerationServiceServer interface {
 	GetStyleGeneration(context.Context, *GetStyleGenerationRequest) (*GetStyleGenerationResponse, error)
 	// 获取 AI 风格转换任务列表。
 	ListStyleGenerations(context.Context, *ListStyleGenerationsRequest) (*ListStyleGenerationsResponse, error)
+	// 重试已失败或已过期的 AI 风格转换任务，复用原任务的原图与风格，客户端无需重新上传原图。
+	RetryStyleGeneration(context.Context, *RetryStyleGenerationRequest) (*RetryStyleGenerationResponse, error)
 	mustEmbedUnimplementedAIGenerationServiceServer()
 }
 
@@ -124,6 +139,9 @@ func (UnimplementedAIGenerationServiceServer) GetStyleGeneration(context.Context
 }
 func (UnimplementedAIGenerationServiceServer) ListStyleGenerations(context.Context, *ListStyleGenerationsRequest) (*ListStyleGenerationsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListStyleGenerations not implemented")
+}
+func (UnimplementedAIGenerationServiceServer) RetryStyleGeneration(context.Context, *RetryStyleGenerationRequest) (*RetryStyleGenerationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RetryStyleGeneration not implemented")
 }
 func (UnimplementedAIGenerationServiceServer) mustEmbedUnimplementedAIGenerationServiceServer() {}
 func (UnimplementedAIGenerationServiceServer) testEmbeddedByValue()                             {}
@@ -218,6 +236,24 @@ func _AIGenerationService_ListStyleGenerations_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AIGenerationService_RetryStyleGeneration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetryStyleGenerationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AIGenerationServiceServer).RetryStyleGeneration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AIGenerationService_RetryStyleGeneration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AIGenerationServiceServer).RetryStyleGeneration(ctx, req.(*RetryStyleGenerationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AIGenerationService_ServiceDesc is the grpc.ServiceDesc for AIGenerationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -240,6 +276,10 @@ var AIGenerationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListStyleGenerations",
 			Handler:    _AIGenerationService_ListStyleGenerations_Handler,
+		},
+		{
+			MethodName: "RetryStyleGeneration",
+			Handler:    _AIGenerationService_RetryStyleGeneration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

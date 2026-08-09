@@ -185,6 +185,51 @@ func local_request_AIGenerationService_ListStyleGenerations_0(ctx context.Contex
 	return msg, metadata, err
 }
 
+func request_AIGenerationService_RetryStyleGeneration_0(ctx context.Context, marshaler runtime.Marshaler, client AIGenerationServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq RetryStyleGenerationRequest
+		metadata runtime.ServerMetadata
+		err      error
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	val, ok := pathParams["task_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "task_id")
+	}
+	protoReq.TaskId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "task_id", err)
+	}
+	msg, err := client.RetryStyleGeneration(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_AIGenerationService_RetryStyleGeneration_0(ctx context.Context, marshaler runtime.Marshaler, server AIGenerationServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq RetryStyleGenerationRequest
+		metadata runtime.ServerMetadata
+		err      error
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	val, ok := pathParams["task_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "task_id")
+	}
+	protoReq.TaskId, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "task_id", err)
+	}
+	msg, err := server.RetryStyleGeneration(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterAIGenerationServiceHandlerServer registers the http handlers for service AIGenerationService to "mux".
 // UnaryRPC     :call AIGenerationServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -270,6 +315,26 @@ func RegisterAIGenerationServiceHandlerServer(ctx context.Context, mux *runtime.
 			return
 		}
 		forward_AIGenerationService_ListStyleGenerations_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_AIGenerationService_RetryStyleGeneration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/bobobeads.v1.AIGenerationService/RetryStyleGeneration", runtime.WithHTTPPathPattern("/api/v1/ai/style-generations/{task_id}/retry"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_AIGenerationService_RetryStyleGeneration_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_AIGenerationService_RetryStyleGeneration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 
 	return nil
@@ -379,6 +444,23 @@ func RegisterAIGenerationServiceHandlerClient(ctx context.Context, mux *runtime.
 		}
 		forward_AIGenerationService_ListStyleGenerations_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_AIGenerationService_RetryStyleGeneration_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/bobobeads.v1.AIGenerationService/RetryStyleGeneration", runtime.WithHTTPPathPattern("/api/v1/ai/style-generations/{task_id}/retry"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_AIGenerationService_RetryStyleGeneration_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_AIGenerationService_RetryStyleGeneration_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
@@ -387,6 +469,7 @@ var (
 	pattern_AIGenerationService_CreateStyleGeneration_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v1", "ai", "style-generations"}, ""))
 	pattern_AIGenerationService_GetStyleGeneration_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4}, []string{"api", "v1", "ai", "style-generations", "task_id"}, ""))
 	pattern_AIGenerationService_ListStyleGenerations_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v1", "ai", "style-generations"}, ""))
+	pattern_AIGenerationService_RetryStyleGeneration_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 1, 0, 4, 1, 5, 4, 2, 5}, []string{"api", "v1", "ai", "style-generations", "task_id", "retry"}, ""))
 )
 
 var (
@@ -394,4 +477,5 @@ var (
 	forward_AIGenerationService_CreateStyleGeneration_0 = runtime.ForwardResponseMessage
 	forward_AIGenerationService_GetStyleGeneration_0    = runtime.ForwardResponseMessage
 	forward_AIGenerationService_ListStyleGenerations_0  = runtime.ForwardResponseMessage
+	forward_AIGenerationService_RetryStyleGeneration_0  = runtime.ForwardResponseMessage
 )

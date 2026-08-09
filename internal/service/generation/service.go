@@ -25,11 +25,19 @@ type AITaskValidator interface {
 	ValidateUserSucceededTask(ctx context.Context, userID uint64, taskID string) error
 }
 
+// Thumbnailer generates a thumbnail for one of our own public image URLs and
+// returns "" for anything it cannot handle. Foreign URLs are rejected by the
+// implementation, so a client cannot make the server fetch an arbitrary host.
+type Thumbnailer interface {
+	ThumbnailURLByImageURL(ctx context.Context, userID uint64, imageURL string) string
+}
+
 type Service struct {
 	generationDAO    *dao.GenerationDAO
 	creditService    *credit.Service
 	subscribeService *subscribe.Service
 	workService      *work.Service
+	thumbnailer      Thumbnailer
 	aiValidator      AITaskValidator
 }
 
@@ -38,12 +46,14 @@ func NewService(
 	creditService *credit.Service,
 	subscribeService *subscribe.Service,
 	workService *work.Service,
+	thumbnailer Thumbnailer,
 ) *Service {
 	return &Service{
 		generationDAO:    generationDAO,
 		creditService:    creditService,
 		subscribeService: subscribeService,
 		workService:      workService,
+		thumbnailer:      thumbnailer,
 	}
 }
 
@@ -222,7 +232,31 @@ type CompleteResult struct {
 	Duplicated bool
 }
 
+// workThumbnailURL picks the source image the thumbnail is generated from. The
+// client's thumbnail_url is the bare pattern without the bottom colour swatches,
+// which is what the grid should show, so it wins over pattern_image_url. Only
+// the source is taken from the client; the encoding is always ours.
+func (s *Service) workThumbnailURL(ctx context.Context, userID uint64, workData *model.Work) string {
+	if s.thumbnailer == nil {
+		return ""
+	}
+	if sourceURL := strings.TrimSpace(workData.ThumbnailURL); sourceURL != "" {
+		if thumbnailURL := s.thumbnailer.ThumbnailURLByImageURL(ctx, userID, sourceURL); thumbnailURL != "" {
+			return thumbnailURL
+		}
+		// Older clients send nothing, and some send a URL outside our bucket.
+		// Falling back keeps the grid off the full-size pattern image.
+		zap.L().Warn("client thumbnail source unusable, falling back to pattern image",
+			zap.Uint64("user_id", userID), zap.String("source_url", sourceURL))
+	}
+	return s.thumbnailer.ThumbnailURLByImageURL(ctx, userID, workData.PatternImageURL)
+}
+
 func (s *Service) CompleteGeneration(ctx context.Context, userID uint64, generationID string, workData *model.Work) (*CompleteResult, error) {
+	// Generated before the transaction: it is an object-storage round trip, and
+	// the transaction below holds a SELECT ... FOR UPDATE on the generation row.
+	workData.ThumbnailURL = s.workThumbnailURL(ctx, userID, workData)
+
 	var result *CompleteResult
 	err := db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		gen, err := s.generationDAO.GetByGenerationIDForUpdate(tx, generationID)

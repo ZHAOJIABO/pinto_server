@@ -142,7 +142,16 @@ type AIGenerationItem struct {
 	// 创建时间戳。
 	CreatedAt int64 `protobuf:"varint,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// 完成时间戳。
-	CompletedAt   int64 `protobuf:"varint,10,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	CompletedAt int64 `protobuf:"varint,10,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	// 输出图缩略图地址；为空时客户端降级使用 output_image_url。
+	OutputThumbnailUrl string `protobuf:"bytes,11,opt,name=output_thumbnail_url,json=outputThumbnailUrl,proto3" json:"output_thumbnail_url,omitempty"`
+	// 输入原图缩略图地址；为空时客户端降级使用 input_image_url。
+	InputThumbnailUrl string `protobuf:"bytes,12,opt,name=input_thumbnail_url,json=inputThumbnailUrl,proto3" json:"input_thumbnail_url,omitempty"`
+	// 开始生成的时间戳；0 表示仍在排队。用于把排队耗时和生成耗时分开显示。
+	StartedAt int64 `protobuf:"varint,13,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	// 生成进度百分比（0-100）。服务端按已耗时估算，不是第三方回传的真实进度：
+	// 排队中固定 5，生成中随耗时递增但封顶 95，成功才是 100。
+	Progress      int32 `protobuf:"varint,14,opt,name=progress,proto3" json:"progress,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -243,6 +252,34 @@ func (x *AIGenerationItem) GetCreatedAt() int64 {
 func (x *AIGenerationItem) GetCompletedAt() int64 {
 	if x != nil {
 		return x.CompletedAt
+	}
+	return 0
+}
+
+func (x *AIGenerationItem) GetOutputThumbnailUrl() string {
+	if x != nil {
+		return x.OutputThumbnailUrl
+	}
+	return ""
+}
+
+func (x *AIGenerationItem) GetInputThumbnailUrl() string {
+	if x != nil {
+		return x.InputThumbnailUrl
+	}
+	return ""
+}
+
+func (x *AIGenerationItem) GetStartedAt() int64 {
+	if x != nil {
+		return x.StartedAt
+	}
+	return 0
+}
+
+func (x *AIGenerationItem) GetProgress() int32 {
+	if x != nil {
+		return x.Progress
 	}
 	return 0
 }
@@ -742,6 +779,159 @@ func (x *ListStyleGenerationsResponse) GetPage() *PageResponse {
 	return nil
 }
 
+type RetryStyleGenerationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 待重试的原任务 ID；仅失败或过期的任务可重试。
+	TaskId string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 客户端请求幂等 ID；同一次重试操作的所有网络重发必须复用同一个值。
+	ClientRequestId string `protobuf:"bytes,3,opt,name=client_request_id,json=clientRequestId,proto3" json:"client_request_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RetryStyleGenerationRequest) Reset() {
+	*x = RetryStyleGenerationRequest{}
+	mi := &file_ai_generation_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetryStyleGenerationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetryStyleGenerationRequest) ProtoMessage() {}
+
+func (x *RetryStyleGenerationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_generation_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetryStyleGenerationRequest.ProtoReflect.Descriptor instead.
+func (*RetryStyleGenerationRequest) Descriptor() ([]byte, []int) {
+	return file_ai_generation_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RetryStyleGenerationRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *RetryStyleGenerationRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *RetryStyleGenerationRequest) GetClientRequestId() string {
+	if x != nil {
+		return x.ClientRequestId
+	}
+	return ""
+}
+
+type RetryStyleGenerationResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 新建的 AI 生成任务 ID，与请求中的原任务 ID 不同。
+	TaskId string `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 任务状态。
+	Status int32 `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	// 本次扣除积分。
+	CreditsDeducted int32 `protobuf:"varint,4,opt,name=credits_deducted,json=creditsDeducted,proto3" json:"credits_deducted,omitempty"`
+	// 剩余积分余额。
+	RemainingBalance int32 `protobuf:"varint,5,opt,name=remaining_balance,json=remainingBalance,proto3" json:"remaining_balance,omitempty"`
+	// 是否命中重复请求。
+	Duplicated    bool `protobuf:"varint,6,opt,name=duplicated,proto3" json:"duplicated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RetryStyleGenerationResponse) Reset() {
+	*x = RetryStyleGenerationResponse{}
+	mi := &file_ai_generation_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RetryStyleGenerationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RetryStyleGenerationResponse) ProtoMessage() {}
+
+func (x *RetryStyleGenerationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_generation_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RetryStyleGenerationResponse.ProtoReflect.Descriptor instead.
+func (*RetryStyleGenerationResponse) Descriptor() ([]byte, []int) {
+	return file_ai_generation_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RetryStyleGenerationResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *RetryStyleGenerationResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *RetryStyleGenerationResponse) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *RetryStyleGenerationResponse) GetCreditsDeducted() int32 {
+	if x != nil {
+		return x.CreditsDeducted
+	}
+	return 0
+}
+
+func (x *RetryStyleGenerationResponse) GetRemainingBalance() int32 {
+	if x != nil {
+		return x.RemainingBalance
+	}
+	return 0
+}
+
+func (x *RetryStyleGenerationResponse) GetDuplicated() bool {
+	if x != nil {
+		return x.Duplicated
+	}
+	return false
+}
+
 var File_ai_generation_proto protoreflect.FileDescriptor
 
 const file_ai_generation_proto_rawDesc = "" +
@@ -755,7 +945,7 @@ const file_ai_generation_proto_rawDesc = "" +
 	"\tcover_url\x18\x05 \x01(\tR\bcoverUrl\x12\x1f\n" +
 	"\vexample_url\x18\x06 \x01(\tR\n" +
 	"exampleUrl\x12!\n" +
-	"\fcost_credits\x18\a \x01(\x05R\vcostCredits\"\xe1\x02\n" +
+	"\fcost_credits\x18\a \x01(\x05R\vcostCredits\"\xfe\x03\n" +
 	"\x10AIGenerationItem\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x19\n" +
 	"\bstyle_id\x18\x02 \x01(\tR\astyleId\x12\x1d\n" +
@@ -769,7 +959,12 @@ const file_ai_generation_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\t \x01(\x03R\tcreatedAt\x12!\n" +
 	"\fcompleted_at\x18\n" +
-	" \x01(\x03R\vcompletedAt\"y\n" +
+	" \x01(\x03R\vcompletedAt\x120\n" +
+	"\x14output_thumbnail_url\x18\v \x01(\tR\x12outputThumbnailUrl\x12.\n" +
+	"\x13input_thumbnail_url\x18\f \x01(\tR\x11inputThumbnailUrl\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\r \x01(\x03R\tstartedAt\x12\x1a\n" +
+	"\bprogress\x18\x0e \x01(\x05R\bprogress\"y\n" +
 	"\x13ListAIStylesRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12-\n" +
 	"\x04page\x18\x02 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\"\x7f\n" +
@@ -802,12 +997,26 @@ const file_ai_generation_proto_rawDesc = "" +
 	"\x1cListStyleGenerationsResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x124\n" +
 	"\x05tasks\x18\x02 \x03(\v2\x1e.bobobeads.v1.AIGenerationItemR\x05tasks\x12.\n" +
-	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\xd3\x04\n" +
+	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page\"\x97\x01\n" +
+	"\x1bRetryStyleGenerationRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12*\n" +
+	"\x11client_request_id\x18\x03 \x01(\tR\x0fclientRequestId\"\xfd\x01\n" +
+	"\x1cRetryStyleGenerationResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\x05R\x06status\x12)\n" +
+	"\x10credits_deducted\x18\x04 \x01(\x05R\x0fcreditsDeducted\x12+\n" +
+	"\x11remaining_balance\x18\x05 \x01(\x05R\x10remainingBalance\x12\x1e\n" +
+	"\n" +
+	"duplicated\x18\x06 \x01(\bR\n" +
+	"duplicated2\xfc\x05\n" +
 	"\x13AIGenerationService\x12p\n" +
 	"\fListAIStyles\x12!.bobobeads.v1.ListAIStylesRequest\x1a\".bobobeads.v1.ListAIStylesResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v1/ai/styles\x12\x99\x01\n" +
 	"\x15CreateStyleGeneration\x12*.bobobeads.v1.CreateStyleGenerationRequest\x1a+.bobobeads.v1.CreateStyleGenerationResponse\"'\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/api/v1/ai/style-generations\x12\x97\x01\n" +
 	"\x12GetStyleGeneration\x12'.bobobeads.v1.GetStyleGenerationRequest\x1a(.bobobeads.v1.GetStyleGenerationResponse\".\x82\xd3\xe4\x93\x02(\x12&/api/v1/ai/style-generations/{task_id}\x12\x93\x01\n" +
-	"\x14ListStyleGenerations\x12).bobobeads.v1.ListStyleGenerationsRequest\x1a*.bobobeads.v1.ListStyleGenerationsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/v1/ai/style-generationsB\xa9\x01\n" +
+	"\x14ListStyleGenerations\x12).bobobeads.v1.ListStyleGenerationsRequest\x1a*.bobobeads.v1.ListStyleGenerationsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/v1/ai/style-generations\x12\xa6\x01\n" +
+	"\x14RetryStyleGeneration\x12).bobobeads.v1.RetryStyleGenerationRequest\x1a*.bobobeads.v1.RetryStyleGenerationResponse\"7\x82\xd3\xe4\x93\x021:\x01*\",/api/v1/ai/style-generations/{task_id}/retryB\xa9\x01\n" +
 	"\x10com.bobobeads.v1B\x11AiGenerationProtoP\x01Z1github.com/zhaojiabo/bobobeads_server/internal/pb\xa2\x02\x03BXX\xaa\x02\fBobobeads.V1\xca\x02\fBobobeads\\V1\xe2\x02\x18Bobobeads\\V1\\GPBMetadata\xea\x02\rBobobeads::V1b\x06proto3"
 
 var (
@@ -822,7 +1031,7 @@ func file_ai_generation_proto_rawDescGZIP() []byte {
 	return file_ai_generation_proto_rawDescData
 }
 
-var file_ai_generation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_ai_generation_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_generation_proto_goTypes = []any{
 	(*AIStyleItem)(nil),                   // 0: bobobeads.v1.AIStyleItem
 	(*AIGenerationItem)(nil),              // 1: bobobeads.v1.AIGenerationItem
@@ -834,39 +1043,45 @@ var file_ai_generation_proto_goTypes = []any{
 	(*GetStyleGenerationResponse)(nil),    // 7: bobobeads.v1.GetStyleGenerationResponse
 	(*ListStyleGenerationsRequest)(nil),   // 8: bobobeads.v1.ListStyleGenerationsRequest
 	(*ListStyleGenerationsResponse)(nil),  // 9: bobobeads.v1.ListStyleGenerationsResponse
-	(*RequestHeader)(nil),                 // 10: bobobeads.v1.RequestHeader
-	(*PageRequest)(nil),                   // 11: bobobeads.v1.PageRequest
-	(*ResponseHeader)(nil),                // 12: bobobeads.v1.ResponseHeader
-	(*PageResponse)(nil),                  // 13: bobobeads.v1.PageResponse
+	(*RetryStyleGenerationRequest)(nil),   // 10: bobobeads.v1.RetryStyleGenerationRequest
+	(*RetryStyleGenerationResponse)(nil),  // 11: bobobeads.v1.RetryStyleGenerationResponse
+	(*RequestHeader)(nil),                 // 12: bobobeads.v1.RequestHeader
+	(*PageRequest)(nil),                   // 13: bobobeads.v1.PageRequest
+	(*ResponseHeader)(nil),                // 14: bobobeads.v1.ResponseHeader
+	(*PageResponse)(nil),                  // 15: bobobeads.v1.PageResponse
 }
 var file_ai_generation_proto_depIdxs = []int32{
-	10, // 0: bobobeads.v1.ListAIStylesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	11, // 1: bobobeads.v1.ListAIStylesRequest.page:type_name -> bobobeads.v1.PageRequest
-	12, // 2: bobobeads.v1.ListAIStylesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	12, // 0: bobobeads.v1.ListAIStylesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	13, // 1: bobobeads.v1.ListAIStylesRequest.page:type_name -> bobobeads.v1.PageRequest
+	14, // 2: bobobeads.v1.ListAIStylesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	0,  // 3: bobobeads.v1.ListAIStylesResponse.styles:type_name -> bobobeads.v1.AIStyleItem
-	10, // 4: bobobeads.v1.CreateStyleGenerationRequest.header:type_name -> bobobeads.v1.RequestHeader
-	12, // 5: bobobeads.v1.CreateStyleGenerationResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	10, // 6: bobobeads.v1.GetStyleGenerationRequest.header:type_name -> bobobeads.v1.RequestHeader
-	12, // 7: bobobeads.v1.GetStyleGenerationResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	12, // 4: bobobeads.v1.CreateStyleGenerationRequest.header:type_name -> bobobeads.v1.RequestHeader
+	14, // 5: bobobeads.v1.CreateStyleGenerationResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	12, // 6: bobobeads.v1.GetStyleGenerationRequest.header:type_name -> bobobeads.v1.RequestHeader
+	14, // 7: bobobeads.v1.GetStyleGenerationResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 8: bobobeads.v1.GetStyleGenerationResponse.task:type_name -> bobobeads.v1.AIGenerationItem
-	10, // 9: bobobeads.v1.ListStyleGenerationsRequest.header:type_name -> bobobeads.v1.RequestHeader
-	11, // 10: bobobeads.v1.ListStyleGenerationsRequest.page:type_name -> bobobeads.v1.PageRequest
-	12, // 11: bobobeads.v1.ListStyleGenerationsResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	12, // 9: bobobeads.v1.ListStyleGenerationsRequest.header:type_name -> bobobeads.v1.RequestHeader
+	13, // 10: bobobeads.v1.ListStyleGenerationsRequest.page:type_name -> bobobeads.v1.PageRequest
+	14, // 11: bobobeads.v1.ListStyleGenerationsResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 12: bobobeads.v1.ListStyleGenerationsResponse.tasks:type_name -> bobobeads.v1.AIGenerationItem
-	13, // 13: bobobeads.v1.ListStyleGenerationsResponse.page:type_name -> bobobeads.v1.PageResponse
-	2,  // 14: bobobeads.v1.AIGenerationService.ListAIStyles:input_type -> bobobeads.v1.ListAIStylesRequest
-	4,  // 15: bobobeads.v1.AIGenerationService.CreateStyleGeneration:input_type -> bobobeads.v1.CreateStyleGenerationRequest
-	6,  // 16: bobobeads.v1.AIGenerationService.GetStyleGeneration:input_type -> bobobeads.v1.GetStyleGenerationRequest
-	8,  // 17: bobobeads.v1.AIGenerationService.ListStyleGenerations:input_type -> bobobeads.v1.ListStyleGenerationsRequest
-	3,  // 18: bobobeads.v1.AIGenerationService.ListAIStyles:output_type -> bobobeads.v1.ListAIStylesResponse
-	5,  // 19: bobobeads.v1.AIGenerationService.CreateStyleGeneration:output_type -> bobobeads.v1.CreateStyleGenerationResponse
-	7,  // 20: bobobeads.v1.AIGenerationService.GetStyleGeneration:output_type -> bobobeads.v1.GetStyleGenerationResponse
-	9,  // 21: bobobeads.v1.AIGenerationService.ListStyleGenerations:output_type -> bobobeads.v1.ListStyleGenerationsResponse
-	18, // [18:22] is the sub-list for method output_type
-	14, // [14:18] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	15, // 13: bobobeads.v1.ListStyleGenerationsResponse.page:type_name -> bobobeads.v1.PageResponse
+	12, // 14: bobobeads.v1.RetryStyleGenerationRequest.header:type_name -> bobobeads.v1.RequestHeader
+	14, // 15: bobobeads.v1.RetryStyleGenerationResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	2,  // 16: bobobeads.v1.AIGenerationService.ListAIStyles:input_type -> bobobeads.v1.ListAIStylesRequest
+	4,  // 17: bobobeads.v1.AIGenerationService.CreateStyleGeneration:input_type -> bobobeads.v1.CreateStyleGenerationRequest
+	6,  // 18: bobobeads.v1.AIGenerationService.GetStyleGeneration:input_type -> bobobeads.v1.GetStyleGenerationRequest
+	8,  // 19: bobobeads.v1.AIGenerationService.ListStyleGenerations:input_type -> bobobeads.v1.ListStyleGenerationsRequest
+	10, // 20: bobobeads.v1.AIGenerationService.RetryStyleGeneration:input_type -> bobobeads.v1.RetryStyleGenerationRequest
+	3,  // 21: bobobeads.v1.AIGenerationService.ListAIStyles:output_type -> bobobeads.v1.ListAIStylesResponse
+	5,  // 22: bobobeads.v1.AIGenerationService.CreateStyleGeneration:output_type -> bobobeads.v1.CreateStyleGenerationResponse
+	7,  // 23: bobobeads.v1.AIGenerationService.GetStyleGeneration:output_type -> bobobeads.v1.GetStyleGenerationResponse
+	9,  // 24: bobobeads.v1.AIGenerationService.ListStyleGenerations:output_type -> bobobeads.v1.ListStyleGenerationsResponse
+	11, // 25: bobobeads.v1.AIGenerationService.RetryStyleGeneration:output_type -> bobobeads.v1.RetryStyleGenerationResponse
+	21, // [21:26] is the sub-list for method output_type
+	16, // [16:21] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_generation_proto_init() }
@@ -881,7 +1096,7 @@ func file_ai_generation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_generation_proto_rawDesc), len(file_ai_generation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

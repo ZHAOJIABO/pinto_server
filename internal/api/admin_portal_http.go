@@ -507,6 +507,10 @@ func (h *AdminPortalHTTPHandler) parseTemplatePayload(w http.ResponseWriter, r *
 		return "", templateservice.UpdatePayload{}, apperr.Internal("admin preview URL is not browser accessible", nil)
 	}
 
+	// browserPreviewURLs falls back to previewURL when this is empty, so a failed
+	// generation degrades to the full-size preview instead of a broken image.
+	thumbnailURL := h.media.AdminPreviewThumbnailURL(r.Context(), request.PreviewFileKey)
+
 	return request.IdempotencyKey, templateservice.UpdatePayload{
 		Title:        strings.TrimSpace(request.Title),
 		Description:  strings.TrimSpace(request.Description),
@@ -515,7 +519,7 @@ func (h *AdminPortalHTTPHandler) parseTemplatePayload(w http.ResponseWriter, r *
 		Difficulty:   request.Difficulty,
 		BoardSpec:    pattern.PatternData.BoardSpec,
 		PreviewURL:   previewURL,
-		ThumbnailURL: previewURL,
+		ThumbnailURL: thumbnailURL,
 		PatternData:  work.PatternDataToJSONMap(pattern.PatternData),
 		Width:        int(pattern.PatternData.Width),
 		Height:       int(pattern.PatternData.Height),

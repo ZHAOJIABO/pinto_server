@@ -61,27 +61,45 @@ ai_generation:
   task_expire_minutes: 30
   worker_interval: 30
   fake_provider: false
-  provider_name: vectorengine
+  default_model: "gpt-image-2"
+  # 用户主动重试用的模型：首发失败后换一家，避免同一个模型再失败一次。
+  # 留空则重试沿用首发链条；可被 bb_config 的 ai_retry_model 覆盖。
+  retry_model: "gemini-3-1-flash-image-preview"
   # 第三方不限并发，这里是我们自己的节流阀：先保守起步，按线上排队时延再上调。
   # 信号量是进程内的，多实例部署时需按实例数均分这个值。
   max_concurrency: 10
   dispatch_interval_ms: 2000
   dispatch_batch_size: 200
   provider_timeout_sec: 180
+  # 只用来估算返回给客户端的 progress 百分比：第三方不回传真实进度。
+  # 线上实际耗时变了就改这里，客户端不用发版。
+  avg_duration_sec: 120
   stuck_running_minutes: 15
   free_concurrent: 1
   free_queue_size: 3
   vip_concurrent: 2
   vip_queue_size: 10
   # api_key 通过未提交的 conf/server.production.local.yaml 注入
-  vector_engine:
-    base_url: "https://api.vectorengine.cn"
-    api_key: ""
-    model: "gpt-image-2"
-    size: "1024x1024"
-    quality: "medium"
-    background: "auto"
-    moderation: "auto"
+  # 线上切换模型不需要改这里：给 bb_config 写一行 ai_active_model = <models 的 key>。
+  models:
+    gpt-image-2:
+      adapter: openai_image_edit
+      base_url: "https://api.vectorengine.cn"
+      api_key: ""
+      model: "gpt-image-2"
+      options:
+        size: "1024x1024"
+        quality: "medium"
+        background: "auto"
+        moderation: "auto"
+    gemini-3-1-flash-image-preview:
+      adapter: gemini_generate_content
+      base_url: "https://api.vectorengine.cn"
+      api_key: ""
+      model: "gemini-3.1-flash-image-preview"
+      options:
+        aspect_ratio: "1:1"
+        image_size: "1K"
 
 admin:
   jwt_secret: ""

@@ -43,6 +43,8 @@ func TestMedia_AllPurposesCreatePublicReadUploads(t *testing.T) {
 		"style_input":   "image/png",
 		"ai_output":     "image/png",
 		"admin_preview": "image/png",
+
+		media.PurposeFinishedProduct: "image/jpeg",
 	} {
 		t.Run(purpose, func(t *testing.T) {
 			token, err := svc.GetUploadToken(context.Background(), 1, "image.png", contentType, purpose)
@@ -56,6 +58,27 @@ func TestMedia_AllPurposesCreatePublicReadUploads(t *testing.T) {
 				t.Errorf("public URL = %q, want %q", token.PublicURL, want)
 			}
 		})
+	}
+}
+
+func TestMedia_GetUploadTokenPersistsPublicURL(t *testing.T) {
+	SetupTestDB(t)
+	mediaDAO := dao.NewMediaDAO()
+	svc := media.NewServiceWithStorage(mediaDAO, newMemoryObjectStorage("https://cdn.example.test"))
+
+	token, err := svc.GetUploadToken(context.Background(), 1, "input.png", "image/png", "style_input")
+	if err != nil {
+		t.Fatalf("GetUploadToken: %v", err)
+	}
+
+	// AIGeneration copies this column into input_image_url at submit time, so an
+	// empty FileURL silently blanks the original image in every task response.
+	var asset model.MediaAsset
+	if err := db.DB.Where("file_key = ?", token.FileKey).First(&asset).Error; err != nil {
+		t.Fatalf("load asset: %v", err)
+	}
+	if want := "https://cdn.example.test/" + token.FileKey; asset.FileURL != want {
+		t.Errorf("stored FileURL = %q, want %q", asset.FileURL, want)
 	}
 }
 

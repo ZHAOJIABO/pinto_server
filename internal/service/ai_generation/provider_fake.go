@@ -13,13 +13,20 @@ import (
 // FakeProvider returns a solid-colour placeholder image so the whole pipeline
 // (OSS transcode, status transitions, credit accounting) can run locally
 // without a provider account. It must never be enabled in production.
-type FakeProvider struct{}
-
-func NewFakeProvider() *FakeProvider {
-	return &FakeProvider{}
+// It is registered under every configured model key so that any style row
+// resolves locally.
+type FakeProvider struct {
+	name string
 }
 
-func (p *FakeProvider) Name() string { return "fake" }
+func NewFakeProvider(name string) *FakeProvider {
+	if name == "" {
+		name = "fake"
+	}
+	return &FakeProvider{name: name}
+}
+
+func (p *FakeProvider) Name() string { return p.name }
 
 func (p *FakeProvider) Mode() Mode { return ModeSync }
 

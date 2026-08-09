@@ -151,10 +151,19 @@ type ExportWatermarkConfig struct {
 }
 
 type AIGenerationConfig struct {
-	TaskExpireMinutes int    `mapstructure:"task_expire_minutes"`
-	WorkerInterval    int    `mapstructure:"worker_interval"`
-	FakeProvider      bool   `mapstructure:"fake_provider"`
-	ProviderName      string `mapstructure:"provider_name"`
+	TaskExpireMinutes int  `mapstructure:"task_expire_minutes"`
+	WorkerInterval    int  `mapstructure:"worker_interval"`
+	FakeProvider      bool `mapstructure:"fake_provider"`
+
+	// DefaultModel is the key in Models used when neither bb_config nor the
+	// style row names one. It is the last link in the chain, so it must always
+	// point at a model that is actually configured.
+	DefaultModel string `mapstructure:"default_model"`
+
+	// RetryModel serves user-initiated retries, so a model that just failed is
+	// not handed the same job again. Empty means retries reuse the first-attempt
+	// chain.
+	RetryModel string `mapstructure:"retry_model"`
 
 	// MaxConcurrency is the ceiling on generation requests in flight towards the
 	// provider. The provider itself imposes no limit, so this is our own
@@ -166,25 +175,36 @@ type AIGenerationConfig struct {
 	ProviderTimeoutSec  int `mapstructure:"provider_timeout_sec"`
 	StuckRunningMinutes int `mapstructure:"stuck_running_minutes"`
 
+	// AvgDurationSec is the observed average generation time, used only to
+	// estimate the progress percentage we report to clients. Providers give us
+	// no progress signal, so this is a display knob: retune it from production
+	// latency without shipping an app release.
+	AvgDurationSec int `mapstructure:"avg_duration_sec"`
+
 	FreeConcurrent int `mapstructure:"free_concurrent"`
 	FreeQueueSize  int `mapstructure:"free_queue_size"`
 	VIPConcurrent  int `mapstructure:"vip_concurrent"`
 	VIPQueueSize   int `mapstructure:"vip_queue_size"`
 
-	VectorEngine VectorEngineConfig `mapstructure:"vector_engine"`
+	// Models maps a logical model key (referenced by bb_config, bb_ai_style or
+	// DefaultModel) to the adapter that speaks its protocol plus that model's
+	// own defaults. Adding a model that reuses a known protocol is a config
+	// change only. Keys must not contain a dot: viper treats it as a nesting
+	// separator and would split the key apart.
+	Models map[string]AIModelConfig `mapstructure:"models"`
 }
 
-// VectorEngineConfig holds the credentials and defaults for the third-party
-// image edit endpoint. Keep api_key in an untracked local override, never in
-// the shared YAML.
-type VectorEngineConfig struct {
-	BaseURL    string `mapstructure:"base_url"`
-	APIKey     string `mapstructure:"api_key"`
-	Model      string `mapstructure:"model"`
-	Size       string `mapstructure:"size"`
-	Quality    string `mapstructure:"quality"`
-	Background string `mapstructure:"background"`
-	Moderation string `mapstructure:"moderation"`
+// AIModelConfig is one upstream model. Adapter selects the request/response
+// protocol, Model is the name the vendor expects on the wire, and Options
+// carries the protocol-specific knobs (size, quality, aspect_ratio,
+// image_size) so adding one never changes this struct. Keep api_key in an
+// untracked local override, never in the shared YAML.
+type AIModelConfig struct {
+	Adapter string            `mapstructure:"adapter"`
+	BaseURL string            `mapstructure:"base_url"`
+	APIKey  string            `mapstructure:"api_key"`
+	Model   string            `mapstructure:"model"`
+	Options map[string]string `mapstructure:"options"`
 }
 
 func Init(configPath string) error {

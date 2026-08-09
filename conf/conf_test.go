@@ -66,3 +66,79 @@ admin:
 		t.Fatalf("expected local OSS credential override")
 	}
 }
+
+// The models map is the one place where config keys are user-defined, and viper
+// splits any key containing its delimiter: a key like "gemini-3.1-flash" would
+// decode as "gemini-3". The api_key also lives only in the untracked override,
+// so the merge must not drop the rest of the model entry.
+func TestInitDecodesAIModelsAndMergesPerModelKey(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	baseConfig := filepath.Join(dir, "server.yaml")
+	localConfig := filepath.Join(dir, "server.local.yaml")
+	if err := os.WriteFile(baseConfig, []byte(`
+ai_generation:
+  default_model: "gpt-image-2"
+  models:
+    gpt-image-2:
+      adapter: openai_image_edit
+      base_url: "https://api.example.test"
+      api_key: ""
+      model: "gpt-image-2"
+      options:
+        size: "512x512"
+    gemini-3-1-flash-image-preview:
+      adapter: gemini_generate_content
+      base_url: "https://api.example.test"
+      api_key: ""
+      model: "gemini-3.1-flash-image-preview"
+      options:
+        aspect_ratio: "1:1"
+        image_size: "1K"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(localConfig, []byte(`
+ai_generation:
+  models:
+    gemini-3-1-flash-image-preview:
+      api_key: "local-gemini-key"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Init(baseConfig); err != nil {
+		t.Fatal(err)
+	}
+
+	models := GlobalConfig.AIGeneration.Models
+	if len(models) != 2 {
+		t.Fatalf("expected 2 models, got %#v", models)
+	}
+	if _, ok := models[GlobalConfig.AIGeneration.DefaultModel]; !ok {
+		t.Fatalf("default_model %q is not a configured key", GlobalConfig.AIGeneration.DefaultModel)
+	}
+
+	gemini, ok := models["gemini-3-1-flash-image-preview"]
+	if !ok {
+		t.Fatalf("gemini model key was split or lost: %#v", models)
+	}
+	if gemini.APIKey != "local-gemini-key" {
+		t.Errorf("api_key = %q, want the local override", gemini.APIKey)
+	}
+	// The upstream model name keeps its dots: only the map key is constrained.
+	if gemini.Model != "gemini-3.1-flash-image-preview" {
+		t.Errorf("model = %q", gemini.Model)
+	}
+	if gemini.Adapter != "gemini_generate_content" || gemini.BaseURL != "https://api.example.test" {
+		t.Errorf("the override wiped sibling fields: %#v", gemini)
+	}
+	if gemini.Options["aspect_ratio"] != "1:1" || gemini.Options["image_size"] != "1K" {
+		t.Errorf("options = %#v", gemini.Options)
+	}
+	if models["gpt-image-2"].Options["size"] != "512x512" {
+		t.Errorf("gpt-image-2 options = %#v", models["gpt-image-2"].Options)
+	}
+}

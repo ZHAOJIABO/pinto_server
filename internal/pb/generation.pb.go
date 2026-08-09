@@ -211,7 +211,8 @@ type CompleteGenerationRequest struct {
 	BeadCount int32 `protobuf:"varint,7,opt,name=bead_count,json=beadCount,proto3" json:"bead_count,omitempty"`
 	// 客户端展示用统计值；服务端会按 pattern_data 的实际使用颜色重算并忽略该值。
 	ColorCount int32 `protobuf:"varint,8,opt,name=color_count,json=colorCount,proto3" json:"color_count,omitempty"`
-	// 纯图纸缩略图地址（不含底部色块）。
+	// 纯图纸缩略图地址（不含底部色块）。服务端以该图为源图生成自己的缩略图后落库，
+	// 不会直接存这个值；留空时退回用 pattern_image_url 作为源图。
 	ThumbnailUrl  string `protobuf:"bytes,9,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

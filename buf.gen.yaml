@@ -3,14 +3,18 @@ managed:
   enabled: true
   disable:
     - module: buf.build/googleapis/googleapis
+# Plugin versions are pinned so codegen is reproducible: unpinned remote plugins
+# silently rewrite every generated file whenever the BSR publishes a new release.
+# The gateway plugin must track github.com/grpc-ecosystem/grpc-gateway/v2 in
+# go.mod, since generated code and its runtime library are one unit.
 plugins:
-  - remote: buf.build/protocolbuffers/go
+  - remote: buf.build/protocolbuffers/go:v1.36.11
     out: internal/pb
     opt: paths=source_relative
-  - remote: buf.build/grpc/go
+  - remote: buf.build/grpc/go:v1.6.2
     out: internal/pb
     opt: paths=source_relative
-  - remote: buf.build/grpc-ecosystem/gateway
+  - remote: buf.build/grpc-ecosystem/gateway:v2.29.0
     out: internal/pb
     opt:
       - paths=source_relative

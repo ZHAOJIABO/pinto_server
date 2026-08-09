@@ -75,6 +75,7 @@ func main() {
 		&model.AIGeneration{},
 		&model.TemplatePublishRecord{},
 		&model.BlindBoxRecord{},
+		&model.FinishedProduct{},
 	); err != nil {
 		zap.L().Fatal("failed to auto migrate", zap.Error(err))
 	}
@@ -112,6 +113,7 @@ func main() {
 	pb.RegisterGenerationServiceServer(grpcServer, sp.GenerationHandler)
 	pb.RegisterAIGenerationServiceServer(grpcServer, sp.AIGenerationHandler)
 	pb.RegisterAdminTemplateServiceServer(grpcServer, sp.AdminTemplateHandler)
+	pb.RegisterFinishedProductServiceServer(grpcServer, sp.FinishedProductHandler)
 
 	if !conf.IsProd() {
 		reflection.Register(grpcServer)
@@ -151,6 +153,7 @@ func main() {
 	pb.RegisterReportServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
 	pb.RegisterGenerationServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
 	pb.RegisterAIGenerationServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
+	pb.RegisterFinishedProductServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
 
 	rootMux := http.NewServeMux()
 	rootMux.Handle("/api/v1/admin/", sp.AdminPortalHandler)

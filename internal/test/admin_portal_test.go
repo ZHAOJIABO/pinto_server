@@ -503,12 +503,16 @@ func TestAdminPortalGetsAndUpdatesTemplate(t *testing.T) {
 	}
 
 	templateDAO := dao.NewTemplateDAO()
+	storage := newMemoryObjectStorage("https://cdn.example.test")
+	// The thumbnail is generated from the stored object, so the preview has to be
+	// a decodable image rather than just a media_asset row.
+	storage.put(previewKey, "image/png", pngBytes(t, 800, 800))
 	handler := api.NewAdminPortalHTTPHandler(
 		adminauth.NewAuthService(conf.AdminConfig{
 			JWTSecret: "admin-test-secret",
 			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
 		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
+		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
 	)
@@ -606,7 +610,10 @@ func TestAdminPortalGetsAndUpdatesTemplate(t *testing.T) {
 		t.Fatalf("template fields were not fully updated: %#v", template)
 	}
 	wantPreviewURL := "https://cdn.example.test/" + previewKey
-	if template.PreviewURL != wantPreviewURL || template.ThumbnailURL != wantPreviewURL {
+	// The thumbnail is a separate server-generated object, not a query-string
+	// variant of the preview, so the URL must point at the "-low.webp" key.
+	wantThumbnailURL := "https://cdn.example.test/" + media.ThumbnailFileKey(previewKey)
+	if template.PreviewURL != wantPreviewURL || template.ThumbnailURL != wantThumbnailURL {
 		t.Fatalf("updated template must contain public preview URLs, got preview=%q thumbnail=%q", template.PreviewURL, template.ThumbnailURL)
 	}
 
@@ -718,6 +725,14 @@ func (s *memoryObjectStorage) Get(_ context.Context, fileKey string, maxSize int
 
 func (s *memoryObjectStorage) PublicURL(fileKey string) string {
 	return s.publicBaseURL + "/" + fileKey
+}
+
+func (s *memoryObjectStorage) FileKeyFromPublicURL(publicURL string) (string, bool) {
+	fileKey, found := strings.CutPrefix(publicURL, s.publicBaseURL+"/")
+	if !found || fileKey == "" {
+		return "", false
+	}
+	return fileKey, true
 }
 
 func adminPortalLogin(t *testing.T, handler http.Handler, username, password string) string {

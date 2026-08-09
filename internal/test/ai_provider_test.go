@@ -13,14 +13,14 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/service/ai_generation"
 )
 
-func newVectorEngineProvider(t *testing.T, baseURL string) *ai_generation.VectorEngineProvider {
+func newImageEditProvider(t *testing.T, baseURL string) *ai_generation.OpenAIImageEditProvider {
 	t.Helper()
-	provider, err := ai_generation.NewVectorEngineProvider(conf.VectorEngineConfig{
+	provider, err := ai_generation.NewOpenAIImageEditProvider("gpt-image-2", conf.AIModelConfig{
+		Adapter: ai_generation.AdapterOpenAIImageEdit,
 		BaseURL: baseURL,
 		APIKey:  "test-key",
 		Model:   "gpt-image-2",
-		Size:    "1024x1024",
-		Quality: "high",
+		Options: map[string]string{"size": "1024x1024", "quality": "high"},
 	}, 5*time.Second)
 	if err != nil {
 		t.Fatalf("build provider failed: %v", err)
@@ -28,7 +28,7 @@ func newVectorEngineProvider(t *testing.T, baseURL string) *ai_generation.Vector
 	return provider
 }
 
-func vectorEngineSubmitRequest() *ai_generation.SubmitRequest {
+func imageEditSubmitRequest() *ai_generation.SubmitRequest {
 	return &ai_generation.SubmitRequest{
 		StyleKey:   "watercolor",
 		Prompt:     "make it watercolor",
@@ -38,7 +38,7 @@ func vectorEngineSubmitRequest() *ai_generation.SubmitRequest {
 	}
 }
 
-func TestVectorEngineProvider_SubmitSendsMultipart(t *testing.T) {
+func TestImageEditProvider_SubmitSendsMultipart(t *testing.T) {
 	encoded := base64.StdEncoding.EncodeToString([]byte("result-png"))
 
 	var gotAuth, gotPrompt, gotModel, gotN, gotSize, gotQuality, gotFileName string
@@ -73,7 +73,7 @@ func TestVectorEngineProvider_SubmitSendsMultipart(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := newVectorEngineProvider(t, server.URL).Submit(context.Background(), vectorEngineSubmitRequest())
+	result, err := newImageEditProvider(t, server.URL).Submit(context.Background(), imageEditSubmitRequest())
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
 	}
@@ -108,9 +108,46 @@ func TestVectorEngineProvider_SubmitSendsMultipart(t *testing.T) {
 	}
 }
 
+// Per-request options come from the style row, so they must win over the model's
+// YAML defaults while leaving the untouched defaults in place. prompt/model/n are
+// owned by the adapter and must not be overridable.
+func TestImageEditProvider_RequestOptionsOverrideDefaults(t *testing.T) {
+	var gotSize, gotQuality, gotBackground, gotModel string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			t.Fatalf("parse multipart: %v", err)
+		}
+		gotSize = r.FormValue("size")
+		gotQuality = r.FormValue("quality")
+		gotBackground = r.FormValue("background")
+		gotModel = r.FormValue("model")
+		w.Write([]byte(`{"data":{"b64_json":"` + base64.StdEncoding.EncodeToString([]byte("x")) + `"}}`))
+	}))
+	defer server.Close()
+
+	req := imageEditSubmitRequest()
+	req.Options = map[string]string{"size": "512x512", "background": "transparent", "model": "hijacked"}
+
+	if _, err := newImageEditProvider(t, server.URL).Submit(context.Background(), req); err != nil {
+		t.Fatalf("Submit failed: %v", err)
+	}
+	if gotSize != "512x512" {
+		t.Errorf("size = %q, want the request override", gotSize)
+	}
+	if gotQuality != "high" {
+		t.Errorf("quality = %q, want the model default", gotQuality)
+	}
+	if gotBackground != "transparent" {
+		t.Errorf("background = %q", gotBackground)
+	}
+	if gotModel != "gpt-image-2" {
+		t.Errorf("model = %q, options must not override it", gotModel)
+	}
+}
+
 // The vendor docs show data as an object while the OpenAI-compatible API returns
 // an array, so both must decode.
-func TestVectorEngineProvider_AcceptsDataObjectAndArray(t *testing.T) {
+func TestImageEditProvider_AcceptsDataObjectAndArray(t *testing.T) {
 	encoded := base64.StdEncoding.EncodeToString([]byte("result-png"))
 	cases := map[string]string{
 		"object": `{"output_format":"jpeg","data":{"b64_json":"` + encoded + `"}}`,
@@ -124,7 +161,7 @@ func TestVectorEngineProvider_AcceptsDataObjectAndArray(t *testing.T) {
 			}))
 			defer server.Close()
 
-			result, err := newVectorEngineProvider(t, server.URL).Submit(context.Background(), vectorEngineSubmitRequest())
+			result, err := newImageEditProvider(t, server.URL).Submit(context.Background(), imageEditSubmitRequest())
 			if err != nil {
 				t.Fatalf("Submit failed: %v", err)
 			}
@@ -141,7 +178,7 @@ func TestVectorEngineProvider_AcceptsDataObjectAndArray(t *testing.T) {
 	}
 }
 
-func TestVectorEngineProvider_ClassifiesFailures(t *testing.T) {
+func TestImageEditProvider_ClassifiesFailures(t *testing.T) {
 	cases := []struct {
 		name          string
 		status        int
@@ -167,7 +204,7 @@ func TestVectorEngineProvider_ClassifiesFailures(t *testing.T) {
 			}))
 			defer server.Close()
 
-			result, err := newVectorEngineProvider(t, server.URL).Submit(context.Background(), vectorEngineSubmitRequest())
+			result, err := newImageEditProvider(t, server.URL).Submit(context.Background(), imageEditSubmitRequest())
 			if err != nil {
 				t.Fatalf("Submit returned a hard error: %v", err)
 			}
@@ -186,22 +223,23 @@ func TestVectorEngineProvider_ClassifiesFailures(t *testing.T) {
 
 // A read timeout may already have been billed by the provider, so it must not be
 // retried even though it looks like a transport failure.
-func TestVectorEngineProvider_ReadTimeoutIsNotRetryable(t *testing.T) {
+func TestImageEditProvider_ReadTimeoutIsNotRetryable(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(300 * time.Millisecond)
 		w.Write([]byte(`{"data":{"b64_json":""}}`))
 	}))
 	defer server.Close()
 
-	provider, err := ai_generation.NewVectorEngineProvider(conf.VectorEngineConfig{
+	provider, err := ai_generation.NewOpenAIImageEditProvider("gpt-image-2", conf.AIModelConfig{
 		BaseURL: server.URL,
 		APIKey:  "test-key",
+		Model:   "gpt-image-2",
 	}, 50*time.Millisecond)
 	if err != nil {
 		t.Fatalf("build provider failed: %v", err)
 	}
 
-	result, err := provider.Submit(context.Background(), vectorEngineSubmitRequest())
+	result, err := provider.Submit(context.Background(), imageEditSubmitRequest())
 	if err != nil {
 		t.Fatalf("Submit returned a hard error: %v", err)
 	}
@@ -210,17 +248,28 @@ func TestVectorEngineProvider_ReadTimeoutIsNotRetryable(t *testing.T) {
 	}
 }
 
-func TestVectorEngineProvider_RequiresCredentials(t *testing.T) {
-	if _, err := ai_generation.NewVectorEngineProvider(conf.VectorEngineConfig{APIKey: "k"}, time.Second); err == nil {
-		t.Error("expected an error when base_url is missing")
+// A model missing base_url, api_key or model can never run a task, so it must
+// fail at boot instead of accepting and charging tasks.
+func TestImageEditProvider_RequiresCredentials(t *testing.T) {
+	cases := map[string]conf.AIModelConfig{
+		"no base_url": {APIKey: "k", Model: "m"},
+		"no api_key":  {BaseURL: "https://x", Model: "m"},
+		"no model":    {BaseURL: "https://x", APIKey: "k"},
 	}
-	if _, err := ai_generation.NewVectorEngineProvider(conf.VectorEngineConfig{BaseURL: "https://x"}, time.Second); err == nil {
-		t.Error("expected an error when api_key is missing")
+	for name, cfg := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := ai_generation.NewOpenAIImageEditProvider("m", cfg, time.Second); err == nil {
+				t.Error("expected a build error")
+			}
+		})
 	}
 }
 
-func TestVectorEngineProvider_QueryUnsupported(t *testing.T) {
-	provider := newVectorEngineProvider(t, "https://api.example.test")
+func TestImageEditProvider_QueryUnsupported(t *testing.T) {
+	provider := newImageEditProvider(t, "https://api.example.test")
+	if provider.Name() != "gpt-image-2" {
+		t.Errorf("name = %q", provider.Name())
+	}
 	if provider.Mode() != ai_generation.ModeSync {
 		t.Fatalf("mode = %v", provider.Mode())
 	}
