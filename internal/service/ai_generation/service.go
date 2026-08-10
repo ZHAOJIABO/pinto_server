@@ -168,13 +168,14 @@ func (s *Service) CreateStyleGeneration(ctx context.Context, userID uint64, styl
 	if inputFileKey == "" {
 		return nil, apperr.InvalidArgument("input_file_key required")
 	}
-	return s.submitTask(ctx, userID, styleID, inputFileKey, clientRequestID, originFirstAttempt)
+	return s.submitTask(ctx, userID, styleID, inputFileKey, clientRequestID, "")
 }
 
 // RetryStyleGeneration submits a new task from a failed or expired one, reusing
 // the original input image so the client does not have to still hold it. The
-// original row is left untouched: this is a new task, separately charged, and
-// the original was already refunded when it failed.
+// original row is kept for its failure details and marked as superseded by the
+// new task, which both hides it from the user's list and makes a task retryable
+// only once. It is separately charged: the original was refunded when it failed.
 func (s *Service) RetryStyleGeneration(ctx context.Context, userID uint64, sourceTaskID, clientRequestID string) (*CreateTaskResult, error) {
 	if clientRequestID == "" {
 		return nil, apperr.InvalidArgument("client_request_id required")
@@ -193,15 +194,25 @@ func (s *Service) RetryStyleGeneration(ctx context.Context, userID uint64, sourc
 	if source.InputFileKey == "" {
 		return nil, apperr.InvalidArgument("原任务缺少原图，无法重试")
 	}
+	// An already-superseded source is deliberately not rejected here: a resend of
+	// the same client_request_id must still come back as the duplicate it is, and
+	// only submitTask knows that. Rejecting a genuine second retry is left to the
+	// superseded marker inside its transaction.
 
-	return s.submitTask(ctx, userID, source.StyleID, source.InputFileKey, clientRequestID, originRetry)
+	return s.submitTask(ctx, userID, source.StyleID, source.InputFileKey, clientRequestID, source.TaskID)
 }
 
 // submitTask is the whole accept-and-charge path, shared by first submission and
-// retry. Everything is re-validated against current state rather than copied
-// from a previous task: a deleted input, a deactivated style or a changed price
-// must all be seen before the user is charged again.
-func (s *Service) submitTask(ctx context.Context, userID uint64, styleID uint64, inputFileKey, clientRequestID string, origin submitOrigin) (*CreateTaskResult, error) {
+// retry. A non-empty sourceTaskID makes it a retry. Everything is re-validated
+// against current state rather than copied from a previous task: a deleted input,
+// a deactivated style or a changed price must all be seen before the user is
+// charged again.
+func (s *Service) submitTask(ctx context.Context, userID uint64, styleID uint64, inputFileKey, clientRequestID, sourceTaskID string) (*CreateTaskResult, error) {
+	origin := originFirstAttempt
+	if sourceTaskID != "" {
+		origin = originRetry
+	}
+
 	asset, err := s.mediaDAO.GetUploadedAsset(ctx, inputFileKey, userID, styleInputPurpose)
 	if err != nil {
 		return nil, apperr.Internal("validate input file", err)
@@ -297,6 +308,18 @@ func (s *Service) submitTask(ctx context.Context, userID uint64, styleID uint64,
 				return errDuplicateAITask
 			}
 			return apperr.Internal("create ai task", createErr)
+		}
+
+		// Inside the same transaction as the charge, so a source task that another
+		// retry already claimed rolls this one back instead of charging twice.
+		if sourceTaskID != "" {
+			marked, markErr := s.aiDAO.MarkSupersededTx(tx, sourceTaskID, taskID)
+			if markErr != nil {
+				return apperr.Internal("mark source task superseded", markErr)
+			}
+			if !marked {
+				return apperr.InvalidArgument("该任务已经重试过了")
+			}
 		}
 
 		result = &CreateTaskResult{

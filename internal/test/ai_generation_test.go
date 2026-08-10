@@ -1062,6 +1062,71 @@ func TestRetryStyleGeneration_Success(t *testing.T) {
 	if original.Status != model.AIGenStatusFailed {
 		t.Errorf("expected original to stay failed, got %d", original.Status)
 	}
+	if original.SupersededByTaskID != result.TaskID {
+		t.Errorf("expected original superseded by %s, got %q", result.TaskID, original.SupersededByTaskID)
+	}
+}
+
+// The original and its retry are two rows for one user action, so the list must
+// only show the retry. Pagination is why this cannot be left to the client: the
+// two rows can land on different pages.
+func TestRetryStyleGeneration_HidesSupersededFromList(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	userID := uint64(1)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	creditService.AddCredits(ctx, userID, 10, "test", "", "", "")
+	originalID := failedTaskForRetry(t, aiService, creditService, userID, style.ID, fileKey, "list-origin")
+
+	retry, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "list-retry")
+	if err != nil {
+		t.Fatalf("RetryStyleGeneration failed: %v", err)
+	}
+
+	tasks, total, err := aiService.ListStyleGenerations(ctx, userID, 1, 20)
+	if err != nil {
+		t.Fatalf("ListStyleGenerations failed: %v", err)
+	}
+	if total != 1 {
+		t.Errorf("expected total=1, got %d", total)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+	if tasks[0].TaskID != retry.TaskID {
+		t.Errorf("expected the retry task in the list, got %s", tasks[0].TaskID)
+	}
+
+	// Hidden from the list, but still readable by id: support and any client still
+	// polling the old id must be able to see it.
+	if _, err := aiService.GetStyleGeneration(ctx, userID, originalID); err != nil {
+		t.Errorf("superseded task must stay readable by id: %v", err)
+	}
+}
+
+// A second retry of the same failed task would charge the user again for a task
+// nobody can see, since the original is already superseded.
+func TestRetryStyleGeneration_RejectsSecondRetry(t *testing.T) {
+	aiService, creditService := setupAIService(t)
+	ctx := context.Background()
+	userID := uint64(1)
+
+	style := seedAIStyle(t)
+	fileKey := seedUploadedMedia(t, userID)
+	creditService.AddCredits(ctx, userID, 10, "test", "", "", "")
+	originalID := failedTaskForRetry(t, aiService, creditService, userID, style.ID, fileKey, "twice-origin")
+
+	if _, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "twice-first"); err != nil {
+		t.Fatalf("first retry failed: %v", err)
+	}
+	if _, err := aiService.RetryStyleGeneration(ctx, userID, originalID, "twice-second"); err == nil {
+		t.Error("expected a second retry of the same task to be rejected")
+	}
+	if balance, _ := creditService.GetBalance(ctx, userID); balance != 8 {
+		t.Errorf("expected balance=8 (charged once), got %d", balance)
+	}
 }
 
 // A user-initiated retry must not be handed back to the model that just failed.

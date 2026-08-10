@@ -86,10 +86,29 @@ func (d *AIGenerationDAO) UpdateTaskTx(tx *gorm.DB, taskID string, updates map[s
 		Where("task_id = ?", taskID).Updates(updates).Error
 }
 
+// MarkSupersededTx points a failed or expired task at the retry that replaced
+// it. The status and emptiness conditions are what stop the same task from being
+// retried twice: only one caller can observe a true return, so two concurrent
+// retries cannot both charge the user.
+func (d *AIGenerationDAO) MarkSupersededTx(tx *gorm.DB, sourceTaskID, retryTaskID string) (bool, error) {
+	result := tx.Model(&model.AIGeneration{}).
+		Where("task_id = ? AND status IN ? AND superseded_by_task_id = ''",
+			sourceTaskID, []int8{model.AIGenStatusFailed, model.AIGenStatusExpired}).
+		Update("superseded_by_task_id", retryTaskID)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected == 1, nil
+}
+
+// ListByUserID hides tasks a retry has replaced, so one user action appears once
+// even though it owns two rows. The filter has to sit here rather than in the
+// client, because with pagination the original and its retry can land on
+// different pages.
 func (d *AIGenerationDAO) ListByUserID(ctx context.Context, userID uint64, offset, limit int) ([]*model.AIGeneration, int64, error) {
 	var tasks []*model.AIGeneration
 	var total int64
-	query := d.DB(ctx).Where("user_id = ?", userID)
+	query := d.DB(ctx).Where("user_id = ? AND superseded_by_task_id = ''", userID)
 	query.Model(&model.AIGeneration{}).Count(&total)
 	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&tasks).Error
 	return tasks, total, err

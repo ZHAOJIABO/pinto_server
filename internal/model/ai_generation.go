@@ -49,6 +49,11 @@ type AIGeneration struct {
 	// RefundedAt makes refunds idempotent by construction, so the worker and
 	// the reaper cannot both pay a task back.
 	RefundedAt *time.Time `json:"refunded_at"`
+	// SupersededByTaskID names the retry that replaced this task. The row keeps
+	// its failure details for support and stats, but user-facing lists hide it so
+	// a single user action is not shown twice. Empty means still current, and is
+	// also what makes a task retryable only once.
+	SupersededByTaskID string `gorm:"type:varchar(36);not null;default:''" json:"superseded_by_task_id"`
 }
 
 func (AIGeneration) TableName() string { return "bb_ai_generation" }
