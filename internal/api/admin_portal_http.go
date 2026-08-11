@@ -15,6 +15,7 @@ import (
 	adminauth "github.com/zhaojiabo/bobobeads_server/internal/service/admin"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/media"
 	templateservice "github.com/zhaojiabo/bobobeads_server/internal/service/template"
+	"github.com/zhaojiabo/bobobeads_server/internal/service/templatesubmission"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -28,6 +29,7 @@ type AdminPortalHTTPHandler struct {
 	media         *media.Service
 	templates     *templateservice.Service
 	templateAdmin *templateservice.AdminService
+	submissions   *templatesubmission.Service
 }
 
 func NewAdminPortalHTTPHandler(
@@ -35,12 +37,14 @@ func NewAdminPortalHTTPHandler(
 	mediaService *media.Service,
 	templateService *templateservice.Service,
 	templateAdmin *templateservice.AdminService,
+	submissionService *templatesubmission.Service,
 ) *AdminPortalHTTPHandler {
 	return &AdminPortalHTTPHandler{
 		auth:          auth,
 		media:         mediaService,
 		templates:     templateService,
 		templateAdmin: templateAdmin,
+		submissions:   submissionService,
 	}
 }
 
@@ -68,6 +72,14 @@ func (h *AdminPortalHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		h.withAdmin(w, r, h.getTemplate)
 	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v1/admin/templates/"):
 		h.withAdmin(w, r, h.updateTemplate)
+	case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/template-submissions":
+		h.withAdmin(w, r, h.listSubmissions)
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-submissions/") && strings.HasSuffix(r.URL.Path, "/approve"):
+		h.withAdmin(w, r, h.approveSubmission)
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-submissions/") && strings.HasSuffix(r.URL.Path, "/reject"):
+		h.withAdmin(w, r, h.rejectSubmission)
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-submissions/"):
+		h.withAdmin(w, r, h.getSubmission)
 	default:
 		h.writeError(w, http.StatusNotFound, "route not found")
 	}
@@ -459,18 +471,22 @@ func adminPage(r *http.Request) (int, int, error) {
 }
 
 func adminTemplateID(path, suffix string) (uint64, error) {
-	value := strings.TrimPrefix(path, "/api/v1/admin/templates/")
+	return adminPathID(path, "/api/v1/admin/templates/", suffix)
+}
+
+func adminPathID(path, prefix, suffix string) (uint64, error) {
+	value := strings.TrimPrefix(path, prefix)
 	if suffix != "" {
 		value = strings.TrimSuffix(value, suffix)
 	}
 	if value == "" || strings.Contains(value, "/") {
-		return 0, fmt.Errorf("invalid template id")
+		return 0, fmt.Errorf("invalid id")
 	}
-	templateID, err := strconv.ParseUint(value, 10, 64)
-	if err != nil || templateID == 0 {
-		return 0, fmt.Errorf("invalid template id")
+	id, err := strconv.ParseUint(value, 10, 64)
+	if err != nil || id == 0 {
+		return 0, fmt.Errorf("invalid id")
 	}
-	return templateID, nil
+	return id, nil
 }
 
 func (h *AdminPortalHTTPHandler) parseTemplatePayload(w http.ResponseWriter, r *http.Request) (string, templateservice.UpdatePayload, error) {

@@ -115,6 +115,10 @@ type Template struct {
 	FavoriteCount int     `gorm:"default:0" json:"favorite_count"`
 	SortOrder     int     `gorm:"default:0" json:"sort_order"`
 	Status        int8    `gorm:"type:tinyint;default:1" json:"status"`
+	// 投稿人；0 表示官方自建图纸。
+	ContributorUserID uint64 `gorm:"not null;default:0;index" json:"contributor_user_id"`
+	// 发布时刻的投稿人昵称快照，用户之后改名不影响已发布图纸的署名。
+	ContributorNickname string `gorm:"type:varchar(64)" json:"contributor_nickname"`
 }
 
 func (Template) TableName() string { return "bb_template" }

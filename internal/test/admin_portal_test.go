@@ -66,6 +66,7 @@ func TestAdminPortalPublishesOnlyAuthenticatedUploadedPattern(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 
 	patternData := validPatternData(2, 2)
@@ -136,6 +137,7 @@ func TestAdminPortalRejectsInvalidPassword(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
 		templateservice.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(dao.NewTemplateDAO()),
+		newTestSubmissionService(),
 	)
 
 	response := httptest.NewRecorder()
@@ -172,6 +174,7 @@ func TestAdminPortalUploadsPreviewThroughApplicationServer(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
@@ -252,6 +255,7 @@ func TestAdminPortalListsPublishedTemplates(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
@@ -356,6 +360,7 @@ func TestAdminPortalUnpublishValidatesReasonAndIsIdempotent(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
@@ -416,6 +421,7 @@ func TestAdminPortalCreatesTemplateCategory(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 
 	unauthorized := httptest.NewRecorder()
@@ -515,6 +521,7 @@ func TestAdminPortalGetsAndUpdatesTemplate(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
@@ -655,6 +662,7 @@ func TestAdminPortalListUsesAccessiblePreviewURL(t *testing.T) {
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
 		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
 		templateservice.NewAdminService(templateDAO),
+		newTestSubmissionService(),
 	)
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 	response := httptest.NewRecorder()

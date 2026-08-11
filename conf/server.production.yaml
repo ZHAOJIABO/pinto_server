@@ -50,6 +50,10 @@ pattern:
   max_pixels: 40000
   max_colors: 221
 
+# 用户投稿图纸的每日上限，防止刷投稿把审核队列淹掉。
+template_submission:
+  daily_limit: 5
+
 # 导出图纸水印 YAML 兜底：数据库 bb_config 未设置对应键时才使用。
 # 使用 CDN 完整 URL；未配置有效 URL 时服务会安全关闭水印。
 export_watermark:

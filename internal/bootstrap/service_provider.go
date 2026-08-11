@@ -20,6 +20,7 @@ import (
 	"github.com/zhaojiabo/bobobeads_server/internal/service/subscribe"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/system"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/template"
+	"github.com/zhaojiabo/bobobeads_server/internal/service/templatesubmission"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/user"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
 	"go.uber.org/zap"
@@ -42,6 +43,7 @@ type ServiceProvider struct {
 	MediaDAO           *dao.MediaDAO
 	AIGenerationDAO    *dao.AIGenerationDAO
 	FinishedProductDAO *dao.FinishedProductDAO
+	SubmissionDAO      *dao.TemplateSubmissionDAO
 
 	// Services
 	AuthService            *auth.Service
@@ -53,6 +55,7 @@ type ServiceProvider struct {
 	CommunityService       *community.Service
 	TemplateService        *template.Service
 	TemplateAdminService   *template.AdminService
+	SubmissionService      *templatesubmission.Service
 	SubscribeService       *subscribe.Service
 	CreditService          *credit.Service
 	InviteService          *invite.Service
@@ -74,6 +77,7 @@ type ServiceProvider struct {
 	CommunityHandler       *api.CommunityHandler
 	TemplateHandler        *api.TemplateHandler
 	AdminTemplateHandler   *api.AdminTemplateHandler
+	SubmissionHandler      *api.TemplateSubmissionHandler
 	AdminPortalHandler     *api.AdminPortalHTTPHandler
 	SubscribeHandler       *api.SubscribeHandler
 	CreditHandler          *api.CreditHandler
@@ -108,6 +112,7 @@ func (sp *ServiceProvider) initDAOs() {
 	sp.MediaDAO = dao.NewMediaDAO()
 	sp.AIGenerationDAO = dao.NewAIGenerationDAO()
 	sp.FinishedProductDAO = dao.NewFinishedProductDAO()
+	sp.SubmissionDAO = dao.NewTemplateSubmissionDAO()
 }
 
 func (sp *ServiceProvider) initServices() {
@@ -120,6 +125,10 @@ func (sp *ServiceProvider) initServices() {
 	sp.CommunityService = community.NewService(sp.CommunityDAO)
 	sp.TemplateService = template.NewService(sp.TemplateDAO, sp.BlindBoxRecordDAO)
 	sp.TemplateAdminService = template.NewAdminService(sp.TemplateDAO)
+	sp.SubmissionService = templatesubmission.NewService(
+		sp.SubmissionDAO, sp.WorkDAO, sp.UserDAO, sp.MediaService, sp.TemplateAdminService,
+		conf.GlobalConfig.TemplateSubmission.DailyLimit,
+	)
 	sp.SubscribeService = subscribe.NewService(sp.OrderDAO, sp.ProductDAO, sp.SubscriptionDAO)
 	sp.CreditService = credit.NewService(sp.CreditDAO)
 	sp.InviteService = invite.NewService(sp.InviteDAO)
@@ -232,7 +241,8 @@ func (sp *ServiceProvider) initHandlers() {
 	sp.CommunityHandler = api.NewCommunityHandler(sp.CommunityService, sp.UserService)
 	sp.TemplateHandler = api.NewTemplateHandler(sp.TemplateService)
 	sp.AdminTemplateHandler = api.NewAdminTemplateHandler(sp.TemplateAdminService)
-	sp.AdminPortalHandler = api.NewAdminPortalHTTPHandler(sp.AdminAuthService, sp.MediaService, sp.TemplateService, sp.TemplateAdminService)
+	sp.SubmissionHandler = api.NewTemplateSubmissionHandler(sp.SubmissionService)
+	sp.AdminPortalHandler = api.NewAdminPortalHTTPHandler(sp.AdminAuthService, sp.MediaService, sp.TemplateService, sp.TemplateAdminService, sp.SubmissionService)
 	sp.SubscribeHandler = api.NewSubscribeHandler(sp.SubscribeService)
 	sp.CreditHandler = api.NewCreditHandler(sp.CreditService)
 	sp.InviteHandler = api.NewInviteHandler(sp.InviteService)

@@ -11,22 +11,23 @@ import (
 var GlobalConfig *Config
 
 type Config struct {
-	Server          ServerConfig          `mapstructure:"server"`
-	MySQL           MySQLConfig           `mapstructure:"mysql"`
-	Redis           RedisConfig           `mapstructure:"redis"`
-	OSS             OSSConfig             `mapstructure:"oss"`
-	JWT             JWTConfig             `mapstructure:"jwt"`
-	SMS             SMSConfig             `mapstructure:"sms"`
-	WeChat          WeChatConfig          `mapstructure:"wechat"`
-	Apple           AppleConfig           `mapstructure:"apple"`
-	Log             LogConfig             `mapstructure:"log"`
-	Payment         PaymentConfig         `mapstructure:"payment"`
-	Generation      GenerationConfig      `mapstructure:"generation"`
-	Pattern         PatternConfig         `mapstructure:"pattern"`
-	ExportWatermark ExportWatermarkConfig `mapstructure:"export_watermark"`
-	AIGeneration    AIGenerationConfig    `mapstructure:"ai_generation"`
-	AdminService    AdminServiceConfig    `mapstructure:"admin_service"`
-	Admin           AdminConfig           `mapstructure:"admin"`
+	Server             ServerConfig             `mapstructure:"server"`
+	MySQL              MySQLConfig              `mapstructure:"mysql"`
+	Redis              RedisConfig              `mapstructure:"redis"`
+	OSS                OSSConfig                `mapstructure:"oss"`
+	JWT                JWTConfig                `mapstructure:"jwt"`
+	SMS                SMSConfig                `mapstructure:"sms"`
+	WeChat             WeChatConfig             `mapstructure:"wechat"`
+	Apple              AppleConfig              `mapstructure:"apple"`
+	Log                LogConfig                `mapstructure:"log"`
+	Payment            PaymentConfig            `mapstructure:"payment"`
+	Generation         GenerationConfig         `mapstructure:"generation"`
+	Pattern            PatternConfig            `mapstructure:"pattern"`
+	TemplateSubmission TemplateSubmissionConfig `mapstructure:"template_submission"`
+	ExportWatermark    ExportWatermarkConfig    `mapstructure:"export_watermark"`
+	AIGeneration       AIGenerationConfig       `mapstructure:"ai_generation"`
+	AdminService       AdminServiceConfig       `mapstructure:"admin_service"`
+	Admin              AdminConfig              `mapstructure:"admin"`
 }
 
 type AdminServiceConfig struct {
@@ -139,6 +140,12 @@ type PatternConfig struct {
 	MaxHeight int `mapstructure:"max_height"`
 	MaxPixels int `mapstructure:"max_pixels"`
 	MaxColors int `mapstructure:"max_colors"`
+}
+
+// TemplateSubmissionConfig 限制用户投稿图纸的频率。RateLimitInterceptor 是
+// 每秒粒度的，拦不住一天刷几百条投稿，所以这里另加一个每日配额。
+type TemplateSubmissionConfig struct {
+	DailyLimit int `mapstructure:"daily_limit"`
 }
 
 // ExportWatermarkConfig controls the CDN watermark URL the client applies

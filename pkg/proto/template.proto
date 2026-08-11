@@ -112,6 +112,8 @@ message TemplateItem {
   int32 width = 15;
   // 图纸高度。
   int32 height = 16;
+  // 投稿人昵称，发布时的快照；官方自建图纸为空。
+  string contributor_nickname = 17;
 }
 
 message ListCategoriesRequest {

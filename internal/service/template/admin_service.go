@@ -56,6 +56,10 @@ type UpdatePayload struct {
 type PublishPayload struct {
 	IdempotencyKey  string
 	DraftRevisionID uint64
+	// 投稿人署名。刻意放在 PublishPayload 而非 UpdatePayload：后者服务于
+	// PUT /admin/templates/{id}，不给它这两个字段就不可能在编辑时误清空署名。
+	ContributorUserID   uint64
+	ContributorNickname string
 	UpdatePayload
 }
 
@@ -76,25 +80,7 @@ func (s *AdminService) PublishTemplate(ctx context.Context, payload PublishPaylo
 		return existing.TemplateID, nil
 	}
 
-	// Create or update the template
-	tpl := &model.Template{
-		CategoryID:   payload.CategoryID,
-		Title:        payload.Title,
-		PreviewURL:   payload.PreviewURL,
-		ThumbnailURL: payload.ThumbnailURL,
-		Description:  payload.Description,
-		PatternData:  payload.PatternData,
-		BoardSpec:    payload.BoardSpec,
-		Tags:         payload.Tags,
-		Difficulty:   payload.Difficulty,
-		Width:        payload.Width,
-		Height:       payload.Height,
-		ColorCount:   payload.ColorCount,
-		IsFree:       true,
-		Status:       1, // active
-	}
-
-	templateID, err := s.dao.CreateOrUpdateTemplate(ctx, tpl)
+	templateID, err := s.dao.CreateOrUpdateTemplate(ctx, s.buildTemplate(payload))
 	if err != nil {
 		return 0, err
 	}
@@ -111,6 +97,75 @@ func (s *AdminService) PublishTemplate(ctx context.Context, payload PublishPaylo
 	}
 
 	return templateID, nil
+}
+
+// PublishTemplateTx is the review-flow counterpart of PublishTemplate. It writes
+// through the caller's transaction so the template row and the submission status
+// commit together, and unlike PublishTemplate it fails the whole publish when the
+// idempotency record cannot be written: in the review flow that record is the only
+// thing preventing a crash-retry from creating a second template.
+func (s *AdminService) PublishTemplateTx(tx *gorm.DB, payload PublishPayload) (uint64, error) {
+	if err := s.validatePayload(payload); err != nil {
+		return 0, fmt.Errorf("%w: %s", ErrInvalidPayload, err.Error())
+	}
+
+	existing, err := s.dao.GetPublishRecordByKeyTx(tx, payload.IdempotencyKey)
+	if err != nil {
+		return 0, err
+	}
+	if existing != nil {
+		if existing.DraftRevisionID != payload.DraftRevisionID {
+			return 0, ErrDuplicateKey
+		}
+		return existing.TemplateID, nil
+	}
+
+	templateID, err := s.dao.CreateTemplateTx(tx, s.buildTemplate(payload))
+	if err != nil {
+		return 0, err
+	}
+	if err := s.dao.CreatePublishRecordTx(tx, &model.TemplatePublishRecord{
+		IdempotencyKey:  payload.IdempotencyKey,
+		TemplateID:      templateID,
+		DraftRevisionID: payload.DraftRevisionID,
+		Status:          "published",
+	}); err != nil {
+		return 0, err
+	}
+	return templateID, nil
+}
+
+// ValidateActiveCategory closes a gap in validateTemplateFields, which only checks
+// category_id > 0 without touching the database.
+func (s *AdminService) ValidateActiveCategory(ctx context.Context, categoryID int) error {
+	if _, err := s.dao.GetActiveCategoryByID(ctx, categoryID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("%w: category_id must reference an active category", ErrInvalidPayload)
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *AdminService) buildTemplate(payload PublishPayload) *model.Template {
+	return &model.Template{
+		CategoryID:          payload.CategoryID,
+		Title:               payload.Title,
+		PreviewURL:          payload.PreviewURL,
+		ThumbnailURL:        payload.ThumbnailURL,
+		Description:         payload.Description,
+		PatternData:         payload.PatternData,
+		BoardSpec:           payload.BoardSpec,
+		Tags:                payload.Tags,
+		Difficulty:          payload.Difficulty,
+		Width:               payload.Width,
+		Height:              payload.Height,
+		ColorCount:          payload.ColorCount,
+		ContributorUserID:   payload.ContributorUserID,
+		ContributorNickname: payload.ContributorNickname,
+		IsFree:              true,
+		Status:              1, // active
+	}
 }
 
 func (s *AdminService) UnpublishTemplate(ctx context.Context, templateID uint64, reason string) error {

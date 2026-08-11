@@ -58,6 +58,7 @@ func SetupTestDB(t *testing.T) {
 		&model.AIGeneration{},
 		&model.TemplatePublishRecord{},
 		&model.FinishedProduct{},
+		&model.TemplateSubmission{},
 	)
 	if err != nil {
 		t.Fatalf("failed to migrate test db: %v", err)

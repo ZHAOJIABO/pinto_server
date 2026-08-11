@@ -1219,7 +1219,137 @@ POST /api/v1/report/feedback
 
 ---
 
+## 14. TemplateSubmission 图纸投稿服务
+
+用户把自己的作品投稿成官方图纸候选，发布权在运营手上。投稿时服务端会快照作品的图纸数据，之后改图或删作品都不影响审核和发布结果。
+
+### 14.1 提交投稿
+
+```
+POST /api/v1/template-submissions
+```
+
+**Request Body:**
+```json
+{
+  "workId": "123",
+  "title": "小猫",
+  "description": "两色拼豆，适合新手",
+  "clientRequestId": "uuid-v4"
+}
+```
+
+`title` 最长 40 字，`description` 最长 200 字。重放同一个 `clientRequestId` 返回同一条投稿。
+
+**Response:** `item.status` = `0` 待审核 / `1` 已通过（`templateId` 有值）/ `2` 已驳回（`reviewReason` 有值）。
+
+错误码：`1101` 参数非法或作品无图纸数据；`1102` 作品不存在或不属于自己；`1103` 超过每日上限（`template_submission.daily_limit`，默认 5）；`2004` 该作品已有一条待审核/已通过的投稿。被驳回后同一作品可重投。
+
+### 14.2 我的投稿列表
+
+```
+GET /api/v1/template-submissions?limit=20&cursor=
+```
+
+游标分页，时间倒序。`nextCursor` 为空表示没有更多。
+
+---
+
+## 15. Admin Portal 投稿审核（管理端）
+
+以下接口需要管理员 token（`POST /api/v1/admin/login` 获取），请求头 `Authorization: Bearer <adminAccessToken>`。请求体的 key 必须与文档完全一致——服务端开启了未知字段拒绝。
+
+### 15.1 投稿列表
+
+```
+GET /api/v1/admin/template-submissions?status=pending&page.page=1&page.pageSize=20
+```
+
+`status` 取值 `pending` / `approved` / `rejected`，省略则返回全部；其他值返回 400。为了列表性能，响应不含 `patternData`。
+
+**Response:**
+```json
+{
+  "header": {"code": 0, "message": "success"},
+  "submissions": [
+    {
+      "submissionId": "9", "userId": "7", "workId": "123",
+      "title": "小猫", "status": 0, "reviewReason": "", "reviewerActor": "",
+      "templateId": "", "boardSpec": "29x29", "width": 29, "height": 29,
+      "beadCount": 420, "colorCount": 8,
+      "previewUrl": "https://cdn/...", "thumbnailUrl": "https://cdn/...",
+      "createdAt": 1767225600, "reviewedAt": 0
+    }
+  ],
+  "page": {"total": 1, "page": 1, "pageSize": 20, "hasMore": false}
+}
+```
+
+### 15.2 投稿详情
+
+```
+GET /api/v1/admin/template-submissions/{id}
+```
+
+返回 `{submission, patternData}`。`patternData` 是完整快照，用于在后台渲染网格预览——审核不读 `bb_work`，所以作品被删也能正常审核。
+
+`previewUrl` 允许为空：作品图可能托管在站外，这种情况必须由审核人上传预览图才能通过。
+
+### 15.3 通过投稿（发布为官方图纸）
+
+```
+POST /api/v1/admin/template-submissions/{id}/approve
+```
+
+**Request Body:**
+```json
+{
+  "categoryId": 1,
+  "difficulty": 2,
+  "tags": "动物, 入门",
+  "title": "官方小猫",
+  "description": "",
+  "previewFileKey": ""
+}
+```
+
+- `categoryId` 必须是启用中的分类，否则 400，投稿保持待审核。
+- `title` / `description` 留空则用投稿时的值。
+- `previewFileKey` 留空则复用投稿快照里的预览图；传值则用该管理端上传的图覆盖（先走 `POST /api/v1/admin/media/upload` 或 `upload-token` + `report-upload` 上传流程）。若最终没有任何预览图则返回 400。
+
+**Response:** `{"templateId": "123"}`。重复调用返回同一个 `templateId`，不会产生第二条图纸。
+
+### 15.4 驳回投稿
+
+```
+POST /api/v1/admin/template-submissions/{id}/reject
+```
+
+**Request Body:**
+```json
+{"reason": "分辨率过低"}
+```
+
+`reason` 必填，最长 200 字。驳回后该作品可以再次投稿。重复驳回幂等返回 200；已通过的投稿不能驳回（下架请走 unpublish 接口）。
+
+---
+
 ## Apifox 测试流程示例
+
+### 用户投稿到发布全流程
+
+```
+步骤 1: 游客登录 → 用户 token
+步骤 2: 保存作品 (POST /api/v1/works，带 patternImageUrl + patternData) → workId
+步骤 3: 提交投稿 (POST /api/v1/template-submissions) → submissionId，status=0
+步骤 4: 同 clientRequestId 重放 → 同一个 submissionId
+步骤 5: 管理员登录 (POST /api/v1/admin/login) → 管理员 token
+步骤 6: 投稿列表 (GET /api/v1/admin/template-submissions?status=pending)
+步骤 7: 投稿详情 (GET /api/v1/admin/template-submissions/{id}) → 确认 patternData
+步骤 8: 通过投稿 (POST .../approve) → templateId
+步骤 9: 用户端查看 (GET /api/v1/templates/{templateId}) → contributorNickname 有值
+步骤 10: 我的投稿列表 → status=1，templateId 有值
+```
 
 ### 完整的 AI 风格生成流程
 

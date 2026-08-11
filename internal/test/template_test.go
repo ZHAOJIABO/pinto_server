@@ -2,11 +2,14 @@ package test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
+	"github.com/zhaojiabo/bobobeads_server/internal/api"
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
 	"github.com/zhaojiabo/bobobeads_server/internal/db"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
+	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/template"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
 )
@@ -350,4 +353,67 @@ func TestListTemplates_IsFavorited(t *testing.T) {
 	}
 
 	t.Log("ListTemplates is_favorited check success")
+}
+
+// Signatures travel through the DAO's explicit column list, so this covers both
+// the list and detail routes: dropping contributor_nickname from that Select
+// silently blanks the signature on the home feed only.
+func TestTemplateListAndDetailExposeContributorNickname(t *testing.T) {
+	SetupTestDB(t)
+	seedTemplateData(t)
+
+	var tpl model.Template
+	db.DB.Where("title = ?", "小猫咪").First(&tpl)
+	if err := db.DB.Model(&tpl).Updates(map[string]interface{}{
+		"contributor_user_id":  42,
+		"contributor_nickname": "豆豆妈",
+	}).Error; err != nil {
+		t.Fatalf("set contributor: %v", err)
+	}
+
+	handler := api.NewTemplateHandler(template.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO()))
+	ctx := context.Background()
+
+	listed, err := handler.ListTemplates(ctx, &pb.ListTemplatesRequest{
+		Scene: "home",
+		Page:  &pb.PageRequest{Page: 1, PageSize: 20},
+	})
+	if err != nil || listed.Header.Code != 0 {
+		t.Fatalf("ListTemplates failed: err=%v header=%#v", err, listed.Header)
+	}
+	found := false
+	for _, item := range listed.Templates {
+		if item.Title != "小猫咪" {
+			continue
+		}
+		found = true
+		if item.ContributorNickname != "豆豆妈" {
+			t.Errorf("list contributorNickname = %q, want 豆豆妈", item.ContributorNickname)
+		}
+	}
+	if !found {
+		t.Fatal("seeded template missing from the home feed")
+	}
+
+	detail, err := handler.GetTemplate(ctx, &pb.GetTemplateRequest{
+		TemplateId: strconv.FormatUint(tpl.ID, 10),
+	})
+	if err != nil || detail.Header.Code != 0 {
+		t.Fatalf("GetTemplate failed: err=%v header=%#v", err, detail.Header)
+	}
+	if detail.Template.ContributorNickname != "豆豆妈" {
+		t.Errorf("detail contributorNickname = %q, want 豆豆妈", detail.Template.ContributorNickname)
+	}
+
+	var official model.Template
+	db.DB.Where("title = ?", "小狗狗").First(&official)
+	officialDetail, err := handler.GetTemplate(ctx, &pb.GetTemplateRequest{
+		TemplateId: strconv.FormatUint(official.ID, 10),
+	})
+	if err != nil || officialDetail.Header.Code != 0 {
+		t.Fatalf("GetTemplate for official template failed: err=%v header=%#v", err, officialDetail.Header)
+	}
+	if officialDetail.Template.ContributorNickname != "" {
+		t.Errorf("official template contributorNickname = %q, want empty", officialDetail.Template.ContributorNickname)
+	}
 }

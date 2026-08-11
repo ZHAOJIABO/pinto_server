@@ -2,11 +2,11 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/middleware"
+	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/template"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
@@ -19,6 +19,34 @@ type TemplateHandler struct {
 
 func NewTemplateHandler(templateService *template.Service) *TemplateHandler {
 	return &TemplateHandler{templateService: templateService}
+}
+
+// templateItemProto is shared by every route that returns a template so a newly
+// added field cannot be wired into some responses and forgotten in others.
+func (h *TemplateHandler) templateItemProto(t *model.Template, isFavorited bool) *pb.TemplateItem {
+	thumbnailURL := t.ThumbnailURL
+	if thumbnailURL == "" {
+		thumbnailURL = t.PreviewURL
+	}
+	return &pb.TemplateItem{
+		TemplateId:          strconv.FormatUint(t.ID, 10),
+		Title:               t.Title,
+		PreviewUrl:          t.PreviewURL,
+		ThumbnailUrl:        thumbnailURL,
+		Description:         t.Description,
+		BoardSpec:           t.BoardSpec,
+		Tags:                h.templateService.SplitTags(t.Tags),
+		Difficulty:          int32(t.Difficulty),
+		Width:               int32(t.Width),
+		Height:              int32(t.Height),
+		ColorCount:          int32(t.ColorCount),
+		IsFree:              t.IsFree,
+		CreditCost:          int32(t.CreditCost),
+		DownloadCount:       int32(t.DownloadCount),
+		FavoriteCount:       int32(t.FavoriteCount),
+		IsFavorited:         isFavorited,
+		ContributorNickname: t.ContributorNickname,
+	}
 }
 
 func (h *TemplateHandler) ListCategories(ctx context.Context, req *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
@@ -63,28 +91,7 @@ func (h *TemplateHandler) ListTemplates(ctx context.Context, req *pb.ListTemplat
 
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		thumbnailURL := t.ThumbnailURL
-		if thumbnailURL == "" {
-			thumbnailURL = t.PreviewURL
-		}
-		items = append(items, &pb.TemplateItem{
-			TemplateId:    fmt.Sprintf("%d", t.ID),
-			Title:         t.Title,
-			PreviewUrl:    t.PreviewURL,
-			ThumbnailUrl:  thumbnailURL,
-			Description:   t.Description,
-			BoardSpec:     t.BoardSpec,
-			Tags:          h.templateService.SplitTags(t.Tags),
-			Difficulty:    int32(t.Difficulty),
-			Width:         int32(t.Width),
-			Height:        int32(t.Height),
-			ColorCount:    int32(t.ColorCount),
-			IsFree:        t.IsFree,
-			CreditCost:    int32(t.CreditCost),
-			DownloadCount: int32(t.DownloadCount),
-			FavoriteCount: int32(t.FavoriteCount),
-			IsFavorited:   favMap[t.ID],
-		})
+		items = append(items, h.templateItemProto(t, favMap[t.ID]))
 	}
 	return &pb.ListTemplatesResponse{
 		Header:    okHeaderCtx(ctx),
@@ -106,10 +113,6 @@ func (h *TemplateHandler) GetTemplate(ctx context.Context, req *pb.GetTemplateRe
 	}
 
 	favMap, _ := h.templateService.BatchGetFavorited(ctx, userID, []uint64{templateID})
-	thumbnailURL := tpl.ThumbnailURL
-	if thumbnailURL == "" {
-		thumbnailURL = tpl.PreviewURL
-	}
 
 	var patternData *pb.PatternData
 	if tpl.PatternData != nil {
@@ -120,25 +123,8 @@ func (h *TemplateHandler) GetTemplate(ctx context.Context, req *pb.GetTemplateRe
 	}
 
 	return &pb.GetTemplateResponse{
-		Header: okHeaderCtx(ctx),
-		Template: &pb.TemplateItem{
-			TemplateId:    fmt.Sprintf("%d", tpl.ID),
-			Title:         tpl.Title,
-			PreviewUrl:    tpl.PreviewURL,
-			ThumbnailUrl:  thumbnailURL,
-			Description:   tpl.Description,
-			BoardSpec:     tpl.BoardSpec,
-			Tags:          h.templateService.SplitTags(tpl.Tags),
-			Difficulty:    int32(tpl.Difficulty),
-			Width:         int32(tpl.Width),
-			Height:        int32(tpl.Height),
-			ColorCount:    int32(tpl.ColorCount),
-			IsFree:        tpl.IsFree,
-			CreditCost:    int32(tpl.CreditCost),
-			DownloadCount: int32(tpl.DownloadCount),
-			FavoriteCount: int32(tpl.FavoriteCount),
-			IsFavorited:   favMap[templateID],
-		},
+		Header:      okHeaderCtx(ctx),
+		Template:    h.templateItemProto(tpl, favMap[templateID]),
 		PatternData: patternData,
 	}, nil
 }
@@ -190,10 +176,6 @@ func (h *TemplateHandler) RandomTemplate(ctx context.Context, req *pb.RandomTemp
 	h.templateService.RecordBlindBox(ctx, userID, tpl.ID)
 
 	favMap, _ := h.templateService.BatchGetFavorited(ctx, userID, []uint64{tpl.ID})
-	thumbnailURL := tpl.ThumbnailURL
-	if thumbnailURL == "" {
-		thumbnailURL = tpl.PreviewURL
-	}
 
 	var patternData *pb.PatternData
 	if tpl.PatternData != nil {
@@ -204,25 +186,8 @@ func (h *TemplateHandler) RandomTemplate(ctx context.Context, req *pb.RandomTemp
 	}
 
 	return &pb.RandomTemplateResponse{
-		Header: okHeaderCtx(ctx),
-		Template: &pb.TemplateItem{
-			TemplateId:    fmt.Sprintf("%d", tpl.ID),
-			Title:         tpl.Title,
-			PreviewUrl:    tpl.PreviewURL,
-			ThumbnailUrl:  thumbnailURL,
-			Description:   tpl.Description,
-			BoardSpec:     tpl.BoardSpec,
-			Tags:          h.templateService.SplitTags(tpl.Tags),
-			Difficulty:    int32(tpl.Difficulty),
-			Width:         int32(tpl.Width),
-			Height:        int32(tpl.Height),
-			ColorCount:    int32(tpl.ColorCount),
-			IsFree:        tpl.IsFree,
-			CreditCost:    int32(tpl.CreditCost),
-			DownloadCount: int32(tpl.DownloadCount),
-			FavoriteCount: int32(tpl.FavoriteCount),
-			IsFavorited:   favMap[tpl.ID],
-		},
+		Header:      okHeaderCtx(ctx),
+		Template:    h.templateItemProto(tpl, favMap[tpl.ID]),
 		PatternData: patternData,
 	}, nil
 }
@@ -244,28 +209,7 @@ func (h *TemplateHandler) ListBlindBoxRecords(ctx context.Context, req *pb.ListB
 
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		thumbnailURL := t.ThumbnailURL
-		if thumbnailURL == "" {
-			thumbnailURL = t.PreviewURL
-		}
-		items = append(items, &pb.TemplateItem{
-			TemplateId:    fmt.Sprintf("%d", t.ID),
-			Title:         t.Title,
-			PreviewUrl:    t.PreviewURL,
-			ThumbnailUrl:  thumbnailURL,
-			Description:   t.Description,
-			BoardSpec:     t.BoardSpec,
-			Tags:          h.templateService.SplitTags(t.Tags),
-			Difficulty:    int32(t.Difficulty),
-			Width:         int32(t.Width),
-			Height:        int32(t.Height),
-			ColorCount:    int32(t.ColorCount),
-			IsFree:        t.IsFree,
-			CreditCost:    int32(t.CreditCost),
-			DownloadCount: int32(t.DownloadCount),
-			FavoriteCount: int32(t.FavoriteCount),
-			IsFavorited:   favMap[t.ID],
-		})
+		items = append(items, h.templateItemProto(t, favMap[t.ID]))
 	}
 	return &pb.ListBlindBoxRecordsResponse{
 		Header:    okHeaderCtx(ctx),
@@ -290,28 +234,7 @@ func (h *TemplateHandler) ListFavoriteTemplates(ctx context.Context, req *pb.Lis
 
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		thumbnailURL := t.ThumbnailURL
-		if thumbnailURL == "" {
-			thumbnailURL = t.PreviewURL
-		}
-		items = append(items, &pb.TemplateItem{
-			TemplateId:    fmt.Sprintf("%d", t.ID),
-			Title:         t.Title,
-			PreviewUrl:    t.PreviewURL,
-			ThumbnailUrl:  thumbnailURL,
-			Description:   t.Description,
-			BoardSpec:     t.BoardSpec,
-			Tags:          h.templateService.SplitTags(t.Tags),
-			Difficulty:    int32(t.Difficulty),
-			Width:         int32(t.Width),
-			Height:        int32(t.Height),
-			ColorCount:    int32(t.ColorCount),
-			IsFree:        t.IsFree,
-			CreditCost:    int32(t.CreditCost),
-			DownloadCount: int32(t.DownloadCount),
-			FavoriteCount: int32(t.FavoriteCount),
-			IsFavorited:   true,
-		})
+		items = append(items, h.templateItemProto(t, true))
 	}
 	return &pb.ListFavoriteTemplatesResponse{
 		Header:    okHeaderCtx(ctx),

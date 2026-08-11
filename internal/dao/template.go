@@ -94,6 +94,7 @@ func (d *TemplateDAO) ListPublished(ctx context.Context, offset, limit int) ([]*
 	err := query.Select(
 		"id", "category_id", "title", "preview_url", "thumbnail_url", "description", "board_spec", "tags",
 		"difficulty", "width", "height", "color_count", "is_free", "credit_cost", "download_count", "favorite_count",
+		"contributor_nickname",
 	).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
 	return templates, total, err
 }
@@ -284,6 +285,32 @@ func (d *TemplateDAO) GetPublishRecordByKey(ctx context.Context, key string) (*m
 		return nil, nil
 	}
 	return &record, err
+}
+
+// 以下 *Tx 方法供审核发布流程在单个事务内组合使用：模板行与发布记录必须同生同死，
+// 否则崩溃重试会产出第二条模板。
+
+func (d *TemplateDAO) CreateTemplateTx(tx *gorm.DB, tpl *model.Template) (uint64, error) {
+	if err := tx.Create(tpl).Error; err != nil {
+		return 0, err
+	}
+	return tpl.ID, nil
+}
+
+func (d *TemplateDAO) CreatePublishRecordTx(tx *gorm.DB, record *model.TemplatePublishRecord) error {
+	return tx.Create(record).Error
+}
+
+func (d *TemplateDAO) GetPublishRecordByKeyTx(tx *gorm.DB, key string) (*model.TemplatePublishRecord, error) {
+	var record model.TemplatePublishRecord
+	err := tx.Where("idempotency_key = ?", key).First(&record).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
 }
 
 func (d *TemplateDAO) GetRandom(ctx context.Context) (*model.Template, error) {

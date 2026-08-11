@@ -293,6 +293,25 @@ func (s *Service) ThumbnailURLByImageURL(ctx context.Context, userID uint64, ima
 	return s.ThumbnailURLByFileKey(ctx, userID, fileKey)
 }
 
+// OwnedImageURL returns imageURL unchanged only when it really points at our own
+// object storage, and "" otherwise. Work records store pattern_image_url exactly
+// as the client reported it, with no validation, so an externally hosted URL must
+// never be promoted into an official template preview.
+func (s *Service) OwnedImageURL(imageURL string) string {
+	if strings.TrimSpace(imageURL) == "" {
+		return ""
+	}
+	storage, err := s.objectStorage()
+	if err != nil {
+		zap.L().Warn("cannot verify image ownership: object storage unavailable", zap.Error(err))
+		return ""
+	}
+	if _, ok := storage.FileKeyFromPublicURL(imageURL); !ok {
+		return ""
+	}
+	return imageURL
+}
+
 // AdminPreviewThumbnailURL stores a thumbnail for an uploaded official-template
 // preview. Both admin upload paths end holding only the key, so the bytes are
 // read back from object storage here rather than at upload time.

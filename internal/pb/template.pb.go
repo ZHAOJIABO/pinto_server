@@ -127,9 +127,11 @@ type TemplateItem struct {
 	// 图纸宽度。
 	Width int32 `protobuf:"varint,15,opt,name=width,proto3" json:"width,omitempty"`
 	// 图纸高度。
-	Height        int32 `protobuf:"varint,16,opt,name=height,proto3" json:"height,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Height int32 `protobuf:"varint,16,opt,name=height,proto3" json:"height,omitempty"`
+	// 投稿人昵称，发布时的快照；官方自建图纸为空。
+	ContributorNickname string `protobuf:"bytes,17,opt,name=contributor_nickname,json=contributorNickname,proto3" json:"contributor_nickname,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *TemplateItem) Reset() {
@@ -272,6 +274,13 @@ func (x *TemplateItem) GetHeight() int32 {
 		return x.Height
 	}
 	return 0
+}
+
+func (x *TemplateItem) GetContributorNickname() string {
+	if x != nil {
+		return x.ContributorNickname
+	}
+	return ""
 }
 
 type ListCategoriesRequest struct {
@@ -1221,7 +1230,7 @@ const file_template_proto_rawDesc = "" +
 	"categoryId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
 	"\bicon_url\x18\x03 \x01(\tR\aiconUrl\x12%\n" +
-	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\xfa\x03\n" +
+	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\xad\x04\n" +
 	"\fTemplateItem\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -1246,7 +1255,8 @@ const file_template_proto_rawDesc = "" +
 	"\x0efavorite_count\x18\r \x01(\x05R\rfavoriteCount\x12!\n" +
 	"\fis_favorited\x18\x0e \x01(\bR\visFavorited\x12\x14\n" +
 	"\x05width\x18\x0f \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x10 \x01(\x05R\x06height\"L\n" +
+	"\x06height\x18\x10 \x01(\x05R\x06height\x121\n" +
+	"\x14contributor_nickname\x18\x11 \x01(\tR\x13contributorNickname\"L\n" +
 	"\x15ListCategoriesRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\x8a\x01\n" +
 	"\x16ListCategoriesResponse\x124\n" +

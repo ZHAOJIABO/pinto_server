@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package bobobeads.v1;
+
+option go_package = "github.com/zhaojiabo/bobobeads_server/internal/pb";
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+// 用户投稿图纸服务。用户把自己的作品投稿为官方图纸，是否发布由管理员审核决定。
+service TemplateSubmissionService {
+  // 提交投稿。
+  rpc CreateTemplateSubmission(CreateTemplateSubmissionRequest) returns (CreateTemplateSubmissionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/template-submissions"
+      body: "*"
+    };
+  }
+
+  // 获取当前用户的投稿列表，含审核状态与驳回原因。
+  rpc ListMyTemplateSubmissions(ListMyTemplateSubmissionsRequest) returns (ListMyTemplateSubmissionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/template-submissions"
+    };
+  }
+}
+
+message TemplateSubmissionItem {
+  // 投稿 ID。
+  string submission_id = 1;
+  // 来源作品 ID，仅用于溯源；作品被删除后该 ID 可能已失效。
+  string work_id = 2;
+  // 投稿标题（图纸代号）。
+  string title = 3;
+  // 投稿描述。
+  string description = 4;
+  // 审核状态：0 待审核，1 已通过，2 已驳回。
+  int32 status = 5;
+  // 驳回原因；仅 status = 2 时有值。
+  string review_reason = 6;
+  // 审核通过后生成的官方图纸 ID；未发布时为空字符串。
+  string template_id = 7;
+  // 拼豆板规格。
+  string board_spec = 8;
+  // 图纸宽度（格）。
+  int32 width = 9;
+  // 图纸高度（格）。
+  int32 height = 10;
+  // 用豆总数。
+  int32 bead_count = 11;
+  // 用色数量。
+  int32 color_count = 12;
+  // 预览图地址；作品图不在本站对象存储时为空，等管理员上传。
+  string preview_url = 13;
+  // 缩略图地址；为空时客户端降级使用 preview_url。
+  string thumbnail_url = 14;
+  // 投稿时间戳，秒级。
+  int64 created_at = 15;
+  // 审核时间戳，秒级；未审核时为 0。
+  int64 reviewed_at = 16;
+}
+
+message CreateTemplateSubmissionRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 投稿的作品 ID，必须属于当前用户。
+  string work_id = 2;
+  // 投稿标题（图纸代号），最长 40 个字符。
+  string title = 3;
+  // 投稿描述，最长 200 个字符，可空。
+  string description = 4;
+  // 客户端生成的幂等键。
+  string client_request_id = 5;
+}
+
+message CreateTemplateSubmissionResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 新创建或已存在的投稿。
+  TemplateSubmissionItem item = 2;
+}
+
+message ListMyTemplateSubmissionsRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 每页数量，缺省 12，上限 50。
+  int32 limit = 2;
+  // 下一页游标，首页不传。
+  string cursor = 3;
+}
+
+message ListMyTemplateSubmissionsResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 投稿列表，按投稿时间倒序。
+  repeated TemplateSubmissionItem items = 2;
+  // 下一页游标；没有下一页时为空。
+  string next_cursor = 3;
+}

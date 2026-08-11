@@ -502,6 +502,8 @@ class TemplateItem {
   final int downloadCount;
   final int favoriteCount;
   final bool isFavorited;
+  // 投稿人昵称，发布时的快照；官方自建图纸为空字符串。
+  final String contributorNickname;
 }
 ```
 
@@ -1383,6 +1385,83 @@ GET /api/v1/system/board-specs
       "beadSize": "5.0mm"
     }
   ]
+}
+```
+
+### 7.29 投稿作品到官方图纸库
+
+用户只能投稿自己已保存的作品。服务端会把作品的 `patternData` 和统计快照到投稿记录里，之后改图或删作品都不会影响审核内容和最终发布的图纸。发布由运营审核，通过后才会出现在官方图纸库，并带上投稿人昵称。
+
+```http
+POST /api/v1/template-submissions
+```
+
+```json
+{
+  "workId": "123",
+  "title": "小猫",
+  "description": "两色拼豆，适合新手",
+  "clientRequestId": "uuid-v4"
+}
+```
+
+- `title` 必填，最长 40 字；`description` 可空，最长 200 字。
+- `clientRequestId` 必填。重放同一个值返回同一条投稿，不会重复占用配额。
+
+响应：
+
+```json
+{
+  "header": {"code": 0, "message": "success"},
+  "item": {
+    "submissionId": "9",
+    "workId": "123",
+    "title": "小猫",
+    "description": "两色拼豆，适合新手",
+    "status": 0,
+    "reviewReason": "",
+    "templateId": "",
+    "boardSpec": "29x29",
+    "width": 29,
+    "height": 29,
+    "beadCount": 420,
+    "colorCount": 8,
+    "previewUrl": "https://cdn.../pattern.png",
+    "thumbnailUrl": "https://cdn.../pattern_thumb.webp",
+    "createdAt": 1767225600,
+    "reviewedAt": 0
+  }
+}
+```
+
+`status`：`0` 待审核，`1` 已通过（`templateId` 有值），`2` 已驳回（`reviewReason` 有值）。
+
+需要处理的错误码：
+
+| code | 场景 | 建议提示 |
+| --- | --- | --- |
+| 1101 | 标题为空/超长，或作品没有图纸数据 | 按字段提示 |
+| 1102 | 作品不存在或不属于当前用户 | 作品已删除 |
+| 1103 | 超过每日投稿上限 | 今天投稿次数已用完，明天再来 |
+| 2004 | 该作品已有一条待审核/已通过的投稿 | 该作品已在审核中 |
+
+被驳回后，同一个作品可以修改后重新投稿。
+
+### 7.30 我的投稿列表
+
+```http
+GET /api/v1/template-submissions?limit=20&cursor=
+```
+
+游标分页，返回按时间倒序。响应 `items` 为 `TemplateSubmissionItem` 数组，`nextCursor` 为空表示到底了。
+
+```json
+{
+  "header": {"code": 0, "message": "success"},
+  "items": [
+    {"submissionId": "9", "status": 2, "reviewReason": "分辨率过低", "reviewedAt": 1767312000}
+  ],
+  "nextCursor": ""
 }
 ```
 
