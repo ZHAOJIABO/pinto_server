@@ -27,7 +27,7 @@ func setupGenerationService(t *testing.T) (*generation.Service, *credit.Service)
 
 	creditService := credit.NewService(creditDAO)
 	subscribeService := subscribe.NewService(orderDAO, productDAO, subscriptionDAO)
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 	generationService := generation.NewService(generationDAO, creditService, subscribeService, workService, nil)
 
 	return generationService, creditService

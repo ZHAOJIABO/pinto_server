@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	WorkService_SaveWork_FullMethodName   = "/bobobeads.v1.WorkService/SaveWork"
 	WorkService_GetWork_FullMethodName    = "/bobobeads.v1.WorkService/GetWork"
+	WorkService_UpdateWork_FullMethodName = "/bobobeads.v1.WorkService/UpdateWork"
 	WorkService_ListWorks_FullMethodName  = "/bobobeads.v1.WorkService/ListWorks"
 	WorkService_DeleteWork_FullMethodName = "/bobobeads.v1.WorkService/DeleteWork"
 	WorkService_SaveDraft_FullMethodName  = "/bobobeads.v1.WorkService/SaveDraft"
@@ -37,6 +38,8 @@ type WorkServiceClient interface {
 	SaveWork(ctx context.Context, in *SaveWorkRequest, opts ...grpc.CallOption) (*SaveWorkResponse, error)
 	// 获取作品详情。
 	GetWork(ctx context.Context, in *GetWorkRequest, opts ...grpc.CallOption) (*GetWorkResponse, error)
+	// 修改已保存的作品或草稿。
+	UpdateWork(ctx context.Context, in *UpdateWorkRequest, opts ...grpc.CallOption) (*UpdateWorkResponse, error)
 	// 获取作品列表。
 	ListWorks(ctx context.Context, in *ListWorksRequest, opts ...grpc.CallOption) (*ListWorksResponse, error)
 	// 删除作品。
@@ -69,6 +72,16 @@ func (c *workServiceClient) GetWork(ctx context.Context, in *GetWorkRequest, opt
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetWorkResponse)
 	err := c.cc.Invoke(ctx, WorkService_GetWork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workServiceClient) UpdateWork(ctx context.Context, in *UpdateWorkRequest, opts ...grpc.CallOption) (*UpdateWorkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateWorkResponse)
+	err := c.cc.Invoke(ctx, WorkService_UpdateWork_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +138,8 @@ type WorkServiceServer interface {
 	SaveWork(context.Context, *SaveWorkRequest) (*SaveWorkResponse, error)
 	// 获取作品详情。
 	GetWork(context.Context, *GetWorkRequest) (*GetWorkResponse, error)
+	// 修改已保存的作品或草稿。
+	UpdateWork(context.Context, *UpdateWorkRequest) (*UpdateWorkResponse, error)
 	// 获取作品列表。
 	ListWorks(context.Context, *ListWorksRequest) (*ListWorksResponse, error)
 	// 删除作品。
@@ -148,6 +163,9 @@ func (UnimplementedWorkServiceServer) SaveWork(context.Context, *SaveWorkRequest
 }
 func (UnimplementedWorkServiceServer) GetWork(context.Context, *GetWorkRequest) (*GetWorkResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWork not implemented")
+}
+func (UnimplementedWorkServiceServer) UpdateWork(context.Context, *UpdateWorkRequest) (*UpdateWorkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateWork not implemented")
 }
 func (UnimplementedWorkServiceServer) ListWorks(context.Context, *ListWorksRequest) (*ListWorksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorks not implemented")
@@ -214,6 +232,24 @@ func _WorkService_GetWork_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(WorkServiceServer).GetWork(ctx, req.(*GetWorkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkService_UpdateWork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWorkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkServiceServer).UpdateWork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkService_UpdateWork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkServiceServer).UpdateWork(ctx, req.(*UpdateWorkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -304,6 +340,10 @@ var WorkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWork",
 			Handler:    _WorkService_GetWork_Handler,
+		},
+		{
+			MethodName: "UpdateWork",
+			Handler:    _WorkService_UpdateWork_Handler,
 		},
 		{
 			MethodName: "ListWorks",

@@ -60,6 +60,26 @@ func (h *WorkHandler) GetWork(ctx context.Context, req *pb.GetWorkRequest) (*pb.
 	}, nil
 }
 
+func (h *WorkHandler) UpdateWork(ctx context.Context, req *pb.UpdateWorkRequest) (*pb.UpdateWorkResponse, error) {
+	userID := middleware.GetUserID(ctx)
+	workID, err := strconv.ParseUint(req.WorkId, 10, 64)
+	if err != nil {
+		return &pb.UpdateWorkResponse{Header: errHeaderCtx(ctx, apperr.InvalidArgument("invalid work_id"))}, nil
+	}
+
+	w, err := h.workService.UpdateWork(ctx, userID, workID, work.UpdateWorkInput{
+		Title:            req.Title,
+		OriginalImageURL: req.OriginalImageUrl,
+		PatternImageURL:  req.PatternImageUrl,
+		ThumbnailSource:  req.ThumbnailUrl,
+		PatternData:      req.PatternData,
+	})
+	if err != nil {
+		return &pb.UpdateWorkResponse{Header: errHeaderCtx(ctx, err)}, nil
+	}
+	return &pb.UpdateWorkResponse{Header: okHeaderCtx(ctx), Work: workToProto(w)}, nil
+}
+
 func (h *WorkHandler) ListWorks(ctx context.Context, req *pb.ListWorksRequest) (*pb.ListWorksResponse, error) {
 	userID := middleware.GetUserID(ctx)
 	page, pageSize := getPage(req.Page)

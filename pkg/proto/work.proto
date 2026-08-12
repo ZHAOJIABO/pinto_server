@@ -24,6 +24,14 @@ service WorkService {
     };
   }
 
+  // 修改已保存的作品或草稿。
+  rpc UpdateWork(UpdateWorkRequest) returns (UpdateWorkResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/works/{work_id}"
+      body: "*"
+    };
+  }
+
   // 获取作品列表。
   rpc ListWorks(ListWorksRequest) returns (ListWorksResponse) {
     option (google.api.http) = {
@@ -140,6 +148,30 @@ message SaveWorkResponse {
   ResponseHeader header = 1;
   // 新保存的作品 ID。
   string work_id = 2;
+}
+
+message UpdateWorkRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+  // 要修改的作品 ID。
+  string work_id = 2;
+  // 作品标题；为空表示不修改。
+  string title = 3;
+  // 原图地址；为空表示不修改。
+  string original_image_url = 4;
+  // 图纸图片地址；为空表示不修改。变更后服务端会重新生成缩略图。
+  string pattern_image_url = 5;
+  // 缩略图源图地址；为空表示按 pattern_image_url 生成。服务端只取源图，编码始终由服务端完成。
+  string thumbnail_url = 6;
+  // 图纸数据；不传表示只改标题等信息，图纸内容保持不变。
+  PatternData pattern_data = 7;
+}
+
+message UpdateWorkResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 修改后的作品信息。
+  WorkItem work = 2;
 }
 
 message GetWorkRequest {

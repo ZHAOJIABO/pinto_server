@@ -835,13 +835,47 @@ GET /api/v1/works
 
 **示例:** `GET /api/v1/works?page.page=1&page.pageSize=20&sourceType=ai_style`
 
-### 7.4 删除作品
+### 7.4 修改作品
+
+```
+PUT /api/v1/works/{workId}
+```
+
+**Body（字段全部可选，空值表示不修改）:**
+
+```json
+{
+  "title": "改个名字",
+  "originalImageUrl": "",
+  "patternImageUrl": "https://.../pattern_v2.png",
+  "thumbnailUrl": "",
+  "patternData": {
+    "width": 3,
+    "height": 3,
+    "boardSpec": "29x29",
+    "pixels": [1, 1, 0, 1, 2, 1, 0, 1, 1],
+    "colorPalette": [
+      {"index": 1, "hex": "#FF0000", "name": "红色"},
+      {"index": 2, "hex": "#FFFFFF", "name": "白色"}
+    ],
+    "schemaVersion": 1
+  }
+}
+```
+
+`status`、`sourceType`/`sourceId`、`createdAt` 由服务端保留，草稿和成品都能用这个接口。`patternImageUrl` 变化时服务端会重新生成缩略图；`thumbnailUrl` 传的是缩略图**源图**，优先级高于 `patternImageUrl`。响应返回更新后的 `work`。
+
+错误码：`1101` 参数非法或图纸数据校验失败（整行不改动），`1102` 作品不存在或不属于当前用户，`2006` 该作品有投稿正在等待审核。
+
+`2006` 的验证方式：先 `POST /api/v1/template-submissions` 投稿该作品，再调本接口即可复现；把投稿 approve 或 reject 之后锁自动解除。`POST /api/v1/works/drafts` 传同一个 `draftId` 时也受这个锁约束。
+
+### 7.5 删除作品
 
 ```
 DELETE /api/v1/works/{workId}
 ```
 
-### 7.5 保存草稿
+### 7.6 保存草稿
 
 ```
 POST /api/v1/works/drafts
@@ -858,7 +892,7 @@ POST /api/v1/works/drafts
 
 > `draftId` 为空则新建，非空则更新。未完成草稿可以暂不传 `patternData`；传入时必须符合完整 `PatternData` 契约。
 
-### 7.6 获取草稿列表
+### 7.7 获取草稿列表
 
 ```
 GET /api/v1/works/drafts?page.page=1&page.pageSize=20

@@ -517,6 +517,159 @@ func (x *SaveWorkResponse) GetWorkId() string {
 	return ""
 }
 
+type UpdateWorkRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 要修改的作品 ID。
+	WorkId string `protobuf:"bytes,2,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	// 作品标题；为空表示不修改。
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// 原图地址；为空表示不修改。
+	OriginalImageUrl string `protobuf:"bytes,4,opt,name=original_image_url,json=originalImageUrl,proto3" json:"original_image_url,omitempty"`
+	// 图纸图片地址；为空表示不修改。变更后服务端会重新生成缩略图。
+	PatternImageUrl string `protobuf:"bytes,5,opt,name=pattern_image_url,json=patternImageUrl,proto3" json:"pattern_image_url,omitempty"`
+	// 缩略图源图地址；为空表示按 pattern_image_url 生成。服务端只取源图，编码始终由服务端完成。
+	ThumbnailUrl string `protobuf:"bytes,6,opt,name=thumbnail_url,json=thumbnailUrl,proto3" json:"thumbnail_url,omitempty"`
+	// 图纸数据；不传表示只改标题等信息，图纸内容保持不变。
+	PatternData   *PatternData `protobuf:"bytes,7,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateWorkRequest) Reset() {
+	*x = UpdateWorkRequest{}
+	mi := &file_work_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateWorkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateWorkRequest) ProtoMessage() {}
+
+func (x *UpdateWorkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_work_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateWorkRequest.ProtoReflect.Descriptor instead.
+func (*UpdateWorkRequest) Descriptor() ([]byte, []int) {
+	return file_work_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateWorkRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *UpdateWorkRequest) GetWorkId() string {
+	if x != nil {
+		return x.WorkId
+	}
+	return ""
+}
+
+func (x *UpdateWorkRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *UpdateWorkRequest) GetOriginalImageUrl() string {
+	if x != nil {
+		return x.OriginalImageUrl
+	}
+	return ""
+}
+
+func (x *UpdateWorkRequest) GetPatternImageUrl() string {
+	if x != nil {
+		return x.PatternImageUrl
+	}
+	return ""
+}
+
+func (x *UpdateWorkRequest) GetThumbnailUrl() string {
+	if x != nil {
+		return x.ThumbnailUrl
+	}
+	return ""
+}
+
+func (x *UpdateWorkRequest) GetPatternData() *PatternData {
+	if x != nil {
+		return x.PatternData
+	}
+	return nil
+}
+
+type UpdateWorkResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 修改后的作品信息。
+	Work          *WorkItem `protobuf:"bytes,2,opt,name=work,proto3" json:"work,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateWorkResponse) Reset() {
+	*x = UpdateWorkResponse{}
+	mi := &file_work_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateWorkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateWorkResponse) ProtoMessage() {}
+
+func (x *UpdateWorkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_work_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateWorkResponse.ProtoReflect.Descriptor instead.
+func (*UpdateWorkResponse) Descriptor() ([]byte, []int) {
+	return file_work_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateWorkResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *UpdateWorkResponse) GetWork() *WorkItem {
+	if x != nil {
+		return x.Work
+	}
+	return nil
+}
+
 type GetWorkRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 请求公共头。
@@ -529,7 +682,7 @@ type GetWorkRequest struct {
 
 func (x *GetWorkRequest) Reset() {
 	*x = GetWorkRequest{}
-	mi := &file_work_proto_msgTypes[5]
+	mi := &file_work_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -541,7 +694,7 @@ func (x *GetWorkRequest) String() string {
 func (*GetWorkRequest) ProtoMessage() {}
 
 func (x *GetWorkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[5]
+	mi := &file_work_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -554,7 +707,7 @@ func (x *GetWorkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkRequest) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{5}
+	return file_work_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetWorkRequest) GetHeader() *RequestHeader {
@@ -585,7 +738,7 @@ type GetWorkResponse struct {
 
 func (x *GetWorkResponse) Reset() {
 	*x = GetWorkResponse{}
-	mi := &file_work_proto_msgTypes[6]
+	mi := &file_work_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +750,7 @@ func (x *GetWorkResponse) String() string {
 func (*GetWorkResponse) ProtoMessage() {}
 
 func (x *GetWorkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[6]
+	mi := &file_work_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +763,7 @@ func (x *GetWorkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkResponse.ProtoReflect.Descriptor instead.
 func (*GetWorkResponse) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{6}
+	return file_work_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetWorkResponse) GetHeader() *ResponseHeader {
@@ -648,7 +801,7 @@ type ListWorksRequest struct {
 
 func (x *ListWorksRequest) Reset() {
 	*x = ListWorksRequest{}
-	mi := &file_work_proto_msgTypes[7]
+	mi := &file_work_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -660,7 +813,7 @@ func (x *ListWorksRequest) String() string {
 func (*ListWorksRequest) ProtoMessage() {}
 
 func (x *ListWorksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[7]
+	mi := &file_work_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -673,7 +826,7 @@ func (x *ListWorksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorksRequest.ProtoReflect.Descriptor instead.
 func (*ListWorksRequest) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{7}
+	return file_work_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListWorksRequest) GetHeader() *RequestHeader {
@@ -711,7 +864,7 @@ type ListWorksResponse struct {
 
 func (x *ListWorksResponse) Reset() {
 	*x = ListWorksResponse{}
-	mi := &file_work_proto_msgTypes[8]
+	mi := &file_work_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -723,7 +876,7 @@ func (x *ListWorksResponse) String() string {
 func (*ListWorksResponse) ProtoMessage() {}
 
 func (x *ListWorksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[8]
+	mi := &file_work_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -736,7 +889,7 @@ func (x *ListWorksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorksResponse.ProtoReflect.Descriptor instead.
 func (*ListWorksResponse) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{8}
+	return file_work_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListWorksResponse) GetHeader() *ResponseHeader {
@@ -772,7 +925,7 @@ type DeleteWorkRequest struct {
 
 func (x *DeleteWorkRequest) Reset() {
 	*x = DeleteWorkRequest{}
-	mi := &file_work_proto_msgTypes[9]
+	mi := &file_work_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +937,7 @@ func (x *DeleteWorkRequest) String() string {
 func (*DeleteWorkRequest) ProtoMessage() {}
 
 func (x *DeleteWorkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[9]
+	mi := &file_work_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +950,7 @@ func (x *DeleteWorkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWorkRequest.ProtoReflect.Descriptor instead.
 func (*DeleteWorkRequest) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{9}
+	return file_work_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteWorkRequest) GetHeader() *RequestHeader {
@@ -824,7 +977,7 @@ type DeleteWorkResponse struct {
 
 func (x *DeleteWorkResponse) Reset() {
 	*x = DeleteWorkResponse{}
-	mi := &file_work_proto_msgTypes[10]
+	mi := &file_work_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +989,7 @@ func (x *DeleteWorkResponse) String() string {
 func (*DeleteWorkResponse) ProtoMessage() {}
 
 func (x *DeleteWorkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[10]
+	mi := &file_work_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +1002,7 @@ func (x *DeleteWorkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWorkResponse.ProtoReflect.Descriptor instead.
 func (*DeleteWorkResponse) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{10}
+	return file_work_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteWorkResponse) GetHeader() *ResponseHeader {
@@ -879,7 +1032,7 @@ type SaveDraftRequest struct {
 
 func (x *SaveDraftRequest) Reset() {
 	*x = SaveDraftRequest{}
-	mi := &file_work_proto_msgTypes[11]
+	mi := &file_work_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +1044,7 @@ func (x *SaveDraftRequest) String() string {
 func (*SaveDraftRequest) ProtoMessage() {}
 
 func (x *SaveDraftRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[11]
+	mi := &file_work_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1057,7 @@ func (x *SaveDraftRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveDraftRequest.ProtoReflect.Descriptor instead.
 func (*SaveDraftRequest) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{11}
+	return file_work_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SaveDraftRequest) GetHeader() *RequestHeader {
@@ -961,7 +1114,7 @@ type SaveDraftResponse struct {
 
 func (x *SaveDraftResponse) Reset() {
 	*x = SaveDraftResponse{}
-	mi := &file_work_proto_msgTypes[12]
+	mi := &file_work_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -973,7 +1126,7 @@ func (x *SaveDraftResponse) String() string {
 func (*SaveDraftResponse) ProtoMessage() {}
 
 func (x *SaveDraftResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[12]
+	mi := &file_work_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -986,7 +1139,7 @@ func (x *SaveDraftResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveDraftResponse.ProtoReflect.Descriptor instead.
 func (*SaveDraftResponse) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{12}
+	return file_work_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SaveDraftResponse) GetHeader() *ResponseHeader {
@@ -1015,7 +1168,7 @@ type ListDraftsRequest struct {
 
 func (x *ListDraftsRequest) Reset() {
 	*x = ListDraftsRequest{}
-	mi := &file_work_proto_msgTypes[13]
+	mi := &file_work_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1027,7 +1180,7 @@ func (x *ListDraftsRequest) String() string {
 func (*ListDraftsRequest) ProtoMessage() {}
 
 func (x *ListDraftsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[13]
+	mi := &file_work_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1040,7 +1193,7 @@ func (x *ListDraftsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDraftsRequest.ProtoReflect.Descriptor instead.
 func (*ListDraftsRequest) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{13}
+	return file_work_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListDraftsRequest) GetHeader() *RequestHeader {
@@ -1071,7 +1224,7 @@ type ListDraftsResponse struct {
 
 func (x *ListDraftsResponse) Reset() {
 	*x = ListDraftsResponse{}
-	mi := &file_work_proto_msgTypes[14]
+	mi := &file_work_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1083,7 +1236,7 @@ func (x *ListDraftsResponse) String() string {
 func (*ListDraftsResponse) ProtoMessage() {}
 
 func (x *ListDraftsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_work_proto_msgTypes[14]
+	mi := &file_work_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1096,7 +1249,7 @@ func (x *ListDraftsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDraftsResponse.ProtoReflect.Descriptor instead.
 func (*ListDraftsResponse) Descriptor() ([]byte, []int) {
-	return file_work_proto_rawDescGZIP(), []int{14}
+	return file_work_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListDraftsResponse) GetHeader() *ResponseHeader {
@@ -1177,7 +1330,18 @@ const file_work_proto_rawDesc = "" +
 	"colorCount\"a\n" +
 	"\x10SaveWorkResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12\x17\n" +
-	"\awork_id\x18\x02 \x01(\tR\x06workId\"^\n" +
+	"\awork_id\x18\x02 \x01(\tR\x06workId\"\xb4\x02\n" +
+	"\x11UpdateWorkRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x17\n" +
+	"\awork_id\x18\x02 \x01(\tR\x06workId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12,\n" +
+	"\x12original_image_url\x18\x04 \x01(\tR\x10originalImageUrl\x12*\n" +
+	"\x11pattern_image_url\x18\x05 \x01(\tR\x0fpatternImageUrl\x12#\n" +
+	"\rthumbnail_url\x18\x06 \x01(\tR\fthumbnailUrl\x12<\n" +
+	"\fpattern_data\x18\a \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\"v\n" +
+	"\x12UpdateWorkResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12*\n" +
+	"\x04work\x18\x02 \x01(\v2\x16.bobobeads.v1.WorkItemR\x04work\"^\n" +
 	"\x0eGetWorkRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12\x17\n" +
 	"\awork_id\x18\x02 \x01(\tR\x06workId\"\xb1\x01\n" +
@@ -1215,10 +1379,12 @@ const file_work_proto_rawDesc = "" +
 	"\x12ListDraftsResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x12.\n" +
 	"\x06drafts\x18\x02 \x03(\v2\x16.bobobeads.v1.WorkItemR\x06drafts\x12.\n" +
-	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\x90\x05\n" +
+	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\x85\x06\n" +
 	"\vWorkService\x12c\n" +
 	"\bSaveWork\x12\x1d.bobobeads.v1.SaveWorkRequest\x1a\x1e.bobobeads.v1.SaveWorkResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/works\x12g\n" +
-	"\aGetWork\x12\x1c.bobobeads.v1.GetWorkRequest\x1a\x1d.bobobeads.v1.GetWorkResponse\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v1/works/{work_id}\x12c\n" +
+	"\aGetWork\x12\x1c.bobobeads.v1.GetWorkRequest\x1a\x1d.bobobeads.v1.GetWorkResponse\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/api/v1/works/{work_id}\x12s\n" +
+	"\n" +
+	"UpdateWork\x12\x1f.bobobeads.v1.UpdateWorkRequest\x1a .bobobeads.v1.UpdateWorkResponse\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\x1a\x17/api/v1/works/{work_id}\x12c\n" +
 	"\tListWorks\x12\x1e.bobobeads.v1.ListWorksRequest\x1a\x1f.bobobeads.v1.ListWorksResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/works\x12p\n" +
 	"\n" +
 	"DeleteWork\x12\x1f.bobobeads.v1.DeleteWorkRequest\x1a .bobobeads.v1.DeleteWorkResponse\"\x1f\x82\xd3\xe4\x93\x02\x19*\x17/api/v1/works/{work_id}\x12m\n" +
@@ -1239,69 +1405,77 @@ func file_work_proto_rawDescGZIP() []byte {
 	return file_work_proto_rawDescData
 }
 
-var file_work_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_work_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_work_proto_goTypes = []any{
 	(*PatternData)(nil),        // 0: bobobeads.v1.PatternData
 	(*ColorEntry)(nil),         // 1: bobobeads.v1.ColorEntry
 	(*WorkItem)(nil),           // 2: bobobeads.v1.WorkItem
 	(*SaveWorkRequest)(nil),    // 3: bobobeads.v1.SaveWorkRequest
 	(*SaveWorkResponse)(nil),   // 4: bobobeads.v1.SaveWorkResponse
-	(*GetWorkRequest)(nil),     // 5: bobobeads.v1.GetWorkRequest
-	(*GetWorkResponse)(nil),    // 6: bobobeads.v1.GetWorkResponse
-	(*ListWorksRequest)(nil),   // 7: bobobeads.v1.ListWorksRequest
-	(*ListWorksResponse)(nil),  // 8: bobobeads.v1.ListWorksResponse
-	(*DeleteWorkRequest)(nil),  // 9: bobobeads.v1.DeleteWorkRequest
-	(*DeleteWorkResponse)(nil), // 10: bobobeads.v1.DeleteWorkResponse
-	(*SaveDraftRequest)(nil),   // 11: bobobeads.v1.SaveDraftRequest
-	(*SaveDraftResponse)(nil),  // 12: bobobeads.v1.SaveDraftResponse
-	(*ListDraftsRequest)(nil),  // 13: bobobeads.v1.ListDraftsRequest
-	(*ListDraftsResponse)(nil), // 14: bobobeads.v1.ListDraftsResponse
-	(*RequestHeader)(nil),      // 15: bobobeads.v1.RequestHeader
-	(*ResponseHeader)(nil),     // 16: bobobeads.v1.ResponseHeader
-	(*PageRequest)(nil),        // 17: bobobeads.v1.PageRequest
-	(*PageResponse)(nil),       // 18: bobobeads.v1.PageResponse
+	(*UpdateWorkRequest)(nil),  // 5: bobobeads.v1.UpdateWorkRequest
+	(*UpdateWorkResponse)(nil), // 6: bobobeads.v1.UpdateWorkResponse
+	(*GetWorkRequest)(nil),     // 7: bobobeads.v1.GetWorkRequest
+	(*GetWorkResponse)(nil),    // 8: bobobeads.v1.GetWorkResponse
+	(*ListWorksRequest)(nil),   // 9: bobobeads.v1.ListWorksRequest
+	(*ListWorksResponse)(nil),  // 10: bobobeads.v1.ListWorksResponse
+	(*DeleteWorkRequest)(nil),  // 11: bobobeads.v1.DeleteWorkRequest
+	(*DeleteWorkResponse)(nil), // 12: bobobeads.v1.DeleteWorkResponse
+	(*SaveDraftRequest)(nil),   // 13: bobobeads.v1.SaveDraftRequest
+	(*SaveDraftResponse)(nil),  // 14: bobobeads.v1.SaveDraftResponse
+	(*ListDraftsRequest)(nil),  // 15: bobobeads.v1.ListDraftsRequest
+	(*ListDraftsResponse)(nil), // 16: bobobeads.v1.ListDraftsResponse
+	(*RequestHeader)(nil),      // 17: bobobeads.v1.RequestHeader
+	(*ResponseHeader)(nil),     // 18: bobobeads.v1.ResponseHeader
+	(*PageRequest)(nil),        // 19: bobobeads.v1.PageRequest
+	(*PageResponse)(nil),       // 20: bobobeads.v1.PageResponse
 }
 var file_work_proto_depIdxs = []int32{
 	1,  // 0: bobobeads.v1.PatternData.color_palette:type_name -> bobobeads.v1.ColorEntry
-	15, // 1: bobobeads.v1.SaveWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
+	17, // 1: bobobeads.v1.SaveWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
 	0,  // 2: bobobeads.v1.SaveWorkRequest.pattern_data:type_name -> bobobeads.v1.PatternData
-	16, // 3: bobobeads.v1.SaveWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	15, // 4: bobobeads.v1.GetWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
-	16, // 5: bobobeads.v1.GetWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	2,  // 6: bobobeads.v1.GetWorkResponse.work:type_name -> bobobeads.v1.WorkItem
-	0,  // 7: bobobeads.v1.GetWorkResponse.pattern_data:type_name -> bobobeads.v1.PatternData
-	15, // 8: bobobeads.v1.ListWorksRequest.header:type_name -> bobobeads.v1.RequestHeader
-	17, // 9: bobobeads.v1.ListWorksRequest.page:type_name -> bobobeads.v1.PageRequest
-	16, // 10: bobobeads.v1.ListWorksResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	2,  // 11: bobobeads.v1.ListWorksResponse.works:type_name -> bobobeads.v1.WorkItem
-	18, // 12: bobobeads.v1.ListWorksResponse.page:type_name -> bobobeads.v1.PageResponse
-	15, // 13: bobobeads.v1.DeleteWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
-	16, // 14: bobobeads.v1.DeleteWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	15, // 15: bobobeads.v1.SaveDraftRequest.header:type_name -> bobobeads.v1.RequestHeader
-	0,  // 16: bobobeads.v1.SaveDraftRequest.pattern_data:type_name -> bobobeads.v1.PatternData
-	16, // 17: bobobeads.v1.SaveDraftResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	15, // 18: bobobeads.v1.ListDraftsRequest.header:type_name -> bobobeads.v1.RequestHeader
-	17, // 19: bobobeads.v1.ListDraftsRequest.page:type_name -> bobobeads.v1.PageRequest
-	16, // 20: bobobeads.v1.ListDraftsResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	2,  // 21: bobobeads.v1.ListDraftsResponse.drafts:type_name -> bobobeads.v1.WorkItem
-	18, // 22: bobobeads.v1.ListDraftsResponse.page:type_name -> bobobeads.v1.PageResponse
-	3,  // 23: bobobeads.v1.WorkService.SaveWork:input_type -> bobobeads.v1.SaveWorkRequest
-	5,  // 24: bobobeads.v1.WorkService.GetWork:input_type -> bobobeads.v1.GetWorkRequest
-	7,  // 25: bobobeads.v1.WorkService.ListWorks:input_type -> bobobeads.v1.ListWorksRequest
-	9,  // 26: bobobeads.v1.WorkService.DeleteWork:input_type -> bobobeads.v1.DeleteWorkRequest
-	11, // 27: bobobeads.v1.WorkService.SaveDraft:input_type -> bobobeads.v1.SaveDraftRequest
-	13, // 28: bobobeads.v1.WorkService.ListDrafts:input_type -> bobobeads.v1.ListDraftsRequest
-	4,  // 29: bobobeads.v1.WorkService.SaveWork:output_type -> bobobeads.v1.SaveWorkResponse
-	6,  // 30: bobobeads.v1.WorkService.GetWork:output_type -> bobobeads.v1.GetWorkResponse
-	8,  // 31: bobobeads.v1.WorkService.ListWorks:output_type -> bobobeads.v1.ListWorksResponse
-	10, // 32: bobobeads.v1.WorkService.DeleteWork:output_type -> bobobeads.v1.DeleteWorkResponse
-	12, // 33: bobobeads.v1.WorkService.SaveDraft:output_type -> bobobeads.v1.SaveDraftResponse
-	14, // 34: bobobeads.v1.WorkService.ListDrafts:output_type -> bobobeads.v1.ListDraftsResponse
-	29, // [29:35] is the sub-list for method output_type
-	23, // [23:29] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	18, // 3: bobobeads.v1.SaveWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	17, // 4: bobobeads.v1.UpdateWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
+	0,  // 5: bobobeads.v1.UpdateWorkRequest.pattern_data:type_name -> bobobeads.v1.PatternData
+	18, // 6: bobobeads.v1.UpdateWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	2,  // 7: bobobeads.v1.UpdateWorkResponse.work:type_name -> bobobeads.v1.WorkItem
+	17, // 8: bobobeads.v1.GetWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
+	18, // 9: bobobeads.v1.GetWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	2,  // 10: bobobeads.v1.GetWorkResponse.work:type_name -> bobobeads.v1.WorkItem
+	0,  // 11: bobobeads.v1.GetWorkResponse.pattern_data:type_name -> bobobeads.v1.PatternData
+	17, // 12: bobobeads.v1.ListWorksRequest.header:type_name -> bobobeads.v1.RequestHeader
+	19, // 13: bobobeads.v1.ListWorksRequest.page:type_name -> bobobeads.v1.PageRequest
+	18, // 14: bobobeads.v1.ListWorksResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	2,  // 15: bobobeads.v1.ListWorksResponse.works:type_name -> bobobeads.v1.WorkItem
+	20, // 16: bobobeads.v1.ListWorksResponse.page:type_name -> bobobeads.v1.PageResponse
+	17, // 17: bobobeads.v1.DeleteWorkRequest.header:type_name -> bobobeads.v1.RequestHeader
+	18, // 18: bobobeads.v1.DeleteWorkResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	17, // 19: bobobeads.v1.SaveDraftRequest.header:type_name -> bobobeads.v1.RequestHeader
+	0,  // 20: bobobeads.v1.SaveDraftRequest.pattern_data:type_name -> bobobeads.v1.PatternData
+	18, // 21: bobobeads.v1.SaveDraftResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	17, // 22: bobobeads.v1.ListDraftsRequest.header:type_name -> bobobeads.v1.RequestHeader
+	19, // 23: bobobeads.v1.ListDraftsRequest.page:type_name -> bobobeads.v1.PageRequest
+	18, // 24: bobobeads.v1.ListDraftsResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	2,  // 25: bobobeads.v1.ListDraftsResponse.drafts:type_name -> bobobeads.v1.WorkItem
+	20, // 26: bobobeads.v1.ListDraftsResponse.page:type_name -> bobobeads.v1.PageResponse
+	3,  // 27: bobobeads.v1.WorkService.SaveWork:input_type -> bobobeads.v1.SaveWorkRequest
+	7,  // 28: bobobeads.v1.WorkService.GetWork:input_type -> bobobeads.v1.GetWorkRequest
+	5,  // 29: bobobeads.v1.WorkService.UpdateWork:input_type -> bobobeads.v1.UpdateWorkRequest
+	9,  // 30: bobobeads.v1.WorkService.ListWorks:input_type -> bobobeads.v1.ListWorksRequest
+	11, // 31: bobobeads.v1.WorkService.DeleteWork:input_type -> bobobeads.v1.DeleteWorkRequest
+	13, // 32: bobobeads.v1.WorkService.SaveDraft:input_type -> bobobeads.v1.SaveDraftRequest
+	15, // 33: bobobeads.v1.WorkService.ListDrafts:input_type -> bobobeads.v1.ListDraftsRequest
+	4,  // 34: bobobeads.v1.WorkService.SaveWork:output_type -> bobobeads.v1.SaveWorkResponse
+	8,  // 35: bobobeads.v1.WorkService.GetWork:output_type -> bobobeads.v1.GetWorkResponse
+	6,  // 36: bobobeads.v1.WorkService.UpdateWork:output_type -> bobobeads.v1.UpdateWorkResponse
+	10, // 37: bobobeads.v1.WorkService.ListWorks:output_type -> bobobeads.v1.ListWorksResponse
+	12, // 38: bobobeads.v1.WorkService.DeleteWork:output_type -> bobobeads.v1.DeleteWorkResponse
+	14, // 39: bobobeads.v1.WorkService.SaveDraft:output_type -> bobobeads.v1.SaveDraftResponse
+	16, // 40: bobobeads.v1.WorkService.ListDrafts:output_type -> bobobeads.v1.ListDraftsResponse
+	34, // [34:41] is the sub-list for method output_type
+	27, // [27:34] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_work_proto_init() }
@@ -1316,7 +1490,7 @@ func file_work_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_work_proto_rawDesc), len(file_work_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

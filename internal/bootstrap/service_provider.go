@@ -120,7 +120,7 @@ func (sp *ServiceProvider) initServices() {
 	sp.AdminAuthService = admin.NewAuthService(conf.GlobalConfig.Admin)
 	sp.UserService = user.NewService(sp.UserDAO)
 	sp.MediaService = media.NewService(sp.MediaDAO)
-	sp.WorkService = work.NewService(sp.WorkDAO)
+	sp.WorkService = work.NewService(sp.WorkDAO, sp.MediaService, sp.SubmissionDAO)
 	sp.FinishedProductService = finishedproduct.NewService(sp.FinishedProductDAO, sp.MediaService)
 	sp.CommunityService = community.NewService(sp.CommunityDAO)
 	sp.TemplateService = template.NewService(sp.TemplateDAO, sp.BlindBoxRecordDAO)

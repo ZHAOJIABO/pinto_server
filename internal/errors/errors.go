@@ -18,6 +18,7 @@ const (
 	CodeGenerationCompleted int32 = 2003
 	CodeDuplicateRequest    int32 = 2004
 	CodeTaskQuotaExceeded   int32 = 2005
+	CodeWorkUnderReview     int32 = 2006
 	CodeUploadTokenFailed   int32 = 3001
 	CodeInvalidFileType     int32 = 3002
 	CodeFileTooLarge        int32 = 3003

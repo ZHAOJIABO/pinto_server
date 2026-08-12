@@ -2,9 +2,12 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
+	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
@@ -31,7 +34,7 @@ func validPatternData(width, height int32) *pb.PatternData {
 func TestSaveWork(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 	w := &model.Work{
@@ -139,7 +142,7 @@ func TestSaveWork_PatternDataValidation(t *testing.T) {
 func TestSaveWork_RequiresPatternData(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	_, err := workService.SaveWork(context.Background(), 1, &model.Work{Title: "no pattern"}, nil)
 	if err == nil {
@@ -150,7 +153,7 @@ func TestSaveWork_RequiresPatternData(t *testing.T) {
 func TestListWorks(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 	userID := uint64(1)
@@ -183,7 +186,7 @@ func TestListWorks(t *testing.T) {
 func TestDeleteWork(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 	userID := uint64(1)
@@ -211,7 +214,7 @@ func TestDeleteWork(t *testing.T) {
 func TestDrafts(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 	userID := uint64(1)
@@ -250,7 +253,7 @@ func TestDrafts(t *testing.T) {
 func TestGetWork_RejectsOtherUser(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 
@@ -286,7 +289,7 @@ func TestGetWork_RejectsOtherUser(t *testing.T) {
 func TestSaveWork_PatternDataRoundTrip(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 	userID := uint64(1)
@@ -340,7 +343,7 @@ func TestSaveWork_PatternDataRoundTrip(t *testing.T) {
 
 func TestSaveWork_RecalculatesPatternStatistics(t *testing.T) {
 	SetupTestDB(t)
-	workService := work.NewService(dao.NewWorkDAO())
+	workService := work.NewService(dao.NewWorkDAO(), nil, nil)
 
 	pattern := validPatternData(3, 3)
 	workID, err := workService.SaveWork(context.Background(), 1, &model.Work{
@@ -411,7 +414,7 @@ func TestPatternDataProtoJSONAcceptsOnlyContractFields(t *testing.T) {
 func TestValidatePatternData_RequiresPixels(t *testing.T) {
 	SetupTestDB(t)
 	workDAO := dao.NewWorkDAO()
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 
 	ctx := context.Background()
 
@@ -428,4 +431,317 @@ func TestValidatePatternData_RequiresPixels(t *testing.T) {
 	}
 
 	t.Log("ValidatePatternData requires pixels check success")
+}
+
+// fakeThumbnailer records the source it was asked to work from, so tests can tell
+// "regenerated from the new pattern image" from "left the old thumbnail alone".
+type fakeThumbnailer struct {
+	sources []string
+	result  string
+}
+
+func (f *fakeThumbnailer) ThumbnailURLByImageURL(_ context.Context, _ uint64, imageURL string) string {
+	f.sources = append(f.sources, imageURL)
+	return f.result
+}
+
+func createWorkForUpdate(t *testing.T, svc *work.Service, userID uint64) *model.Work {
+	t.Helper()
+	w := &model.Work{
+		Title:            "原标题",
+		OriginalImageURL: "https://oss.example.com/original.jpg",
+		PatternImageURL:  "https://oss.example.com/pattern.jpg",
+		ThumbnailURL:     "https://oss.example.com/thumb_old.webp",
+		SourceType:       "ai",
+		SourceID:         "gen-1",
+	}
+	id, err := svc.SaveWork(context.Background(), userID, w, validPatternData(4, 4))
+	if err != nil {
+		t.Fatalf("SaveWork: %v", err)
+	}
+	// SaveWork does not persist the thumbnail, so seed it the way generation does.
+	w.ID = id
+	if err := dao.NewWorkDAO().Update(context.Background(), w); err != nil {
+		t.Fatalf("seed thumbnail: %v", err)
+	}
+	return w
+}
+
+func TestUpdateWorkKeepsServerOwnedFields(t *testing.T) {
+	SetupTestDB(t)
+	workService := work.NewService(dao.NewWorkDAO(), nil, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{
+		Title:       "新标题",
+		PatternData: validPatternData(6, 6),
+	})
+	if err != nil {
+		t.Fatalf("UpdateWork: %v", err)
+	}
+	if updated.Title != "新标题" {
+		t.Errorf("title = %q, want 新标题", updated.Title)
+	}
+	if updated.Width != 6 || updated.Height != 6 {
+		t.Errorf("size = %dx%d, want 6x6", updated.Width, updated.Height)
+	}
+	// The whole point of this endpoint: none of these may be reset the way
+	// SaveDraft resets them.
+	if updated.Status != 2 {
+		t.Errorf("status = %d, want 2 (still a finished work)", updated.Status)
+	}
+	if updated.ThumbnailURL != w.ThumbnailURL {
+		t.Errorf("thumbnailUrl = %q, want the existing %q", updated.ThumbnailURL, w.ThumbnailURL)
+	}
+	if updated.SourceType != "ai" || updated.SourceID != "gen-1" {
+		t.Errorf("source = %s/%s, want ai/gen-1", updated.SourceType, updated.SourceID)
+	}
+	if updated.OriginalImageURL != w.OriginalImageURL {
+		t.Errorf("originalImageUrl = %q, want unchanged %q", updated.OriginalImageURL, w.OriginalImageURL)
+	}
+
+	reloaded, err := workService.GetWork(context.Background(), 1, w.ID)
+	if err != nil {
+		t.Fatalf("GetWork: %v", err)
+	}
+	if reloaded.Title != "新标题" || reloaded.Width != 6 {
+		t.Errorf("reloaded = %q %dx%d, want 新标题 6x6", reloaded.Title, reloaded.Width, reloaded.Height)
+	}
+}
+
+func TestUpdateWorkOmittedFieldsKeepPatternData(t *testing.T) {
+	SetupTestDB(t)
+	workService := work.NewService(dao.NewWorkDAO(), nil, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{Title: "只改标题"})
+	if err != nil {
+		t.Fatalf("UpdateWork: %v", err)
+	}
+	if updated.PatternData == nil {
+		t.Fatal("pattern data was wiped by a title-only update")
+	}
+	if updated.Width != 4 || updated.BeadCount == 0 {
+		t.Errorf("stats = %dx%d / %d beads, want the original 4x4 with beads",
+			updated.Width, updated.Height, updated.BeadCount)
+	}
+}
+
+func TestUpdateWorkRegeneratesThumbnailWhenPatternImageChanges(t *testing.T) {
+	SetupTestDB(t)
+	thumbnailer := &fakeThumbnailer{result: "https://oss.example.com/thumb_new.webp"}
+	workService := work.NewService(dao.NewWorkDAO(), thumbnailer, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{
+		PatternImageURL: "https://oss.example.com/pattern_v2.jpg",
+		PatternData:     validPatternData(4, 4),
+	})
+	if err != nil {
+		t.Fatalf("UpdateWork: %v", err)
+	}
+	if updated.ThumbnailURL != thumbnailer.result {
+		t.Errorf("thumbnailUrl = %q, want the regenerated %q", updated.ThumbnailURL, thumbnailer.result)
+	}
+	if len(thumbnailer.sources) != 1 || thumbnailer.sources[0] != "https://oss.example.com/pattern_v2.jpg" {
+		t.Errorf("thumbnail sources = %v, want one call with the new pattern image", thumbnailer.sources)
+	}
+}
+
+func TestUpdateWorkSkipsThumbnailWhenPatternImageUnchanged(t *testing.T) {
+	SetupTestDB(t)
+	thumbnailer := &fakeThumbnailer{result: "https://oss.example.com/thumb_new.webp"}
+	workService := work.NewService(dao.NewWorkDAO(), thumbnailer, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{
+		Title:           "改名",
+		PatternImageURL: w.PatternImageURL,
+	})
+	if err != nil {
+		t.Fatalf("UpdateWork: %v", err)
+	}
+	if len(thumbnailer.sources) != 0 {
+		t.Errorf("thumbnail was regenerated for an unchanged image: %v", thumbnailer.sources)
+	}
+	if updated.ThumbnailURL != w.ThumbnailURL {
+		t.Errorf("thumbnailUrl = %q, want the existing %q", updated.ThumbnailURL, w.ThumbnailURL)
+	}
+}
+
+func TestUpdateWorkKeepsOldThumbnailWhenGenerationFails(t *testing.T) {
+	SetupTestDB(t)
+	thumbnailer := &fakeThumbnailer{result: ""}
+	workService := work.NewService(dao.NewWorkDAO(), thumbnailer, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{
+		PatternImageURL: "https://evil.example.com/pattern.jpg",
+	})
+	if err != nil {
+		t.Fatalf("UpdateWork: %v", err)
+	}
+	if updated.ThumbnailURL != w.ThumbnailURL {
+		t.Errorf("thumbnailUrl = %q, want the old %q kept when generation yields nothing",
+			updated.ThumbnailURL, w.ThumbnailURL)
+	}
+}
+
+func TestUpdateWorkRejectsForeignAndMissingWork(t *testing.T) {
+	SetupTestDB(t)
+	workService := work.NewService(dao.NewWorkDAO(), nil, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	if _, err := workService.UpdateWork(context.Background(), 2, w.ID, work.UpdateWorkInput{Title: "抢作品"}); err == nil {
+		t.Error("expected an error when updating someone else's work")
+	} else {
+		assertErrCode(t, err, apperr.CodeNotFound)
+	}
+
+	if _, err := workService.UpdateWork(context.Background(), 1, 999999, work.UpdateWorkInput{Title: "不存在"}); err == nil {
+		t.Error("expected an error for a missing work")
+	} else {
+		assertErrCode(t, err, apperr.CodeNotFound)
+	}
+
+	if _, err := workService.UpdateWork(context.Background(), 1, 0, work.UpdateWorkInput{Title: "零"}); err == nil {
+		t.Error("expected an error for work_id = 0")
+	} else {
+		assertErrCode(t, err, apperr.CodeInvalidArgument)
+	}
+}
+
+func TestUpdateWorkRejectsInvalidPatternData(t *testing.T) {
+	SetupTestDB(t)
+	workService := work.NewService(dao.NewWorkDAO(), nil, nil)
+	w := createWorkForUpdate(t, workService, 1)
+
+	_, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{
+		PatternData: &pb.PatternData{Width: 5, Height: 5, SchemaVersion: 1},
+	})
+	if err == nil {
+		t.Fatal("expected a validation error for pattern data without pixels")
+	}
+
+	// The rejected update must not have touched the row.
+	reloaded, err := workService.GetWork(context.Background(), 1, w.ID)
+	if err != nil {
+		t.Fatalf("GetWork: %v", err)
+	}
+	if reloaded.Width != 4 || reloaded.Title != "原标题" {
+		t.Errorf("row changed despite the failed update: %q %dx%d", reloaded.Title, reloaded.Width, reloaded.Height)
+	}
+}
+
+// seedSubmission writes a submission row straight to the table: these tests only
+// care about the review lock, not about how a submission comes to exist.
+func seedSubmission(t *testing.T, userID, workID uint64, status int8) {
+	t.Helper()
+	activeKey := strconv.FormatUint(workID, 10)
+	sub := &model.TemplateSubmission{
+		UserID:          userID,
+		WorkID:          workID,
+		Title:           "投稿标题",
+		Status:          status,
+		ClientRequestID: fmt.Sprintf("req-%d-%d-%d", userID, workID, status),
+	}
+	if status != model.TemplateSubmissionStatusRejected {
+		sub.ActiveWorkKey = &activeKey
+	}
+	if err := dao.NewTemplateSubmissionDAO().Create(context.Background(), sub); err != nil {
+		t.Fatalf("seed submission: %v", err)
+	}
+}
+
+func newWorkServiceWithSubmissions() *work.Service {
+	return work.NewService(dao.NewWorkDAO(), nil, dao.NewTemplateSubmissionDAO())
+}
+
+func TestUpdateWorkBlockedWhileSubmissionPendingReview(t *testing.T) {
+	SetupTestDB(t)
+	workService := newWorkServiceWithSubmissions()
+	w := createWorkForUpdate(t, workService, 1)
+	seedSubmission(t, 1, w.ID, model.TemplateSubmissionStatusPending)
+
+	_, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{Title: "审核期间改名"})
+	if err == nil {
+		t.Fatal("expected the edit to be refused while the submission waits for review")
+	}
+	assertErrCode(t, err, apperr.CodeWorkUnderReview)
+
+	reloaded, err := workService.GetWork(context.Background(), 1, w.ID)
+	if err != nil {
+		t.Fatalf("GetWork: %v", err)
+	}
+	if reloaded.Title != "原标题" {
+		t.Errorf("title = %q, want the row left untouched", reloaded.Title)
+	}
+}
+
+func TestSaveDraftBlockedWhileSubmissionPendingReview(t *testing.T) {
+	SetupTestDB(t)
+	workService := newWorkServiceWithSubmissions()
+	w := createWorkForUpdate(t, workService, 1)
+	seedSubmission(t, 1, w.ID, model.TemplateSubmissionStatusPending)
+
+	// Overwriting an existing row through the draft endpoint is an edit too, so it
+	// must not be a way around the lock.
+	_, err := workService.SaveDraft(context.Background(), 1, &model.Work{
+		BaseModel: model.BaseModel{ID: w.ID},
+		Title:     "绕过审核锁",
+	}, validPatternData(4, 4))
+	if err == nil {
+		t.Fatal("expected SaveDraft to be refused for a work under review")
+	}
+	assertErrCode(t, err, apperr.CodeWorkUnderReview)
+
+	reloaded, err := workService.GetWork(context.Background(), 1, w.ID)
+	if err != nil {
+		t.Fatalf("GetWork: %v", err)
+	}
+	if reloaded.Title != "原标题" || reloaded.Status != 2 {
+		t.Errorf("row = %q status %d, want it untouched and still finished", reloaded.Title, reloaded.Status)
+	}
+}
+
+func TestUpdateWorkAllowedOnceSubmissionIsReviewed(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int8
+	}{
+		{"approved", model.TemplateSubmissionStatusApproved},
+		{"rejected", model.TemplateSubmissionStatusRejected},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			SetupTestDB(t)
+			workService := newWorkServiceWithSubmissions()
+			w := createWorkForUpdate(t, workService, 1)
+			seedSubmission(t, 1, w.ID, tc.status)
+
+			// An approved submission published an independent snapshot, so editing the
+			// work afterwards cannot affect the template and must be allowed.
+			updated, err := workService.UpdateWork(context.Background(), 1, w.ID, work.UpdateWorkInput{Title: "审核后改名"})
+			if err != nil {
+				t.Fatalf("UpdateWork: %v", err)
+			}
+			if updated.Title != "审核后改名" {
+				t.Errorf("title = %q, want 审核后改名", updated.Title)
+			}
+		})
+	}
+}
+
+func TestUpdateWorkLockAppliesOnlyToTheSubmittedWork(t *testing.T) {
+	SetupTestDB(t)
+	workService := newWorkServiceWithSubmissions()
+	target := createWorkForUpdate(t, workService, 1)
+	other := createWorkForUpdate(t, workService, 1)
+
+	seedSubmission(t, 1, other.ID, model.TemplateSubmissionStatusPending)
+	// Same work id, different owner: must not lock this user's work.
+	seedSubmission(t, 2, target.ID, model.TemplateSubmissionStatusPending)
+
+	if _, err := workService.UpdateWork(context.Background(), 1, target.ID, work.UpdateWorkInput{Title: "可以改"}); err != nil {
+		t.Fatalf("UpdateWork was blocked by an unrelated submission: %v", err)
+	}
 }

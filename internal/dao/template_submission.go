@@ -35,6 +35,16 @@ func (d *TemplateSubmissionDAO) GetByID(ctx context.Context, id uint64) (*model.
 	return d.first(d.DB(ctx), "id = ?", id)
 }
 
+// HasPendingByWork 判断作品是否有正在等待审核的投稿。已通过和已驳回都不算：
+// 发布出去的模板是独立快照，用户之后怎么改作品都不影响它。
+func (d *TemplateSubmissionDAO) HasPendingByWork(ctx context.Context, userID, workID uint64) (bool, error) {
+	var count int64
+	err := d.DB(ctx).Model(&model.TemplateSubmission{}).
+		Where("user_id = ? AND work_id = ? AND status = ?", userID, workID, model.TemplateSubmissionStatusPending).
+		Count(&count).Error
+	return count > 0, err
+}
+
 func (d *TemplateSubmissionDAO) GetByIDTx(tx *gorm.DB, id uint64) (*model.TemplateSubmission, error) {
 	return d.first(tx, "id = ?", id)
 }

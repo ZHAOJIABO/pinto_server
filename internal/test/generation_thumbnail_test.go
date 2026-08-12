@@ -24,7 +24,7 @@ func setupGenerationServiceWithThumbnails(t *testing.T) (*generation.Service, *m
 		dao.NewGenerationDAO(),
 		credit.NewService(dao.NewCreditDAO()),
 		subscribe.NewService(dao.NewOrderDAO(), dao.NewProductDAO(), dao.NewSubscriptionDAO()),
-		work.NewService(dao.NewWorkDAO()),
+		work.NewService(dao.NewWorkDAO(), nil, nil),
 		mediaSvc,
 	)
 	return svc, mediaSvc, storage

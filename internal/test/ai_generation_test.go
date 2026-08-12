@@ -369,7 +369,7 @@ func TestAIGeneration_EndToEnd(t *testing.T) {
 	creditService := env.credits
 	aiService := env.svc
 
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 	subscribeService := subscribe.NewService(orderDAO, productDAO, subscriptionDAO)
 	genService := generation.NewService(generationDAO, creditService, subscribeService, workService, nil)
 	genService.SetAIValidator(aiService)
@@ -467,7 +467,7 @@ func TestCreateGeneration_AISource_Validation(t *testing.T) {
 	productDAO := dao.NewProductDAO()
 	subscriptionDAO := dao.NewSubscriptionDAO()
 
-	workService := work.NewService(workDAO)
+	workService := work.NewService(workDAO, nil, nil)
 	subscribeService := subscribe.NewService(orderDAO, productDAO, subscriptionDAO)
 	genService := generation.NewService(generationDAO, env.credits, subscribeService, workService, nil)
 	genService.SetAIValidator(env.svc)

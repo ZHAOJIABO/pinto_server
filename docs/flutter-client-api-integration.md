@@ -153,6 +153,7 @@ GET /api/v1/templates?scene=home&page.page=1&page.pageSize=20
 | `2002` | 生成凭证过期 | 重新发起生成 |
 | `2003` | 生成已结束 | 刷新状态，避免重复操作 |
 | `2004` | 重复请求 | 通常可按幂等结果处理 |
+| `2006` | 作品有投稿正在审核，暂不可修改 | 提示「审核完成后可修改」，保留用户本地编辑 |
 | `3002` | 文件类型不允许 | 限制选择器文件类型 |
 | `3003` | 文件过大 | 压缩图片或提示重新选择 |
 | `5000` | 服务端内部错误 | 展示通用错误并上报 |
@@ -1270,6 +1271,37 @@ POST /api/v1/works
 ```
 
 首期推荐生成类入口仍走 `generation/create -> complete`，这样服务端能统一处理免费额度、积分和幂等。
+
+### 7.24.1 修改已保存的作品
+
+编辑已有图纸用这个接口，**不要**拿草稿接口去改已完成作品（那会把它变成草稿并清掉缩略图和来源信息）。
+
+```http
+PUT /api/v1/works/{workId}
+```
+
+```json
+{
+  "title": "改个名字",
+  "patternImageUrl": "https://.../pattern_v2.png",
+  "patternData": { "width": 6, "height": 6, "boardSpec": "29x29", "pixels": [], "colorPalette": [], "schemaVersion": 1 }
+}
+```
+
+字段全部可选，**为空表示不修改**：
+
+| 字段 | 说明 |
+|---|---|
+| `title` | 只改标题时只传它 |
+| `originalImageUrl` / `patternImageUrl` | 换图时传，图纸图变了服务端会重新生成缩略图 |
+| `thumbnailUrl` | 缩略图**源图**（不带底部色卡的纯图纸），传了优先用它生成；不传则用 `patternImageUrl` |
+| `patternData` | 不传表示图纸内容不变；传了会重算 `width`/`height`/`beadCount`/`colorCount` |
+
+服务端保留的字段：`status`（草稿仍是草稿，成品仍是成品）、`sourceType`/`sourceId`、`createdAt`。响应直接返回更新后的 `WorkItem`，客户端可以拿它刷新卡片，不用再请求一次详情。
+
+错误码：`1101` 参数非法（`workId` 非数字、图纸数据校验失败），`1102` 作品不存在或不属于当前用户，`2006` 该作品有投稿正在等待审核。图纸数据校验失败时整行不会被改动。
+
+**投稿审核中的作品是锁定的。** 作品被投稿到官方图纸库后，只要投稿还是待审核（`status = 0`），本接口和 `POST /api/v1/works/drafts` 都会返回 `2006`，记录不会被修改。投稿一旦审核完（通过或驳回）就解锁：已发布的官方图纸是独立快照，用户之后怎么改自己的作品都不影响它。建议客户端按 `GET /api/v1/template-submissions` 里 `status == 0` 的 `workId` 提前把编辑入口置灰。详见 `docs/work-update-client-guide.md`。
 
 ### 7.25 草稿
 

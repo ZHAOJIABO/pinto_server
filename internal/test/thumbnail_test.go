@@ -37,7 +37,7 @@ func seedWork(t *testing.T, userID uint64, patternURL, thumbnailURL string) uint
 
 func TestWorkHandler_ReturnsStoredThumbnailVerbatim(t *testing.T) {
 	SetupTestDB(t)
-	handler := api.NewWorkHandler(work.NewService(dao.NewWorkDAO()))
+	handler := api.NewWorkHandler(work.NewService(dao.NewWorkDAO(), nil, nil))
 	ctx := userCtx(7)
 
 	// Thumbnails are produced at write time, so the read path must not derive
