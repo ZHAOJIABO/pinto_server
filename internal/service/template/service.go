@@ -132,13 +132,44 @@ func (s *Service) UnfavoriteTemplate(ctx context.Context, userID, templateID uin
 	return tpl.FavoriteCount, nil
 }
 
-func (s *Service) ListFavoriteTemplates(ctx context.Context, userID uint64, page, pageSize int) ([]*model.Template, int64, error) {
+func (s *Service) ListFavoriteTemplates(ctx context.Context, userID uint64, categoryID, page, pageSize int) ([]*model.Template, int64, error) {
 	offset := (page - 1) * pageSize
-	return s.templateDAO.ListFavoriteTemplates(ctx, userID, offset, pageSize)
+	return s.templateDAO.ListFavoriteTemplates(ctx, userID, categoryID, offset, pageSize)
 }
 
 func (s *Service) BatchGetFavorited(ctx context.Context, userID uint64, templateIDs []uint64) (map[uint64]bool, error) {
 	return s.templateDAO.BatchGetFavorited(ctx, userID, templateIDs)
+}
+
+// ListFavoriteCategories 只返回用户确实有收藏的分类，计数为该用户在分类下的收藏数量。
+func (s *Service) ListFavoriteCategories(ctx context.Context, userID uint64) ([]*model.TemplateCategory, []int64, error) {
+	rows, err := s.templateDAO.CountFavoritesByCategory(ctx, userID)
+	if err != nil {
+		return nil, nil, apperr.Internal("count favorites by category", err)
+	}
+	if len(rows) == 0 {
+		return nil, nil, nil
+	}
+
+	countMap := make(map[int]int64, len(rows))
+	for _, r := range rows {
+		countMap[r.CategoryID] = r.Count
+	}
+
+	categories, err := s.ListActiveCategories(ctx)
+	if err != nil {
+		return nil, nil, apperr.Internal("list categories", err)
+	}
+
+	result := make([]*model.TemplateCategory, 0, len(countMap))
+	counts := make([]int64, 0, len(countMap))
+	for _, c := range categories {
+		if count, ok := countMap[c.ID]; ok {
+			result = append(result, c)
+			counts = append(counts, count)
+		}
+	}
+	return result, counts, nil
 }
 
 func (s *Service) SplitTags(tags string) []string {

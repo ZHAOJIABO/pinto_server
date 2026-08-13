@@ -284,7 +284,7 @@ func TestListFavoriteTemplates(t *testing.T) {
 	svc.FavoriteTemplate(context.Background(), userB, tpl1.ID)
 
 	// User A should see 2 favorites
-	favs, total, err := svc.ListFavoriteTemplates(context.Background(), userA, 1, 20)
+	favs, total, err := svc.ListFavoriteTemplates(context.Background(), userA, 0, 1, 20)
 	if err != nil {
 		t.Fatalf("ListFavoriteTemplates failed: %v", err)
 	}
@@ -296,13 +296,51 @@ func TestListFavoriteTemplates(t *testing.T) {
 	}
 
 	// User B should see 1 favorite
-	favsB, totalB, _ := svc.ListFavoriteTemplates(context.Background(), userB, 1, 20)
+	favsB, totalB, _ := svc.ListFavoriteTemplates(context.Background(), userB, 0, 1, 20)
 	if totalB != 1 {
 		t.Errorf("expected total=1 for userB, got %d", totalB)
 	}
 	_ = favsB
 
 	t.Log("ListFavoriteTemplates isolation success")
+}
+
+func TestListFavoriteTemplates_ByCategory(t *testing.T) {
+	SetupTestDB(t)
+	seedTemplateData(t)
+
+	templateDAO := dao.NewTemplateDAO()
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
+
+	otherCat := &model.TemplateCategory{Name: "植物", SortOrder: 2, Status: 1}
+	db.DB.Create(otherCat)
+	otherTpl := &model.Template{CategoryID: otherCat.ID, Title: "小花花", Status: 1}
+	db.DB.Create(otherTpl)
+
+	var tpl1 model.Template
+	db.DB.Where("title = ?", "小猫咪").First(&tpl1)
+
+	userID := uint64(1)
+	svc.FavoriteTemplate(context.Background(), userID, tpl1.ID)
+	svc.FavoriteTemplate(context.Background(), userID, otherTpl.ID)
+
+	favs, total, err := svc.ListFavoriteTemplates(context.Background(), userID, otherCat.ID, 1, 20)
+	if err != nil {
+		t.Fatalf("ListFavoriteTemplates by category failed: %v", err)
+	}
+	if total != 1 {
+		t.Errorf("expected total=1 for category %d, got %d", otherCat.ID, total)
+	}
+	if len(favs) != 1 || favs[0].Title != "小花花" {
+		t.Fatalf("expected only 小花花, got %+v", favs)
+	}
+
+	_, allTotal, _ := svc.ListFavoriteTemplates(context.Background(), userID, 0, 1, 20)
+	if allTotal != 2 {
+		t.Errorf("expected total=2 without category filter, got %d", allTotal)
+	}
+
+	t.Log("ListFavoriteTemplates category filter success")
 }
 
 func TestListCategories_WithCount(t *testing.T) {
@@ -323,6 +361,48 @@ func TestListCategories_WithCount(t *testing.T) {
 		t.Errorf("expected template_count=2, got %d", counts[0])
 	}
 	t.Log("ListCategories with count success")
+}
+
+func TestListFavoriteCategories(t *testing.T) {
+	SetupTestDB(t)
+	seedTemplateData(t)
+
+	templateDAO := dao.NewTemplateDAO()
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
+
+	var tpl1, tpl2 model.Template
+	db.DB.Where("title = ?", "小猫咪").First(&tpl1)
+	db.DB.Where("title = ?", "小狗狗").First(&tpl2)
+
+	userA := uint64(1)
+	userB := uint64(2)
+
+	svc.FavoriteTemplate(context.Background(), userA, tpl1.ID)
+	svc.FavoriteTemplate(context.Background(), userA, tpl2.ID)
+
+	categories, counts, err := svc.ListFavoriteCategories(context.Background(), userA)
+	if err != nil {
+		t.Fatalf("ListFavoriteCategories failed: %v", err)
+	}
+	if len(categories) != 1 {
+		t.Fatalf("expected 1 category for userA, got %d", len(categories))
+	}
+	if categories[0].Name != "动物" {
+		t.Errorf("expected category 动物, got %s", categories[0].Name)
+	}
+	if counts[0] != 2 {
+		t.Errorf("expected favorite count=2, got %d", counts[0])
+	}
+
+	categoriesB, _, err := svc.ListFavoriteCategories(context.Background(), userB)
+	if err != nil {
+		t.Fatalf("ListFavoriteCategories for userB failed: %v", err)
+	}
+	if len(categoriesB) != 0 {
+		t.Errorf("expected no categories for userB, got %d", len(categoriesB))
+	}
+
+	t.Log("ListFavoriteCategories success")
 }
 
 func TestListTemplates_IsFavorited(t *testing.T) {

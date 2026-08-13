@@ -19,14 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TemplateService_GetTemplate_FullMethodName           = "/bobobeads.v1.TemplateService/GetTemplate"
-	TemplateService_ListTemplates_FullMethodName         = "/bobobeads.v1.TemplateService/ListTemplates"
-	TemplateService_ListCategories_FullMethodName        = "/bobobeads.v1.TemplateService/ListCategories"
-	TemplateService_ListFavoriteTemplates_FullMethodName = "/bobobeads.v1.TemplateService/ListFavoriteTemplates"
-	TemplateService_FavoriteTemplate_FullMethodName      = "/bobobeads.v1.TemplateService/FavoriteTemplate"
-	TemplateService_UnfavoriteTemplate_FullMethodName    = "/bobobeads.v1.TemplateService/UnfavoriteTemplate"
-	TemplateService_RandomTemplate_FullMethodName        = "/bobobeads.v1.TemplateService/RandomTemplate"
-	TemplateService_ListBlindBoxRecords_FullMethodName   = "/bobobeads.v1.TemplateService/ListBlindBoxRecords"
+	TemplateService_GetTemplate_FullMethodName            = "/bobobeads.v1.TemplateService/GetTemplate"
+	TemplateService_ListTemplates_FullMethodName          = "/bobobeads.v1.TemplateService/ListTemplates"
+	TemplateService_ListCategories_FullMethodName         = "/bobobeads.v1.TemplateService/ListCategories"
+	TemplateService_ListFavoriteTemplates_FullMethodName  = "/bobobeads.v1.TemplateService/ListFavoriteTemplates"
+	TemplateService_ListFavoriteCategories_FullMethodName = "/bobobeads.v1.TemplateService/ListFavoriteCategories"
+	TemplateService_FavoriteTemplate_FullMethodName       = "/bobobeads.v1.TemplateService/FavoriteTemplate"
+	TemplateService_UnfavoriteTemplate_FullMethodName     = "/bobobeads.v1.TemplateService/UnfavoriteTemplate"
+	TemplateService_RandomTemplate_FullMethodName         = "/bobobeads.v1.TemplateService/RandomTemplate"
+	TemplateService_ListBlindBoxRecords_FullMethodName    = "/bobobeads.v1.TemplateService/ListBlindBoxRecords"
 )
 
 // TemplateServiceClient is the client API for TemplateService service.
@@ -43,6 +44,8 @@ type TemplateServiceClient interface {
 	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
 	// 获取当前用户收藏的图纸模板。
 	ListFavoriteTemplates(ctx context.Context, in *ListFavoriteTemplatesRequest, opts ...grpc.CallOption) (*ListFavoriteTemplatesResponse, error)
+	// 获取当前用户收藏所覆盖的图纸分类。
+	ListFavoriteCategories(ctx context.Context, in *ListFavoriteCategoriesRequest, opts ...grpc.CallOption) (*ListFavoriteCategoriesResponse, error)
 	// 收藏图纸模板。
 	FavoriteTemplate(ctx context.Context, in *FavoriteTemplateRequest, opts ...grpc.CallOption) (*FavoriteTemplateResponse, error)
 	// 取消收藏图纸模板。
@@ -95,6 +98,16 @@ func (c *templateServiceClient) ListFavoriteTemplates(ctx context.Context, in *L
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListFavoriteTemplatesResponse)
 	err := c.cc.Invoke(ctx, TemplateService_ListFavoriteTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *templateServiceClient) ListFavoriteCategories(ctx context.Context, in *ListFavoriteCategoriesRequest, opts ...grpc.CallOption) (*ListFavoriteCategoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFavoriteCategoriesResponse)
+	err := c.cc.Invoke(ctx, TemplateService_ListFavoriteCategories_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +168,8 @@ type TemplateServiceServer interface {
 	ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error)
 	// 获取当前用户收藏的图纸模板。
 	ListFavoriteTemplates(context.Context, *ListFavoriteTemplatesRequest) (*ListFavoriteTemplatesResponse, error)
+	// 获取当前用户收藏所覆盖的图纸分类。
+	ListFavoriteCategories(context.Context, *ListFavoriteCategoriesRequest) (*ListFavoriteCategoriesResponse, error)
 	// 收藏图纸模板。
 	FavoriteTemplate(context.Context, *FavoriteTemplateRequest) (*FavoriteTemplateResponse, error)
 	// 取消收藏图纸模板。
@@ -184,6 +199,9 @@ func (UnimplementedTemplateServiceServer) ListCategories(context.Context, *ListC
 }
 func (UnimplementedTemplateServiceServer) ListFavoriteTemplates(context.Context, *ListFavoriteTemplatesRequest) (*ListFavoriteTemplatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListFavoriteTemplates not implemented")
+}
+func (UnimplementedTemplateServiceServer) ListFavoriteCategories(context.Context, *ListFavoriteCategoriesRequest) (*ListFavoriteCategoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFavoriteCategories not implemented")
 }
 func (UnimplementedTemplateServiceServer) FavoriteTemplate(context.Context, *FavoriteTemplateRequest) (*FavoriteTemplateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FavoriteTemplate not implemented")
@@ -290,6 +308,24 @@ func _TemplateService_ListFavoriteTemplates_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TemplateService_ListFavoriteCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFavoriteCategoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).ListFavoriteCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_ListFavoriteCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).ListFavoriteCategories(ctx, req.(*ListFavoriteCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TemplateService_FavoriteTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FavoriteTemplateRequest)
 	if err := dec(in); err != nil {
@@ -384,6 +420,10 @@ var TemplateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListFavoriteTemplates",
 			Handler:    _TemplateService_ListFavoriteTemplates_Handler,
+		},
+		{
+			MethodName: "ListFavoriteCategories",
+			Handler:    _TemplateService_ListFavoriteCategories_Handler,
 		},
 		{
 			MethodName: "FavoriteTemplate",

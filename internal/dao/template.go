@@ -166,44 +166,53 @@ func (d *TemplateDAO) DecrementFavoriteCount(ctx context.Context, templateID uin
 		Update("favorite_count", gorm.Expr("favorite_count - 1")).Error
 }
 
-func (d *TemplateDAO) ListFavoriteTemplates(ctx context.Context, userID uint64, offset, limit int) ([]*model.Template, int64, error) {
-	var total int64
-	d.DB(ctx).Model(&model.TemplateFavorite{}).Where("user_id = ?", userID).Count(&total)
+func (d *TemplateDAO) ListFavoriteTemplates(ctx context.Context, userID uint64, categoryID int, offset, limit int) ([]*model.Template, int64, error) {
+	// 每次重新构造查询：Count 会污染 gorm 的语句状态，复用同一个 *gorm.DB 拿不到正确的分页结果。
+	base := func() *gorm.DB {
+		q := d.DB(ctx).Table("bb_template_favorite AS f").
+			Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status = 1").
+			Where("f.user_id = ?", userID)
+		if categoryID > 0 {
+			q = q.Where("t.category_id = ?", categoryID)
+		}
+		return q
+	}
 
-	var favs []*model.TemplateFavorite
-	err := d.DB(ctx).Where("user_id = ?", userID).
-		Order("created_at DESC").Offset(offset).Limit(limit).Find(&favs).Error
-	if err != nil {
+	var total int64
+	if err := base().Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	if len(favs) == 0 {
-		return []*model.Template{}, total, nil
-	}
-
-	templateIDs := make([]uint64, 0, len(favs))
-	for _, f := range favs {
-		templateIDs = append(templateIDs, f.TemplateID)
+	if total == 0 {
+		return []*model.Template{}, 0, nil
 	}
 
 	var templates []*model.Template
-	err = d.DB(ctx).Where("id IN ?", templateIDs).Find(&templates).Error
+	err := base().Select("t.*").
+		Order("f.created_at DESC, f.id DESC").
+		Offset(offset).Limit(limit).
+		Scan(&templates).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	tplMap := make(map[uint64]*model.Template)
-	for _, t := range templates {
-		tplMap[t.ID] = t
-	}
+	return templates, total, nil
+}
 
-	ordered := make([]*model.Template, 0, len(favs))
-	for _, f := range favs {
-		if t, ok := tplMap[f.TemplateID]; ok {
-			ordered = append(ordered, t)
-		}
-	}
+// FavoriteCategoryCount 表示用户在某个分类下的收藏数量。
+type FavoriteCategoryCount struct {
+	CategoryID int   `gorm:"column:category_id"`
+	Count      int64 `gorm:"column:count"`
+}
 
-	return ordered, total, nil
+func (d *TemplateDAO) CountFavoritesByCategory(ctx context.Context, userID uint64) ([]*FavoriteCategoryCount, error) {
+	var rows []*FavoriteCategoryCount
+	err := d.DB(ctx).Table("bb_template_favorite AS f").
+		Select("t.category_id AS category_id, COUNT(*) AS count").
+		Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status = 1").
+		Where("f.user_id = ?", userID).
+		Group("t.category_id").
+		Scan(&rows).Error
+	return rows, err
 }
 
 func (d *TemplateDAO) SplitTags(tags string) []string {

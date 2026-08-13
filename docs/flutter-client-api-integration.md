@@ -788,10 +788,18 @@ DELETE /api/v1/templates/{templateId}/favorite
 ### 7.9 我的官方图纸收藏
 
 ```http
-GET /api/v1/templates/favorites?page.page=1&page.pageSize=20
+GET /api/v1/templates/favorites?page.page=1&page.pageSize=20&categoryId=1
 ```
 
-响应结构同模板列表，所有 item 的 `isFavorited=true`。
+`categoryId` 可选，0 或不传表示全部分类。响应结构同模板列表，所有 item 的 `isFavorited=true`。已下架的图纸不会出现在收藏列表里，也不计入 `page.total`。
+
+收藏覆盖的分类（用于收藏页做分类筛选）：
+
+```http
+GET /api/v1/templates/favorites/categories
+```
+
+响应结构同 `GET /api/v1/templates/categories`，但只返回当前用户确实有收藏的分类，`templateCount` 是该分类下当前用户的收藏数量。
 
 ### 7.10 获取上传凭证
 

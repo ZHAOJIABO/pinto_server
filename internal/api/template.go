@@ -66,6 +66,26 @@ func (h *TemplateHandler) ListCategories(ctx context.Context, req *pb.ListCatego
 	return &pb.ListCategoriesResponse{Header: okHeaderCtx(ctx), Categories: items}, nil
 }
 
+func (h *TemplateHandler) ListFavoriteCategories(ctx context.Context, req *pb.ListFavoriteCategoriesRequest) (*pb.ListFavoriteCategoriesResponse, error) {
+	userID := middleware.GetUserID(ctx)
+
+	categories, counts, err := h.templateService.ListFavoriteCategories(ctx, userID)
+	if err != nil {
+		return &pb.ListFavoriteCategoriesResponse{Header: errHeaderCtx(ctx, err)}, nil
+	}
+
+	var items []*pb.CategoryItem
+	for i, c := range categories {
+		items = append(items, &pb.CategoryItem{
+			CategoryId:    int32(c.ID),
+			Name:          c.Name,
+			IconUrl:       c.IconURL,
+			TemplateCount: int32(counts[i]),
+		})
+	}
+	return &pb.ListFavoriteCategoriesResponse{Header: okHeaderCtx(ctx), Categories: items}, nil
+}
+
 func (h *TemplateHandler) ListTemplates(ctx context.Context, req *pb.ListTemplatesRequest) (*pb.ListTemplatesResponse, error) {
 	userID := middleware.GetUserID(ctx)
 	page, pageSize := getPage(req.Page)
@@ -222,14 +242,9 @@ func (h *TemplateHandler) ListFavoriteTemplates(ctx context.Context, req *pb.Lis
 	userID := middleware.GetUserID(ctx)
 	page, pageSize := getPage(req.Page)
 
-	templates, total, err := h.templateService.ListFavoriteTemplates(ctx, userID, page, pageSize)
+	templates, total, err := h.templateService.ListFavoriteTemplates(ctx, userID, int(req.CategoryId), page, pageSize)
 	if err != nil {
 		return &pb.ListFavoriteTemplatesResponse{Header: errHeaderCtx(ctx, err)}, nil
-	}
-
-	templateIDs := make([]uint64, 0, len(templates))
-	for _, t := range templates {
-		templateIDs = append(templateIDs, t.ID)
 	}
 
 	var items []*pb.TemplateItem

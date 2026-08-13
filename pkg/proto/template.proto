@@ -38,6 +38,13 @@ service TemplateService {
     };
   }
 
+  // 获取当前用户收藏所覆盖的图纸分类。
+  rpc ListFavoriteCategories(ListFavoriteCategoriesRequest) returns (ListFavoriteCategoriesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/favorites/categories"
+    };
+  }
+
   // 收藏图纸模板。
   rpc FavoriteTemplate(FavoriteTemplateRequest) returns (FavoriteTemplateResponse) {
     option (google.api.http) = {
@@ -203,6 +210,8 @@ message ListFavoriteTemplatesRequest {
   RequestHeader header = 1;
   // 分页参数。
   PageRequest page = 2;
+  // 分类 ID，0 或不传表示全部分类。
+  int32 category_id = 3;
 }
 
 message ListFavoriteTemplatesResponse {
@@ -212,6 +221,18 @@ message ListFavoriteTemplatesResponse {
   repeated TemplateItem templates = 2;
   // 分页信息。
   PageResponse page = 3;
+}
+
+message ListFavoriteCategoriesRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+}
+
+message ListFavoriteCategoriesResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 分类列表，template_count 为当前用户在该分类下的收藏数量。
+  repeated CategoryItem categories = 2;
 }
 
 message RandomTemplateRequest {
