@@ -98,7 +98,7 @@ ai_generation:
   fake_provider: true
   # 兜底模型：bb_config 的 ai_active_model 与 bb_ai_style.provider 都为空时用它，
   # 必须是下面 models 里已配置的 key。
-  default_model: "gpt-image-2"
+  default_model: "gpt-image-2-c"
   # 用户主动重试用的模型：首发失败后换一家，避免同一个模型再失败一次。
   # 留空则重试沿用首发链条；可被 bb_config 的 ai_retry_model 覆盖。
   retry_model: "gemini-3-1-flash-image-preview"
@@ -123,11 +123,11 @@ ai_generation:
   # 不能带小数点：viper 把点当作层级分隔符，会把 key 拆开。
   # options 会原样透传给上游，风格表 config 里的同名字段可以逐个覆盖。
   models:
-    gpt-image-2:
+    gpt-image-2-c:
       adapter: openai_image_edit
       base_url: "https://api.vectorengine.cn"
       api_key: ""
-      model: "gpt-image-2"
+      model: "gpt-image-2-c"
       options:
         size: "512x512"
         quality: "medium"

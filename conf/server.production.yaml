@@ -65,7 +65,7 @@ ai_generation:
   task_expire_minutes: 30
   worker_interval: 30
   fake_provider: false
-  default_model: "gpt-image-2"
+  default_model: "gpt-image-2-c"
   # 用户主动重试用的模型：首发失败后换一家，避免同一个模型再失败一次。
   # 留空则重试沿用首发链条；可被 bb_config 的 ai_retry_model 覆盖。
   retry_model: "gemini-3-1-flash-image-preview"
@@ -86,11 +86,11 @@ ai_generation:
   # api_key 通过未提交的 conf/server.production.local.yaml 注入
   # 线上切换模型不需要改这里：给 bb_config 写一行 ai_active_model = <models 的 key>。
   models:
-    gpt-image-2:
+    gpt-image-2-c:
       adapter: openai_image_edit
       base_url: "https://api.vectorengine.cn"
       api_key: ""
-      model: "gpt-image-2"
+      model: "gpt-image-2-c"
       options:
         size: "1024x1024"
         quality: "medium"

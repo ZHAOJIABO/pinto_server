@@ -65,14 +65,14 @@ ON DUPLICATE KEY UPDATE config_value = VALUES(config_value);
 ```yaml
 ai_generation:
   # 兜底模型，必须是下面 models 里已配置的 key
-  default_model: "gpt-image-2"
+  default_model: "gpt-image-2-c"
   # 用户主动重试用的模型，留空则重试沿用首发链条
   retry_model: "gemini-3-1-flash-image-preview"
   models:
-    gpt-image-2:
+    gpt-image-2-c:
       adapter: openai_image_edit        # OpenAI 兼容的 /v1/images/edits
       base_url: "https://api.vectorengine.cn"
-      model: "gpt-image-2"
+      model: "gpt-image-2-c"
       options: { size: "1024x1024", quality: "medium" }
     gemini-3-1-flash-image-preview:
       adapter: gemini_generate_content  # Gemini 原生 :generateContent
