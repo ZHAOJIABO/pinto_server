@@ -107,5 +107,5 @@ ai_generation:
 
 admin:
   jwt_secret: ""
-  access_expire_m: 480
+  access_expire_m: 1440
   accounts: []

@@ -36,12 +36,22 @@ func (d *WorkDAO) GetByIDForUser(ctx context.Context, id, userID uint64) (*model
 	return &work, err
 }
 
+// listColumns omits pattern_data. That column holds a whole bead grid and can
+// reach megabytes, and MySQL's filesort for "ORDER BY updated_at" buffers every
+// selected column, so including it fails with error 1038 (out of sort memory)
+// once a user saves a large pattern.
+var listColumns = []string{
+	"id", "user_id", "title", "original_image_url", "pattern_image_url", "thumbnail_url",
+	"board_spec", "width", "height", "bead_count", "color_count", "source_type",
+	"source_id", "status", "created_at", "updated_at",
+}
+
 func (d *WorkDAO) ListByUserID(ctx context.Context, userID uint64, status int8, offset, limit int) ([]*model.Work, int64, error) {
 	var works []*model.Work
 	var total int64
 	query := d.DB(ctx).Where("user_id = ? AND status = ?", userID, status)
 	query.Model(&model.Work{}).Count(&total)
-	err := query.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&works).Error
+	err := query.Select(listColumns).Order("updated_at DESC").Offset(offset).Limit(limit).Find(&works).Error
 	return works, total, err
 }
 
@@ -50,7 +60,7 @@ func (d *WorkDAO) ListByUserIDAndSource(ctx context.Context, userID uint64, stat
 	var total int64
 	query := d.DB(ctx).Where("user_id = ? AND status = ? AND source_type = ?", userID, status, sourceType)
 	query.Model(&model.Work{}).Count(&total)
-	err := query.Order("updated_at DESC").Offset(offset).Limit(limit).Find(&works).Error
+	err := query.Select(listColumns).Order("updated_at DESC").Offset(offset).Limit(limit).Find(&works).Error
 	return works, total, err
 }
 

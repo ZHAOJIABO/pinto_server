@@ -94,17 +94,19 @@ func (s *AuthService) Login(username, password string) (*Token, error) {
 	}
 
 	s.clearFailures(username)
+	return s.issue(username)
+}
+
+func (s *AuthService) issue(username string) (*Token, error) {
 	now := s.now()
-	expiresAt := now.Add(s.ttl)
 	claims := jwt.MapClaims{
 		"sub":   username,
 		"scope": "admin:templates",
 		"type":  "admin_access",
 		"iat":   now.Unix(),
-		"exp":   expiresAt.Unix(),
+		"exp":   now.Add(s.ttl).Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	encoded, err := token.SignedString(s.secret)
+	encoded, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
@@ -112,8 +114,35 @@ func (s *AuthService) Login(username, password string) (*Token, error) {
 }
 
 func (s *AuthService) ValidateAccessToken(raw string) (string, error) {
+	username, _, err := s.validate(raw)
+	return username, err
+}
+
+// ValidateAndRenew authenticates a request and, once the presented token is
+// past its midpoint, mints a replacement so an administrator who keeps working
+// is never interrupted. The returned token is empty when no renewal is due.
+// TTL therefore bounds idle time rather than total session length, which keeps
+// any single leaked token short-lived.
+func (s *AuthService) ValidateAndRenew(raw string) (string, *Token, error) {
+	username, expiresAt, err := s.validate(raw)
+	if err != nil {
+		return "", nil, err
+	}
+	if s.now().Add(s.ttl / 2).Before(expiresAt) {
+		return username, nil, nil
+	}
+	renewed, err := s.issue(username)
+	if err != nil {
+		// The caller is already authenticated, so a signing failure must not
+		// turn a valid request into a 401.
+		return username, nil, nil
+	}
+	return username, renewed, nil
+}
+
+func (s *AuthService) validate(raw string) (string, time.Time, error) {
 	if raw == "" || len(s.secret) == 0 {
-		return "", ErrInvalidToken
+		return "", time.Time{}, ErrInvalidToken
 	}
 
 	token, err := jwt.Parse(raw, func(token *jwt.Token) (interface{}, error) {
@@ -121,22 +150,26 @@ func (s *AuthService) ValidateAccessToken(raw string) (string, error) {
 			return nil, ErrInvalidToken
 		}
 		return s.secret, nil
-	})
+	}, jwt.WithTimeFunc(s.now))
 	if err != nil || !token.Valid {
-		return "", ErrInvalidToken
+		return "", time.Time{}, ErrInvalidToken
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || claims["type"] != "admin_access" || claims["scope"] != "admin:templates" {
-		return "", ErrInvalidToken
+		return "", time.Time{}, ErrInvalidToken
 	}
 	username, ok := claims["sub"].(string)
 	if !ok || username == "" {
-		return "", ErrInvalidToken
+		return "", time.Time{}, ErrInvalidToken
 	}
 	if _, ok := s.accounts[username]; !ok {
-		return "", ErrInvalidToken
+		return "", time.Time{}, ErrInvalidToken
 	}
-	return username, nil
+	exp, err := claims.GetExpirationTime()
+	if err != nil || exp == nil {
+		return "", time.Time{}, ErrInvalidToken
+	}
+	return username, exp.Time, nil
 }
 
 // HashPassword creates the deployment-time password hash format accepted by

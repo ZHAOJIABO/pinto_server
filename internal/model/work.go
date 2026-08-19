@@ -8,7 +8,7 @@ import (
 
 type Work struct {
 	BaseModel
-	UserID           uint64  `gorm:"not null;index" json:"user_id"`
+	UserID           uint64  `gorm:"not null;index:idx_work_user_status,priority:1" json:"user_id"`
 	Title            string  `gorm:"type:varchar(128)" json:"title"`
 	OriginalImageURL string  `gorm:"type:varchar(512)" json:"original_image_url"`
 	PatternImageURL  string  `gorm:"type:varchar(512)" json:"pattern_image_url"`
@@ -21,7 +21,7 @@ type Work struct {
 	ColorCount       int     `gorm:"type:int" json:"color_count"`
 	SourceType       string  `gorm:"type:varchar(16)" json:"source_type"`
 	SourceID         string  `gorm:"type:varchar(64)" json:"source_id"`
-	Status           int8    `gorm:"type:tinyint;default:1" json:"status"` // 1:草稿 2:已完成
+	Status           int8    `gorm:"type:tinyint;default:1;index:idx_work_user_status,priority:2" json:"status"` // 1:草稿 2:已完成
 }
 
 func (Work) TableName() string { return "bb_work" }

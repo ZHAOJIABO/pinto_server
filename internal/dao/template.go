@@ -14,6 +14,28 @@ type TemplateDAO struct{}
 
 func NewTemplateDAO() *TemplateDAO { return &TemplateDAO{} }
 
+// templateListColumns omits pattern_data for the same reason the work list does:
+// the JSON grid can reach megabytes, and MySQL's filesort buffers every selected
+// column, so an "ORDER BY" over these rows fails with error 1038 (out of sort
+// memory) once a large pattern exists. templateItemProto is the only consumer of
+// list rows and needs nothing beyond these columns.
+var templateListColumns = []string{
+	"id", "category_id", "title", "preview_url", "thumbnail_url", "description",
+	"board_spec", "tags", "difficulty", "width", "height", "color_count",
+	"is_free", "credit_cost", "download_count", "favorite_count",
+	"contributor_nickname",
+}
+
+// qualifiedTemplateListColumns renders the same projection for joined queries,
+// where bare column names would be ambiguous.
+func qualifiedTemplateListColumns(alias string) string {
+	qualified := make([]string, len(templateListColumns))
+	for i, column := range templateListColumns {
+		qualified[i] = alias + "." + column
+	}
+	return strings.Join(qualified, ", ")
+}
+
 func (d *TemplateDAO) DB(ctx context.Context) *gorm.DB {
 	return db.DB.WithContext(ctx)
 }
@@ -78,7 +100,7 @@ func (d *TemplateDAO) ListByCategory(ctx context.Context, categoryID int, offset
 	var total int64
 	query := d.DB(ctx).Where("category_id = ? AND status = 1", categoryID)
 	query.Model(&model.Template{}).Count(&total)
-	err := query.Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
+	err := query.Select(templateListColumns).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
 	return templates, total, err
 }
 
@@ -91,11 +113,7 @@ func (d *TemplateDAO) ListPublished(ctx context.Context, offset, limit int) ([]*
 	var total int64
 	query := d.DB(ctx).Where("status = 1")
 	query.Model(&model.Template{}).Count(&total)
-	err := query.Select(
-		"id", "category_id", "title", "preview_url", "thumbnail_url", "description", "board_spec", "tags",
-		"difficulty", "width", "height", "color_count", "is_free", "credit_cost", "download_count", "favorite_count",
-		"contributor_nickname",
-	).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
+	err := query.Select(templateListColumns).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
 	return templates, total, err
 }
 
@@ -105,7 +123,7 @@ func (d *TemplateDAO) ListByKeyword(ctx context.Context, keyword string, offset,
 	like := fmt.Sprintf("%%%s%%", keyword)
 	query := d.DB(ctx).Where("status = 1 AND (title LIKE ? OR tags LIKE ?)", like, like)
 	query.Model(&model.Template{}).Count(&total)
-	err := query.Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
+	err := query.Select(templateListColumns).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
 	return templates, total, err
 }
 
@@ -187,7 +205,7 @@ func (d *TemplateDAO) ListFavoriteTemplates(ctx context.Context, userID uint64, 
 	}
 
 	var templates []*model.Template
-	err := base().Select("t.*").
+	err := base().Select(qualifiedTemplateListColumns("t")).
 		Order("f.created_at DESC, f.id DESC").
 		Offset(offset).Limit(limit).
 		Scan(&templates).Error

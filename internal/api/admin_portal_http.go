@@ -21,6 +21,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// Sliding-session headers. The browser can only read these cross-origin when
+// they are listed in Access-Control-Expose-Headers, so cmd/main.go's CORS
+// middleware references the same constants.
+const (
+	AdminRenewedTokenHeader   = "X-Admin-Access-Token"
+	AdminRenewedExpiresHeader = "X-Admin-Expires-In"
+)
+
 // AdminPortalHTTPHandler is intentionally separate from the gRPC Gateway.
 // Its routes accept only an administrator token, while AdminTemplateService
 // remains reserved for service-to-service callers.
@@ -386,10 +394,15 @@ func (h *AdminPortalHTTPHandler) unpublishTemplate(w http.ResponseWriter, r *htt
 }
 
 func (h *AdminPortalHTTPHandler) withAdmin(w http.ResponseWriter, r *http.Request, next func(http.ResponseWriter, *http.Request, string)) {
-	actor, err := h.auth.ValidateAccessToken(bearerToken(r.Header.Get("Authorization")))
+	actor, renewed, err := h.auth.ValidateAndRenew(bearerToken(r.Header.Get("Authorization")))
 	if err != nil {
 		h.writeError(w, http.StatusUnauthorized, "administrator authentication required")
 		return
+	}
+	// Must precede next, which writes the status line and closes the headers.
+	if renewed != nil {
+		w.Header().Set(AdminRenewedTokenHeader, renewed.AccessToken)
+		w.Header().Set(AdminRenewedExpiresHeader, strconv.FormatInt(renewed.ExpiresIn, 10))
 	}
 	next(w, r, actor)
 }

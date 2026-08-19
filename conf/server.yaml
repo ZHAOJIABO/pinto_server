@@ -146,5 +146,5 @@ ai_generation:
 # 生产环境请通过独立的未提交配置或密钥管理系统注入 jwt_secret 和 accounts。
 admin:
   jwt_secret: ""
-  access_expire_m: 480
+  access_expire_m: 1440
   accounts: []

@@ -497,3 +497,137 @@ func TestTemplateListAndDetailExposeContributorNickname(t *testing.T) {
 		t.Errorf("official template contributorNickname = %q, want empty", officialDetail.Template.ContributorNickname)
 	}
 }
+
+// Every list query projects an explicit column set instead of SELECT *, so a
+// column missing from that set silently degrades to a zero value rather than
+// failing. Each expectation below is deliberately non-zero so an omission shows
+// up as a test failure, and pattern_data must stay absent because selecting it
+// is what exhausted MySQL's sort buffer.
+func TestTemplateListProjectionCoversProtoFieldsAndDropsPatternData(t *testing.T) {
+	SetupTestDB(t)
+
+	cat := &model.TemplateCategory{Name: "动物", Status: 1}
+	if err := db.DB.Create(cat).Error; err != nil {
+		t.Fatalf("create category: %v", err)
+	}
+	full := &model.Template{
+		CategoryID:          cat.ID,
+		Title:               "完整字段图纸",
+		PreviewURL:          "https://oss/preview.png",
+		ThumbnailURL:        "https://oss/thumb.png",
+		Description:         "字段完整性用例",
+		BoardSpec:           "29x29",
+		Tags:                "猫,动物",
+		Difficulty:          3,
+		Width:               29,
+		Height:              29,
+		ColorCount:          12,
+		IsFree:              true,
+		CreditCost:          5,
+		DownloadCount:       11,
+		FavoriteCount:       13,
+		SortOrder:           7,
+		Status:              1,
+		ContributorNickname: "投稿人",
+		PatternData:         work.PatternDataToJSONMap(validPatternData(29, 29)),
+	}
+	if err := db.DB.Create(full).Error; err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+
+	templateDAO := dao.NewTemplateDAO()
+	svc := template.NewService(templateDAO, dao.NewBlindBoxRecordDAO())
+
+	assertProjection := func(t *testing.T, route string, got *model.Template) {
+		t.Helper()
+		if got.PatternData != nil {
+			t.Errorf("%s: pattern_data must not be selected by list queries", route)
+		}
+		if got.ID != full.ID {
+			t.Errorf("%s: id = %d, want %d", route, got.ID, full.ID)
+		}
+		if got.CategoryID != full.CategoryID {
+			t.Errorf("%s: category_id = %d, want %d", route, got.CategoryID, full.CategoryID)
+		}
+		if got.Title != full.Title {
+			t.Errorf("%s: title = %q, want %q", route, got.Title, full.Title)
+		}
+		if got.PreviewURL != full.PreviewURL {
+			t.Errorf("%s: preview_url = %q, want %q", route, got.PreviewURL, full.PreviewURL)
+		}
+		if got.ThumbnailURL != full.ThumbnailURL {
+			t.Errorf("%s: thumbnail_url = %q, want %q", route, got.ThumbnailURL, full.ThumbnailURL)
+		}
+		if got.Description != full.Description {
+			t.Errorf("%s: description = %q, want %q", route, got.Description, full.Description)
+		}
+		if got.BoardSpec != full.BoardSpec {
+			t.Errorf("%s: board_spec = %q, want %q", route, got.BoardSpec, full.BoardSpec)
+		}
+		if got.Tags != full.Tags {
+			t.Errorf("%s: tags = %q, want %q", route, got.Tags, full.Tags)
+		}
+		if got.Difficulty != full.Difficulty {
+			t.Errorf("%s: difficulty = %d, want %d", route, got.Difficulty, full.Difficulty)
+		}
+		if got.Width != full.Width || got.Height != full.Height {
+			t.Errorf("%s: size = %dx%d, want %dx%d", route, got.Width, got.Height, full.Width, full.Height)
+		}
+		if got.ColorCount != full.ColorCount {
+			t.Errorf("%s: color_count = %d, want %d", route, got.ColorCount, full.ColorCount)
+		}
+		if !got.IsFree {
+			t.Errorf("%s: is_free = false, want true", route)
+		}
+		if got.CreditCost != full.CreditCost {
+			t.Errorf("%s: credit_cost = %d, want %d", route, got.CreditCost, full.CreditCost)
+		}
+		if got.DownloadCount != full.DownloadCount {
+			t.Errorf("%s: download_count = %d, want %d", route, got.DownloadCount, full.DownloadCount)
+		}
+		if got.ContributorNickname != full.ContributorNickname {
+			t.Errorf("%s: contributor_nickname = %q, want %q", route, got.ContributorNickname, full.ContributorNickname)
+		}
+	}
+
+	ctx := context.Background()
+
+	byCategory, _, err := svc.ListTemplates(ctx, template.ListInput{CategoryID: cat.ID, Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListTemplates by category: %v", err)
+	}
+	if len(byCategory) != 1 {
+		t.Fatalf("by category: expected 1 template, got %d", len(byCategory))
+	}
+	assertProjection(t, "ListByCategory", byCategory[0])
+
+	byKeyword, _, err := svc.ListTemplates(ctx, template.ListInput{Keyword: "完整字段", Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListTemplates by keyword: %v", err)
+	}
+	if len(byKeyword) != 1 {
+		t.Fatalf("by keyword: expected 1 template, got %d", len(byKeyword))
+	}
+	assertProjection(t, "ListByKeyword", byKeyword[0])
+
+	published, _, err := svc.ListPublishedTemplates(ctx, 1, 20)
+	if err != nil {
+		t.Fatalf("ListPublishedTemplates: %v", err)
+	}
+	if len(published) != 1 {
+		t.Fatalf("published: expected 1 template, got %d", len(published))
+	}
+	assertProjection(t, "ListPublished", published[0])
+
+	if _, err := svc.FavoriteTemplate(ctx, 1, full.ID); err != nil {
+		t.Fatalf("FavoriteTemplate: %v", err)
+	}
+	favorites, _, err := svc.ListFavoriteTemplates(ctx, 1, 0, 1, 20)
+	if err != nil {
+		t.Fatalf("ListFavoriteTemplates: %v", err)
+	}
+	if len(favorites) != 1 {
+		t.Fatalf("favorites: expected 1 template, got %d", len(favorites))
+	}
+	assertProjection(t, "ListFavoriteTemplates", favorites[0])
+}

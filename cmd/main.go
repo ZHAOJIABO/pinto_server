@@ -14,6 +14,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/zhaojiabo/bobobeads_server/conf"
+	"github.com/zhaojiabo/bobobeads_server/internal/api"
 	"github.com/zhaojiabo/bobobeads_server/internal/bootstrap"
 	"github.com/zhaojiabo/bobobeads_server/internal/db"
 	"github.com/zhaojiabo/bobobeads_server/internal/logger"
@@ -215,6 +216,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Platform, X-App-Version, X-Device-Id")
+		w.Header().Set("Access-Control-Expose-Headers", api.AdminRenewedTokenHeader+", "+api.AdminRenewedExpiresHeader)
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
