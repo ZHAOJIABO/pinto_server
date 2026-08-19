@@ -25,6 +25,15 @@ const (
 	CodeInternal            int32 = 5000
 )
 
+// 4xxx 段专属于管理后台草稿流程。Web 端按码值分支（admin-template-draft-api.md
+// 第 8 节明确要求不靠 message 文案匹配），所以这些数值本身就是契约，不得调整或复用。
+const (
+	CodeDraftConflict       int32 = 4001
+	CodeDraftNotFound       int32 = 4002
+	CodeDraftLimitExceeded  int32 = 4003
+	CodeDraftNotPublishable int32 = 4004
+)
+
 type AppError struct {
 	Code    int32
 	Message string
@@ -94,6 +103,33 @@ func InvalidFileType(msg string) *AppError {
 
 func FileTooLarge(maxSize int64) *AppError {
 	return &AppError{Code: CodeFileTooLarge, Message: fmt.Sprintf("file too large, max %d bytes", maxSize)}
+}
+
+// DraftConflict 报告草稿的乐观锁失配。message 里带上抢先写入的管理员，仅用于日志；
+// 前端要展示的 updatedByActor 由它收到 4001 后重新拉详情取得。
+func DraftConflict(actor string) *AppError {
+	if actor == "" {
+		return &AppError{Code: CodeDraftConflict, Message: "draft was modified by another administrator"}
+	}
+	return &AppError{Code: CodeDraftConflict, Message: fmt.Sprintf("draft was modified by %s", actor)}
+}
+
+func DraftNotFound() *AppError {
+	return &AppError{Code: CodeDraftNotFound, Message: "draft not found"}
+}
+
+func DraftLimitExceeded(limit int) *AppError {
+	return &AppError{
+		Code:    CodeDraftLimitExceeded,
+		Message: fmt.Sprintf("draft limit reached (%d); discard or publish an existing draft first", limit),
+	}
+}
+
+// DraftNotPublishable 覆盖两类「草稿存在但现在发不出去」：必填项没补全，以及
+// 关联的已发布模板在草稿存活期间被下架。都不能报 4002，否则管理员会看到
+// 「草稿不存在」而草稿明明就在箱里。
+func DraftNotPublishable(msg string) *AppError {
+	return &AppError{Code: CodeDraftNotPublishable, Message: msg}
 }
 
 func IsAppError(err error) (*AppError, bool) {

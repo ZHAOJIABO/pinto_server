@@ -38,6 +38,7 @@ type AdminPortalHTTPHandler struct {
 	templates     *templateservice.Service
 	templateAdmin *templateservice.AdminService
 	submissions   *templatesubmission.Service
+	drafts        *templateservice.DraftService
 }
 
 func NewAdminPortalHTTPHandler(
@@ -46,6 +47,7 @@ func NewAdminPortalHTTPHandler(
 	templateService *templateservice.Service,
 	templateAdmin *templateservice.AdminService,
 	submissionService *templatesubmission.Service,
+	draftService *templateservice.DraftService,
 ) *AdminPortalHTTPHandler {
 	return &AdminPortalHTTPHandler{
 		auth:          auth,
@@ -53,6 +55,7 @@ func NewAdminPortalHTTPHandler(
 		templates:     templateService,
 		templateAdmin: templateAdmin,
 		submissions:   submissionService,
+		drafts:        draftService,
 	}
 }
 
@@ -80,6 +83,21 @@ func (h *AdminPortalHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		h.withAdmin(w, r, h.getTemplate)
 	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v1/admin/templates/"):
 		h.withAdmin(w, r, h.updateTemplate)
+	// 草稿块。与上面的 /api/v1/admin/templates/ 前缀在 "s" 与 "-" 处分叉，不会互相截获。
+	// 块内顺序承重：/publish 后缀分支必须排在裸前缀的 GET/PUT/DELETE 之前，否则
+	// GET/PUT/DELETE 的 HasPrefix 会先命中并把 draftId 解析成 "123/publish"。
+	case r.Method == http.MethodPost && r.URL.Path == "/api/v1/admin/template-drafts":
+		h.withAdmin(w, r, h.createDraft)
+	case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/template-drafts":
+		h.withAdmin(w, r, h.listDrafts)
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-drafts/") && strings.HasSuffix(r.URL.Path, "/publish"):
+		h.withAdmin(w, r, h.publishDraft)
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-drafts/"):
+		h.withAdmin(w, r, h.getDraft)
+	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-drafts/"):
+		h.withAdmin(w, r, h.updateDraft)
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-drafts/"):
+		h.withAdmin(w, r, h.deleteDraft)
 	case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/template-submissions":
 		h.withAdmin(w, r, h.listSubmissions)
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-submissions/") && strings.HasSuffix(r.URL.Path, "/approve"):
@@ -248,6 +266,20 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// hasDraft/draftId 只在这条管理端路由上补。刻意不动 templateListColumns 与
+	// ListPublished：它们被 ListByCategory/ListByScene/ListByKeyword/ListFavoriteTemplates
+	// 和 C 端 gRPC 路径共用，JOIN 或加选列会把这两个字段泄漏到客户端 API。一次 ≤100 个
+	// id 的索引 IN 查询比重构共享投影便宜得多。
+	templateIDs := make([]uint64, 0, len(templates))
+	for _, template := range templates {
+		templateIDs = append(templateIDs, template.ID)
+	}
+	draftIDs, err := h.drafts.MapDraftIDsByTemplateIDs(r.Context(), templateIDs)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
 	items := make([]map[string]interface{}, 0, len(templates))
 	for _, template := range templates {
 		previewURL, thumbnailURL := browserPreviewURLs(template.PreviewURL, template.ThumbnailURL)
@@ -258,6 +290,11 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 		tags := h.templates.SplitTags(template.Tags)
 		if tags == nil {
 			tags = []string{}
+		}
+		draftID, hasDraft := draftIDs[template.ID]
+		draftIDValue := ""
+		if hasDraft {
+			draftIDValue = fmt.Sprintf("%d", draftID)
 		}
 		items = append(items, map[string]interface{}{
 			"templateId":   fmt.Sprintf("%d", template.ID),
@@ -272,6 +309,8 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 			"width":        template.Width,
 			"height":       template.Height,
 			"colorCount":   template.ColorCount,
+			"hasDraft":     hasDraft,
+			"draftId":      draftIDValue,
 		})
 	}
 
@@ -441,6 +480,14 @@ func httpStatusForAppError(code int32) int {
 		return http.StatusForbidden
 	case apperr.CodeNotFound:
 		return http.StatusNotFound
+	// 草稿的四个码必须显式列出：default 是 400，而 4001 需要 409（前端的错误拦截器
+	// 按状态码分流）、4002 需要 404。
+	case apperr.CodeDraftConflict:
+		return http.StatusConflict
+	case apperr.CodeDraftNotFound:
+		return http.StatusNotFound
+	case apperr.CodeDraftLimitExceeded, apperr.CodeDraftNotPublishable:
+		return http.StatusBadRequest
 	case apperr.CodeInternal:
 		return http.StatusInternalServerError
 	default:

@@ -271,6 +271,15 @@ func (s *AdminService) GetPublishStatus(ctx context.Context, idempotencyKey stri
 	return s.dao.GetPublishRecordByKey(ctx, idempotencyKey)
 }
 
+// ValidatePublishPayload 是 validatePayload 的导出封装，供发布修订草稿那条分支使用：
+// 它绕过 PublishTemplateTx（因为要覆盖而不是新建），不显式调用就会静默跳过完整校验。
+func (s *AdminService) ValidatePublishPayload(p PublishPayload) error {
+	if err := s.validatePayload(p); err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidPayload, err.Error())
+	}
+	return nil
+}
+
 func (s *AdminService) validatePayload(p PublishPayload) error {
 	if p.IdempotencyKey == "" {
 		return fmt.Errorf("idempotency_key required")

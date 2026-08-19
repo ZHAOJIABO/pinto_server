@@ -21,6 +21,7 @@ import (
 	adminauth "github.com/zhaojiabo/bobobeads_server/internal/service/admin"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/media"
 	templateservice "github.com/zhaojiabo/bobobeads_server/internal/service/template"
+	"github.com/zhaojiabo/bobobeads_server/internal/service/templatesubmission"
 	"github.com/zhaojiabo/bobobeads_server/internal/service/work"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -61,13 +62,7 @@ func TestAdminPortalPublishesOnlyAuthenticatedUploadedPattern(t *testing.T) {
 
 	templateDAO := dao.NewTemplateDAO()
 	storage := newMemoryObjectStorage("https://cdn.example.test")
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.GlobalConfig.Admin),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(conf.GlobalConfig.Admin, storage, templateDAO, newTestSubmissionService())
 
 	patternData := validPatternData(2, 2)
 	patternData.BoardSpec = "2x2"
@@ -129,16 +124,7 @@ func TestAdminPortalRejectsInvalidPassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("HashPassword failed: %v", err)
 	}
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(dao.NewTemplateDAO()),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), newMemoryObjectStorage("https://cdn.example.test"), dao.NewTemplateDAO(), newTestSubmissionService())
 
 	response := httptest.NewRecorder()
 	body := bytes.NewBufferString(`{"username":"operator","password":"wrong-password"}`)
@@ -169,13 +155,7 @@ func TestAdminPortalUploadsPreviewThroughApplicationServer(t *testing.T) {
 
 	templateDAO := dao.NewTemplateDAO()
 	storage := newMemoryObjectStorage("https://cdn.example.test")
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.GlobalConfig.Admin),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(conf.GlobalConfig.Admin, storage, templateDAO, newTestSubmissionService())
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
 	response := httptest.NewRecorder()
@@ -247,16 +227,7 @@ func TestAdminPortalListsPublishedTemplates(t *testing.T) {
 	}
 
 	templateDAO := dao.NewTemplateDAO()
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), newMemoryObjectStorage("https://cdn.example.test"), templateDAO, newTestSubmissionService())
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
 	unauthorized := httptest.NewRecorder()
@@ -352,16 +323,7 @@ func TestAdminPortalUnpublishValidatesReasonAndIsIdempotent(t *testing.T) {
 	}
 
 	templateDAO := dao.NewTemplateDAO()
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), newMemoryObjectStorage("https://cdn.example.test"), templateDAO, newTestSubmissionService())
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
 	tooLong := httptest.NewRecorder()
@@ -413,16 +375,7 @@ func TestAdminPortalCreatesTemplateCategory(t *testing.T) {
 		t.Fatalf("HashPassword failed: %v", err)
 	}
 	templateDAO := dao.NewTemplateDAO()
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), newMemoryObjectStorage("https://cdn.example.test"), templateDAO, newTestSubmissionService())
 
 	unauthorized := httptest.NewRecorder()
 	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodPost, "/api/v1/admin/template-categories", strings.NewReader(`{"name":"节日"}`)))
@@ -513,16 +466,7 @@ func TestAdminPortalGetsAndUpdatesTemplate(t *testing.T) {
 	// The thumbnail is generated from the stored object, so the preview has to be
 	// a decodable image rather than just a media_asset row.
 	storage.put(previewKey, "image/png", pngBytes(t, 800, 800))
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), storage),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), storage, templateDAO, newTestSubmissionService())
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 
 	detail := httptest.NewRecorder()
@@ -654,16 +598,7 @@ func TestAdminPortalListUsesAccessiblePreviewURL(t *testing.T) {
 	}
 
 	templateDAO := dao.NewTemplateDAO()
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.AdminConfig{
-			JWTSecret: "admin-test-secret",
-			Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
-		}),
-		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateservice.NewAdminService(templateDAO),
-		newTestSubmissionService(),
-	)
+	handler := newTestPortalHandler(testAdminConfig(passwordHash), newMemoryObjectStorage("https://cdn.example.test"), templateDAO, newTestSubmissionService())
 	accessToken := adminPortalLogin(t, handler, "operator", "correct horse battery staple")
 	response := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/admin/templates", nil)
@@ -675,6 +610,42 @@ func TestAdminPortalListUsesAccessiblePreviewURL(t *testing.T) {
 	if strings.Contains(response.Body.String(), "admin_preview/raw-object-key.png") || !strings.Contains(response.Body.String(), "/assets/template-preview.png") {
 		t.Fatalf("list must not return raw object keys as preview URLs: %s", response.Body.String())
 	}
+}
+
+// testAdminConfig 给那些不需要往 conf.GlobalConfig 里塞账号的用例用。
+func testAdminConfig(passwordHash string) conf.AdminConfig {
+	return conf.AdminConfig{
+		JWTSecret: "admin-test-secret",
+		Accounts:  []conf.AdminAccountConfig{{Username: "operator", PasswordHash: passwordHash}},
+	}
+}
+
+// newTestPortalHandler 把 portal 构造函数的参数列表收在一处。这个构造函数每加一个后台
+// 模块就多一个参数，测试里散着八份展开的参数列表意味着每次都要改八遍。草稿上限刻意从
+// conf.GlobalConfig 读（与生产一致），未设置时由 NewDraftService 兜底。
+func newTestPortalHandler(
+	adminConf conf.AdminConfig,
+	storage media.ObjectStorage,
+	templateDAO *dao.TemplateDAO,
+	submissions *templatesubmission.Service,
+) *api.AdminPortalHTTPHandler {
+	mediaSvc := media.NewServiceWithStorage(dao.NewMediaDAO(), storage)
+	templateAdmin := templateservice.NewAdminService(templateDAO)
+	// 部分测试压根不设 conf.GlobalConfig（它们只打登录路由）。
+	maxDrafts := 0
+	if conf.GlobalConfig != nil {
+		maxDrafts = conf.GlobalConfig.TemplateDraft.MaxCount
+	}
+	return api.NewAdminPortalHTTPHandler(
+		adminauth.NewAuthService(adminConf),
+		mediaSvc,
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
+		templateAdmin,
+		submissions,
+		templateservice.NewDraftService(
+			dao.NewTemplateDraftDAO(), templateDAO, mediaSvc, templateAdmin, maxDrafts,
+		),
+	)
 }
 
 type memoryObjectStorage struct {

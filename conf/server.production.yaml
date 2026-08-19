@@ -54,6 +54,11 @@ pattern:
 template_submission:
   daily_limit: 5
 
+# 管理后台草稿箱的全局上限。草稿共享给全部管理员且各带一份完整 pattern_data，
+# 不封顶的话草稿箱会无声地涨成一张巨表。仅在创建草稿时校验，是近似上限。
+template_draft:
+  max_count: 200
+
 # 导出图纸水印 YAML 兜底：数据库 bb_config 未设置对应键时才使用。
 # 使用 CDN 完整 URL；未配置有效 URL 时服务会安全关闭水印。
 export_watermark:

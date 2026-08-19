@@ -24,6 +24,7 @@ type Config struct {
 	Generation         GenerationConfig         `mapstructure:"generation"`
 	Pattern            PatternConfig            `mapstructure:"pattern"`
 	TemplateSubmission TemplateSubmissionConfig `mapstructure:"template_submission"`
+	TemplateDraft      TemplateDraftConfig      `mapstructure:"template_draft"`
 	ExportWatermark    ExportWatermarkConfig    `mapstructure:"export_watermark"`
 	AIGeneration       AIGenerationConfig       `mapstructure:"ai_generation"`
 	AdminService       AdminServiceConfig       `mapstructure:"admin_service"`
@@ -146,6 +147,13 @@ type PatternConfig struct {
 // 每秒粒度的，拦不住一天刷几百条投稿，所以这里另加一个每日配额。
 type TemplateSubmissionConfig struct {
 	DailyLimit int `mapstructure:"daily_limit"`
+}
+
+// TemplateDraftConfig 限制草稿箱规模。草稿对全部管理员共享且带完整 pattern_data，
+// 不设上限的话草稿箱会无声地长成一张几 GB 的表。MaxCount 只在创建草稿时校验，
+// 且 COUNT→INSERT 不原子，所以它是近似上限而非硬边界。
+type TemplateDraftConfig struct {
+	MaxCount int `mapstructure:"max_count"`
 }
 
 // ExportWatermarkConfig controls the CDN watermark URL the client applies

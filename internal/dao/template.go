@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/zhaojiabo/bobobeads_server/internal/db"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TemplateDAO struct{}
@@ -338,6 +340,82 @@ func (d *TemplateDAO) GetPublishRecordByKeyTx(tx *gorm.DB, key string) (*model.T
 		return nil, err
 	}
 	return &record, nil
+}
+
+// TemplatePreview 是列表标注缩略图所需的最小列集合。
+type TemplatePreview struct {
+	ID           uint64 `gorm:"column:id"`
+	PreviewURL   string `gorm:"column:preview_url"`
+	ThumbnailURL string `gorm:"column:thumbnail_url"`
+}
+
+// ListThumbnailsByIDs 刻意不复用 GetByIDs：后者是 SELECT *，会把每一份 pattern_data
+// 一起拉回来（理由见 templateListColumns 的注释）。草稿列表只需要这三列。
+func (d *TemplateDAO) ListThumbnailsByIDs(ctx context.Context, ids []uint64) (map[uint64]TemplatePreview, error) {
+	if len(ids) == 0 {
+		return map[uint64]TemplatePreview{}, nil
+	}
+	var rows []TemplatePreview
+	err := d.DB(ctx).Model(&model.Template{}).
+		Select("id", "preview_url", "thumbnail_url").
+		Where("id IN ? AND status = 1", ids).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[uint64]TemplatePreview, len(rows))
+	for _, row := range rows {
+		result[row.ID] = row
+	}
+	return result, nil
+}
+
+// GetByIDForUpdateTx 取整行（含 pattern_data）用于覆盖前的快照，并持有行锁到事务结束。
+// status = 1 前置：已下架的模板不是合法的覆盖目标。
+func (d *TemplateDAO) GetByIDForUpdateTx(tx *gorm.DB, id uint64) (*model.Template, error) {
+	var tpl model.Template
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ? AND status = 1", id).First(&tpl).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &tpl, nil
+}
+
+// UpdatePublishedTemplateTx 镜像 UpdatePublishedTemplate，走调用方的事务。
+//
+// 必须用 map 形式的 Updates 且始终带上 updated_at：internal/db/mysql.go 拼的 DSN 没开
+// clientFoundRows，MySQL 返回的是「实际变更行数」，所以值全同的更新会得到
+// RowsAffected == 0，与「WHERE 没命中」无法区分。恒变的 updated_at 才让 RowsAffected
+// 可信。不要加「无变化就跳过写入」的优化。
+func (d *TemplateDAO) UpdatePublishedTemplateTx(tx *gorm.DB, templateID uint64, tpl *model.Template) (bool, error) {
+	result := tx.Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
+		Updates(map[string]interface{}{
+			"category_id":   tpl.CategoryID,
+			"title":         tpl.Title,
+			"preview_url":   tpl.PreviewURL,
+			"thumbnail_url": tpl.ThumbnailURL,
+			"description":   tpl.Description,
+			"pattern_data":  tpl.PatternData,
+			"board_spec":    tpl.BoardSpec,
+			"tags":          tpl.Tags,
+			"difficulty":    tpl.Difficulty,
+			"width":         tpl.Width,
+			"height":        tpl.Height,
+			"color_count":   tpl.ColorCount,
+			"updated_at":    time.Now(),
+		})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+
+func (d *TemplateDAO) CreateTemplateRevisionTx(tx *gorm.DB, revision *model.TemplateRevision) error {
+	return tx.Create(revision).Error
 }
 
 func (d *TemplateDAO) GetRandom(ctx context.Context) (*model.Template, error) {

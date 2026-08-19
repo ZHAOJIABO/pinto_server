@@ -64,13 +64,7 @@ func newSubmissionPortal(t *testing.T) *submissionPortal {
 		dao.NewTemplateSubmissionDAO(), dao.NewWorkDAO(), dao.NewUserDAO(),
 		mediaSvc, templateAdmin, 20,
 	)
-	handler := api.NewAdminPortalHTTPHandler(
-		adminauth.NewAuthService(conf.GlobalConfig.Admin),
-		mediaSvc,
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
-		templateAdmin,
-		service,
-	)
+	handler := newTestPortalHandler(conf.GlobalConfig.Admin, storage, templateDAO, service)
 
 	category := &model.TemplateCategory{Name: "动物", Status: 1}
 	if err := db.DB.Create(category).Error; err != nil {

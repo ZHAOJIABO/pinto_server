@@ -108,6 +108,38 @@ func CalculatePatternStats(p *pb.PatternData) (PatternStats, error) {
 	return stats, nil
 }
 
+// ValidateDraftPatternStats 是管理后台草稿专用的入口：全空画布（一颗豆都没落）的
+// color_palette 合法地为空，而 CalculatePatternStats 无条件要求非空，于是「先存个空
+// 画布慢慢画」这个草稿的核心场景根本存不下来。
+//
+// 只放宽这一条。其余规则（schema_version、尺寸上限、pixels 长度、调色板上限与唯一性、
+// 像素引用合法性）全部委托原函数，避免出现第二套 pattern 校验各自演进。
+func ValidateDraftPatternStats(p *pb.PatternData) (PatternStats, error) {
+	if p == nil {
+		return PatternStats{}, apperr.InvalidArgument("pattern_data required")
+	}
+	if len(p.ColorPalette) > 0 {
+		return CalculatePatternStats(p)
+	}
+	for _, px := range p.Pixels {
+		if px != 0 {
+			return PatternStats{}, apperr.InvalidArgument("color_palette is required")
+		}
+	}
+
+	// 借一个哨兵调色板把其余校验照常跑完，跑完立刻还原。p 是每次请求单独
+	// protojson.Unmarshal 出来的，没有并发读者。
+	original := p.ColorPalette
+	p.ColorPalette = []*pb.ColorEntry{{Index: 1, Hex: "#000000"}}
+	defer func() { p.ColorPalette = original }()
+
+	if _, err := CalculatePatternStats(p); err != nil {
+		return PatternStats{}, err
+	}
+	// 哨兵不计入配色：全空画布的 bead_count 与 color_count 都是 0。
+	return PatternStats{}, nil
+}
+
 func PatternDataToJSONMap(p *pb.PatternData) model.JSONMap {
 	if p == nil {
 		return nil

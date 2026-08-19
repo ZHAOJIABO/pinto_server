@@ -78,6 +78,8 @@ func main() {
 		&model.BlindBoxRecord{},
 		&model.FinishedProduct{},
 		&model.TemplateSubmission{},
+		&model.TemplateDraft{},
+		&model.TemplateRevision{},
 	); err != nil {
 		zap.L().Fatal("failed to auto migrate", zap.Error(err))
 	}

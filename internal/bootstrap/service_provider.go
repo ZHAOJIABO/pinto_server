@@ -44,6 +44,7 @@ type ServiceProvider struct {
 	AIGenerationDAO    *dao.AIGenerationDAO
 	FinishedProductDAO *dao.FinishedProductDAO
 	SubmissionDAO      *dao.TemplateSubmissionDAO
+	TemplateDraftDAO   *dao.TemplateDraftDAO
 
 	// Services
 	AuthService            *auth.Service
@@ -56,6 +57,7 @@ type ServiceProvider struct {
 	TemplateService        *template.Service
 	TemplateAdminService   *template.AdminService
 	SubmissionService      *templatesubmission.Service
+	TemplateDraftService   *template.DraftService
 	SubscribeService       *subscribe.Service
 	CreditService          *credit.Service
 	InviteService          *invite.Service
@@ -113,6 +115,7 @@ func (sp *ServiceProvider) initDAOs() {
 	sp.AIGenerationDAO = dao.NewAIGenerationDAO()
 	sp.FinishedProductDAO = dao.NewFinishedProductDAO()
 	sp.SubmissionDAO = dao.NewTemplateSubmissionDAO()
+	sp.TemplateDraftDAO = dao.NewTemplateDraftDAO()
 }
 
 func (sp *ServiceProvider) initServices() {
@@ -128,6 +131,10 @@ func (sp *ServiceProvider) initServices() {
 	sp.SubmissionService = templatesubmission.NewService(
 		sp.SubmissionDAO, sp.WorkDAO, sp.UserDAO, sp.MediaService, sp.TemplateAdminService,
 		conf.GlobalConfig.TemplateSubmission.DailyLimit,
+	)
+	sp.TemplateDraftService = template.NewDraftService(
+		sp.TemplateDraftDAO, sp.TemplateDAO, sp.MediaService, sp.TemplateAdminService,
+		conf.GlobalConfig.TemplateDraft.MaxCount,
 	)
 	sp.SubscribeService = subscribe.NewService(sp.OrderDAO, sp.ProductDAO, sp.SubscriptionDAO)
 	sp.CreditService = credit.NewService(sp.CreditDAO)
@@ -242,7 +249,7 @@ func (sp *ServiceProvider) initHandlers() {
 	sp.TemplateHandler = api.NewTemplateHandler(sp.TemplateService)
 	sp.AdminTemplateHandler = api.NewAdminTemplateHandler(sp.TemplateAdminService)
 	sp.SubmissionHandler = api.NewTemplateSubmissionHandler(sp.SubmissionService)
-	sp.AdminPortalHandler = api.NewAdminPortalHTTPHandler(sp.AdminAuthService, sp.MediaService, sp.TemplateService, sp.TemplateAdminService, sp.SubmissionService)
+	sp.AdminPortalHandler = api.NewAdminPortalHTTPHandler(sp.AdminAuthService, sp.MediaService, sp.TemplateService, sp.TemplateAdminService, sp.SubmissionService, sp.TemplateDraftService)
 	sp.SubscribeHandler = api.NewSubscribeHandler(sp.SubscribeService)
 	sp.CreditHandler = api.NewCreditHandler(sp.CreditService)
 	sp.InviteHandler = api.NewInviteHandler(sp.InviteService)
