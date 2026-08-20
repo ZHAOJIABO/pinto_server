@@ -36,10 +36,10 @@ func NewService(workDAO *dao.WorkDAO, thumbnailer Thumbnailer, submissions Submi
 	return &Service{workDAO: workDAO, thumbnailer: thumbnailer, submissions: submissions}
 }
 
-// ensureNotUnderReview blocks edits while a submission is queued for review.
-// The snapshot means an edit could not corrupt the review, but letting it
-// through would tell the user their changes are what gets reviewed, which is
-// false. Failing the request beats that misunderstanding.
+// ensureNotUnderReview blocks edits and deletes while a submission is queued
+// for review. The snapshot means an edit could not corrupt the review, but
+// letting it through would tell the user their changes are what gets reviewed,
+// which is false. Failing the request beats that misunderstanding.
 func (s *Service) ensureNotUnderReview(ctx context.Context, userID, workID uint64) error {
 	if s.submissions == nil {
 		return nil
@@ -161,6 +161,9 @@ func (s *Service) ListWorks(ctx context.Context, userID uint64, page, pageSize i
 }
 
 func (s *Service) DeleteWork(ctx context.Context, userID, workID uint64) error {
+	if err := s.ensureNotUnderReview(ctx, userID, workID); err != nil {
+		return err
+	}
 	return s.workDAO.Delete(ctx, workID, userID)
 }
 

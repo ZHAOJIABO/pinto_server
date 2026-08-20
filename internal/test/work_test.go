@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/zhaojiabo/bobobeads_server/internal/dao"
+	"github.com/zhaojiabo/bobobeads_server/internal/db"
 	apperr "github.com/zhaojiabo/bobobeads_server/internal/errors"
 	"github.com/zhaojiabo/bobobeads_server/internal/model"
 	"github.com/zhaojiabo/bobobeads_server/internal/pb"
@@ -743,5 +744,44 @@ func TestUpdateWorkLockAppliesOnlyToTheSubmittedWork(t *testing.T) {
 
 	if _, err := workService.UpdateWork(context.Background(), 1, target.ID, work.UpdateWorkInput{Title: "可以改"}); err != nil {
 		t.Fatalf("UpdateWork was blocked by an unrelated submission: %v", err)
+	}
+}
+
+func TestDeleteWorkBlockedWhileSubmissionPendingReview(t *testing.T) {
+	SetupTestDB(t)
+	workService := newWorkServiceWithSubmissions()
+	w := createWorkForUpdate(t, workService, 1)
+	seedSubmission(t, 1, w.ID, model.TemplateSubmissionStatusPending)
+
+	err := workService.DeleteWork(context.Background(), 1, w.ID)
+	if err == nil {
+		t.Fatal("expected the delete to be refused while the submission waits for review")
+	}
+	assertErrCode(t, err, apperr.CodeWorkUnderReview)
+
+	if _, err := workService.GetWork(context.Background(), 1, w.ID); err != nil {
+		t.Fatalf("work should still be readable after the refused delete: %v", err)
+	}
+}
+
+func TestDeleteWorkIsSoftAndKeepsTheRow(t *testing.T) {
+	SetupTestDB(t)
+	workService := newWorkServiceWithSubmissions()
+	w := createWorkForUpdate(t, workService, 1)
+
+	if err := workService.DeleteWork(context.Background(), 1, w.ID); err != nil {
+		t.Fatalf("DeleteWork: %v", err)
+	}
+
+	if _, err := workService.GetWork(context.Background(), 1, w.ID); err == nil {
+		t.Error("a deleted work must not be readable through GetWork")
+	}
+
+	var count int64
+	if err := db.DB.Unscoped().Model(&model.Work{}).Where("id = ?", w.ID).Count(&count).Error; err != nil {
+		t.Fatalf("count unscoped: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("unscoped row count = %d, want 1: the row must survive so submissions and posts keep resolving", count)
 	}
 }

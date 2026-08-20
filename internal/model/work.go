@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Work struct {
@@ -22,6 +24,8 @@ type Work struct {
 	SourceType       string  `gorm:"type:varchar(16)" json:"source_type"`
 	SourceID         string  `gorm:"type:varchar(64)" json:"source_id"`
 	Status           int8    `gorm:"type:tinyint;default:1;index:idx_work_user_status,priority:2" json:"status"` // 1:草稿 2:已完成
+	// 软删除。作品可能已被投稿成模板或发布到社区，硬删会让那些记录指向不存在的行。
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (Work) TableName() string { return "bb_work" }

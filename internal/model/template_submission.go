@@ -15,7 +15,8 @@ type TemplateSubmission struct {
 	BaseModel
 	// 单列索引在 InnoDB 中物理上就是 (user_id, id)，「我的投稿」游标分页据此免排序。
 	UserID uint64 `gorm:"not null;index;uniqueIndex:uk_tpl_sub_user_client_req,priority:1;uniqueIndex:uk_tpl_sub_user_active_work,priority:1" json:"user_id"`
-	// 来源作品 ID，仅用于溯源。bb_work 是硬删除，此 ID 可能悬空，读取路径不得 join。
+	// 来源作品 ID，仅用于溯源。bb_work 是软删除，被删的作品对普通查询不可见，
+	// 读取路径不得 join。
 	WorkID uint64 `gorm:"not null;index" json:"work_id"`
 	// 活跃占位键：待审核/已通过时为 work_id 的十进制字符串，驳回时置 NULL。
 	// MySQL 与 SQLite 的唯一索引都允许重复 NULL，所以「同一作品只能有一条未驳回投稿」
