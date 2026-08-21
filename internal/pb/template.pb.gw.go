@@ -396,6 +396,41 @@ func local_request_TemplateService_ListBlindBoxRecords_0(ctx context.Context, ma
 	return msg, metadata, err
 }
 
+var filter_TemplateService_GetBlindBoxQuota_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_TemplateService_GetBlindBoxQuota_0(ctx context.Context, marshaler runtime.Marshaler, client TemplateServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetBlindBoxQuotaRequest
+		metadata runtime.ServerMetadata
+	)
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_TemplateService_GetBlindBoxQuota_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetBlindBoxQuota(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_TemplateService_GetBlindBoxQuota_0(ctx context.Context, marshaler runtime.Marshaler, server TemplateServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetBlindBoxQuotaRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_TemplateService_GetBlindBoxQuota_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetBlindBoxQuota(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterTemplateServiceHandlerServer registers the http handlers for service TemplateService to "mux".
 // UnaryRPC     :call TemplateServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -581,6 +616,26 @@ func RegisterTemplateServiceHandlerServer(ctx context.Context, mux *runtime.Serv
 			return
 		}
 		forward_TemplateService_ListBlindBoxRecords_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_TemplateService_GetBlindBoxQuota_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/bobobeads.v1.TemplateService/GetBlindBoxQuota", runtime.WithHTTPPathPattern("/api/v1/templates/random/quota"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_TemplateService_GetBlindBoxQuota_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_TemplateService_GetBlindBoxQuota_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 
 	return nil
@@ -775,6 +830,23 @@ func RegisterTemplateServiceHandlerClient(ctx context.Context, mux *runtime.Serv
 		}
 		forward_TemplateService_ListBlindBoxRecords_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodGet, pattern_TemplateService_GetBlindBoxQuota_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/bobobeads.v1.TemplateService/GetBlindBoxQuota", runtime.WithHTTPPathPattern("/api/v1/templates/random/quota"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_TemplateService_GetBlindBoxQuota_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_TemplateService_GetBlindBoxQuota_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
@@ -788,6 +860,7 @@ var (
 	pattern_TemplateService_UnfavoriteTemplate_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"api", "v1", "templates", "template_id", "favorite"}, ""))
 	pattern_TemplateService_RandomTemplate_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"api", "v1", "templates", "random"}, ""))
 	pattern_TemplateService_ListBlindBoxRecords_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"api", "v1", "templates", "random", "history"}, ""))
+	pattern_TemplateService_GetBlindBoxQuota_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"api", "v1", "templates", "random", "quota"}, ""))
 )
 
 var (
@@ -800,4 +873,5 @@ var (
 	forward_TemplateService_UnfavoriteTemplate_0     = runtime.ForwardResponseMessage
 	forward_TemplateService_RandomTemplate_0         = runtime.ForwardResponseMessage
 	forward_TemplateService_ListBlindBoxRecords_0    = runtime.ForwardResponseMessage
+	forward_TemplateService_GetBlindBoxQuota_0       = runtime.ForwardResponseMessage
 )

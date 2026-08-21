@@ -73,6 +73,13 @@ service TemplateService {
       get: "/api/v1/templates/random/history"
     };
   }
+
+  // 盲盒额度：进入盲盒页时查询今日剩余次数，用于展示与禁用抽取按钮。
+  rpc GetBlindBoxQuota(GetBlindBoxQuotaRequest) returns (GetBlindBoxQuotaResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/templates/random/quota"
+    };
+  }
 }
 
 message CategoryItem {
@@ -121,6 +128,11 @@ message TemplateItem {
   int32 height = 16;
   // 投稿人昵称，发布时的快照；官方自建图纸为空。
   string contributor_nickname = 17;
+  // 所属分类 ID。客户端按它映射本地的图案与文案。
+  int32 category_id = 18;
+  // 所属分类名称。盲盒专用分类不出现在 ListCategories 里，客户端无法自行用
+  // 分类导航的结果翻译 ID，所以名称随图纸一起下发，作为未内置分类的兜底展示。
+  string category_name = 19;
 }
 
 message ListCategoriesRequest {
@@ -247,6 +259,33 @@ message RandomTemplateResponse {
   TemplateItem template = 2;
   // 图纸数据。
   PatternData pattern_data = 3;
+  // 抽取后的当日额度状况，客户端可直接刷新剩余次数，无需再调 GetBlindBoxQuota。
+  BlindBoxQuota quota = 4;
+}
+
+// BlindBoxQuota 描述用户当天的盲盒次数。次数用尽时抽取接口返回 2007
+// （CodeBlindBoxQuotaUsedUp），客户端应据此提示到次日恢复，而不是当普通错误重试。
+message BlindBoxQuota {
+  // 今日总次数上限。
+  int32 daily_limit = 1;
+  // 今日已用次数。
+  int32 used = 2;
+  // 今日剩余次数。
+  int32 remaining = 3;
+  // 下次重置时间，Unix 秒。按固定的东八区零点计算。
+  int64 reset_at = 4;
+}
+
+message GetBlindBoxQuotaRequest {
+  // 请求公共头。
+  RequestHeader header = 1;
+}
+
+message GetBlindBoxQuotaResponse {
+  // 响应公共头。
+  ResponseHeader header = 1;
+  // 当日额度状况。
+  BlindBoxQuota quota = 2;
 }
 
 message ListBlindBoxRecordsRequest {

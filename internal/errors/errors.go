@@ -19,6 +19,7 @@ const (
 	CodeDuplicateRequest    int32 = 2004
 	CodeTaskQuotaExceeded   int32 = 2005
 	CodeWorkUnderReview     int32 = 2006
+	CodeBlindBoxQuotaUsedUp int32 = 2007
 	CodeUploadTokenFailed   int32 = 3001
 	CodeInvalidFileType     int32 = 3002
 	CodeFileTooLarge        int32 = 3003
@@ -90,6 +91,15 @@ func TaskQuotaExceeded(current, limit int) *AppError {
 	return &AppError{
 		Code:    CodeTaskQuotaExceeded,
 		Message: fmt.Sprintf("task quota exceeded: %d running or queued, limit %d", current, limit),
+	}
+}
+
+// BlindBoxQuotaUsedUp 报告当日盲盒次数已用尽。刻意不复用 CodeRateLimited：那个码表示
+// "请求太频繁，稍后重试"，而这里要到次日零点才恢复，客户端要弹的文案和重试策略都不同。
+func BlindBoxQuotaUsedUp(limit int) *AppError {
+	return &AppError{
+		Code:    CodeBlindBoxQuotaUsedUp,
+		Message: fmt.Sprintf("daily blind box quota used up: limit %d", limit),
 	}
 }
 

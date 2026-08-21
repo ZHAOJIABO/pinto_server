@@ -28,7 +28,7 @@ func newTestSubmissionService() *templatesubmission.Service {
 	return templatesubmission.NewService(
 		dao.NewTemplateSubmissionDAO(), dao.NewWorkDAO(), dao.NewUserDAO(),
 		media.NewServiceWithStorage(dao.NewMediaDAO(), newMemoryObjectStorage("https://cdn.example.test")),
-		templateservice.NewAdminService(templateDAO), 5,
+		templateservice.NewAdminService(templateDAO, dao.NewBlindBoxPoolDAO()), 5,
 	)
 }
 
@@ -59,7 +59,7 @@ func newSubmissionPortal(t *testing.T) *submissionPortal {
 	storage := newMemoryObjectStorage("https://cdn.example.test")
 	mediaSvc := media.NewServiceWithStorage(dao.NewMediaDAO(), storage)
 	templateDAO := dao.NewTemplateDAO()
-	templateAdmin := templateservice.NewAdminService(templateDAO)
+	templateAdmin := templateservice.NewAdminService(templateDAO, dao.NewBlindBoxPoolDAO())
 	service := templatesubmission.NewService(
 		dao.NewTemplateSubmissionDAO(), dao.NewWorkDAO(), dao.NewUserDAO(),
 		mediaSvc, templateAdmin, 20,

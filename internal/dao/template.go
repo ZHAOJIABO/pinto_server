@@ -16,6 +16,19 @@ type TemplateDAO struct{}
 
 func NewTemplateDAO() *TemplateDAO { return &TemplateDAO{} }
 
+// bb_template.status 的取值。StatusBlindBoxOnly 的图纸只能通过盲盒抽到：C 端的
+// 列表、搜索、分类计数一律只查 StatusPublished，所以新增这个状态就等于把图纸从
+// 所有浏览入口移除，不需要在每个查询上加排除条件。按 ID 精确定位的查询（详情、
+// 开盒历史、收藏、后台管理）显式放行两种状态。
+const (
+	StatusUnpublished  int8 = 0
+	StatusPublished    int8 = 1
+	StatusBlindBoxOnly int8 = 2
+)
+
+// visibleStatuses 是"图纸仍然有效"的状态集合，供按 ID 精确定位的查询使用。
+var visibleStatuses = []int8{StatusPublished, StatusBlindBoxOnly}
+
 // templateListColumns omits pattern_data for the same reason the work list does:
 // the JSON grid can reach megabytes, and MySQL's filesort buffers every selected
 // column, so an "ORDER BY" over these rows fails with error 1038 (out of sort
@@ -42,7 +55,15 @@ func (d *TemplateDAO) DB(ctx context.Context) *gorm.DB {
 	return db.DB.WithContext(ctx)
 }
 
+// ListCategories 是 C 端分类导航的数据源，所以排除盲盒专用分类。需要全集的调用方
+// （收藏分类聚合、后台分类管理）用 ListAllActiveCategories。
 func (d *TemplateDAO) ListCategories(ctx context.Context) ([]*model.TemplateCategory, error) {
+	var categories []*model.TemplateCategory
+	err := d.DB(ctx).Where("status = 1 AND is_blind_box = ?", false).Order("sort_order ASC").Find(&categories).Error
+	return categories, err
+}
+
+func (d *TemplateDAO) ListAllActiveCategories(ctx context.Context) ([]*model.TemplateCategory, error) {
 	var categories []*model.TemplateCategory
 	err := d.DB(ctx).Where("status = 1").Order("sort_order ASC").Find(&categories).Error
 	return categories, err
@@ -91,9 +112,10 @@ func (d *TemplateDAO) CountByCategory(ctx context.Context, categoryID int) (int6
 	return count, err
 }
 
+// GetByIDs 放行盲盒专属图纸：开盒历史全靠它回捞，只查 status=1 会让历史恒为空。
 func (d *TemplateDAO) GetByIDs(ctx context.Context, ids []uint64) ([]*model.Template, error) {
 	var templates []*model.Template
-	err := d.DB(ctx).Where("id IN ? AND status = 1", ids).Find(&templates).Error
+	err := d.DB(ctx).Where("id IN ? AND status IN ?", ids, visibleStatuses).Find(&templates).Error
 	return templates, err
 }
 
@@ -119,6 +141,51 @@ func (d *TemplateDAO) ListPublished(ctx context.Context, offset, limit int) ([]*
 	return templates, total, err
 }
 
+// adminTemplateListColumns 比 templateListColumns 多一个 status，后台列表要靠它区分
+// 普通图纸和盲盒专属图纸。刻意不往 templateListColumns 里加：那个投影被 C 端多条
+// 列表路径共用，加列会把 status 泄漏到客户端 API。
+var adminTemplateListColumns = append(append([]string{}, templateListColumns...), "status")
+
+// ListPublishedForAdmin 是后台图纸列表专用：它要看到盲盒专属图纸，而共用的
+// ListPublished 必须继续只返回 status=1（C 端 scene=home 也走它）。
+func (d *TemplateDAO) ListPublishedForAdmin(ctx context.Context, offset, limit int) ([]*model.Template, int64, error) {
+	var templates []*model.Template
+	var total int64
+	query := d.DB(ctx).Where("status IN ?", visibleStatuses)
+	query.Model(&model.Template{}).Count(&total)
+	err := query.Select(adminTemplateListColumns).Order("sort_order ASC, created_at DESC").Offset(offset).Limit(limit).Find(&templates).Error
+	return templates, total, err
+}
+
+// TemplateBrief 是后台奖池列表需要的图纸摘要。不复用 ListThumbnailsByIDs：那个方法
+// 缺 title 和 category_id。
+type TemplateBrief struct {
+	ID           uint64 `gorm:"column:id"`
+	Title        string `gorm:"column:title"`
+	PreviewURL   string `gorm:"column:preview_url"`
+	ThumbnailURL string `gorm:"column:thumbnail_url"`
+	CategoryID   int    `gorm:"column:category_id"`
+	Status       int8   `gorm:"column:status"`
+}
+
+func (d *TemplateDAO) ListBriefsByIDs(ctx context.Context, ids []uint64) (map[uint64]TemplateBrief, error) {
+	if len(ids) == 0 {
+		return map[uint64]TemplateBrief{}, nil
+	}
+	var rows []TemplateBrief
+	if err := d.DB(ctx).Model(&model.Template{}).
+		Select("id", "title", "preview_url", "thumbnail_url", "category_id", "status").
+		Where("id IN ? AND status IN ?", ids, visibleStatuses).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	briefs := make(map[uint64]TemplateBrief, len(rows))
+	for _, row := range rows {
+		briefs[row.ID] = row
+	}
+	return briefs, nil
+}
+
 func (d *TemplateDAO) ListByKeyword(ctx context.Context, keyword string, offset, limit int) ([]*model.Template, int64, error) {
 	var templates []*model.Template
 	var total int64
@@ -129,9 +196,11 @@ func (d *TemplateDAO) ListByKeyword(ctx context.Context, keyword string, offset,
 	return templates, total, err
 }
 
+// GetByID 放行盲盒专属图纸：抽到之后的详情页、收藏校验和后台管理都走它。代价是
+// 盲盒图纸可以被猜 id 直接访问，抽奖本身不去重，所以没有防枚举需求。
 func (d *TemplateDAO) GetByID(ctx context.Context, id uint64) (*model.Template, error) {
 	var tpl model.Template
-	err := d.DB(ctx).Where("id = ? AND status = 1", id).First(&tpl).Error
+	err := d.DB(ctx).Where("id = ? AND status IN ?", id, visibleStatuses).First(&tpl).Error
 	return &tpl, err
 }
 
@@ -190,7 +259,7 @@ func (d *TemplateDAO) ListFavoriteTemplates(ctx context.Context, userID uint64, 
 	// 每次重新构造查询：Count 会污染 gorm 的语句状态，复用同一个 *gorm.DB 拿不到正确的分页结果。
 	base := func() *gorm.DB {
 		q := d.DB(ctx).Table("bb_template_favorite AS f").
-			Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status = 1").
+			Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status IN (1,2)").
 			Where("f.user_id = ?", userID)
 		if categoryID > 0 {
 			q = q.Where("t.category_id = ?", categoryID)
@@ -228,7 +297,7 @@ func (d *TemplateDAO) CountFavoritesByCategory(ctx context.Context, userID uint6
 	var rows []*FavoriteCategoryCount
 	err := d.DB(ctx).Table("bb_template_favorite AS f").
 		Select("t.category_id AS category_id, COUNT(*) AS count").
-		Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status = 1").
+		Joins("JOIN bb_template AS t ON t.id = f.template_id AND t.status IN (1,2)").
 		Where("f.user_id = ?", userID).
 		Group("t.category_id").
 		Scan(&rows).Error
@@ -259,8 +328,10 @@ func (d *TemplateDAO) CreateOrUpdateTemplate(ctx context.Context, tpl *model.Tem
 	return tpl.ID, nil
 }
 
+// UpdatePublishedTemplate 放行盲盒专属图纸，否则入池后后台就再也编辑不了它。
+// Updates 的 map 刻意不含 status，所以编辑不会把 status=2 打回 1。
 func (d *TemplateDAO) UpdatePublishedTemplate(ctx context.Context, templateID uint64, tpl *model.Template) (bool, error) {
-	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
+	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status IN ?", templateID, visibleStatuses).
 		Updates(map[string]interface{}{
 			"category_id":   tpl.CategoryID,
 			"title":         tpl.Title,
@@ -280,15 +351,15 @@ func (d *TemplateDAO) UpdatePublishedTemplate(ctx context.Context, templateID ui
 	}
 
 	var count int64
-	if err := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).Count(&count).Error; err != nil {
+	if err := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status IN ?", templateID, visibleStatuses).Count(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil
 }
 
 func (d *TemplateDAO) UnpublishTemplate(ctx context.Context, templateID uint64) (bool, error) {
-	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
-		Update("status", 0)
+	result := d.DB(ctx).Model(&model.Template{}).Where("id = ? AND status IN ?", templateID, visibleStatuses).
+		Update("status", StatusUnpublished)
 	if result.Error != nil {
 		return false, result.Error
 	}
@@ -358,7 +429,7 @@ func (d *TemplateDAO) ListThumbnailsByIDs(ctx context.Context, ids []uint64) (ma
 	var rows []TemplatePreview
 	err := d.DB(ctx).Model(&model.Template{}).
 		Select("id", "preview_url", "thumbnail_url").
-		Where("id IN ? AND status = 1", ids).
+		Where("id IN ? AND status IN ?", ids, visibleStatuses).
 		Find(&rows).Error
 	if err != nil {
 		return nil, err
@@ -371,11 +442,11 @@ func (d *TemplateDAO) ListThumbnailsByIDs(ctx context.Context, ids []uint64) (ma
 }
 
 // GetByIDForUpdateTx 取整行（含 pattern_data）用于覆盖前的快照，并持有行锁到事务结束。
-// status = 1 前置：已下架的模板不是合法的覆盖目标。
+// 状态前置：已下架的模板不是合法的覆盖目标；盲盒专属图纸是（入池后仍要能改）。
 func (d *TemplateDAO) GetByIDForUpdateTx(tx *gorm.DB, id uint64) (*model.Template, error) {
 	var tpl model.Template
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND status = 1", id).First(&tpl).Error
+		Where("id = ? AND status IN ?", id, visibleStatuses).First(&tpl).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -392,7 +463,7 @@ func (d *TemplateDAO) GetByIDForUpdateTx(tx *gorm.DB, id uint64) (*model.Templat
 // RowsAffected == 0，与「WHERE 没命中」无法区分。恒变的 updated_at 才让 RowsAffected
 // 可信。不要加「无变化就跳过写入」的优化。
 func (d *TemplateDAO) UpdatePublishedTemplateTx(tx *gorm.DB, templateID uint64, tpl *model.Template) (bool, error) {
-	result := tx.Model(&model.Template{}).Where("id = ? AND status = 1", templateID).
+	result := tx.Model(&model.Template{}).Where("id = ? AND status IN ?", templateID, visibleStatuses).
 		Updates(map[string]interface{}{
 			"category_id":   tpl.CategoryID,
 			"title":         tpl.Title,
@@ -418,14 +489,14 @@ func (d *TemplateDAO) CreateTemplateRevisionTx(tx *gorm.DB, revision *model.Temp
 	return tx.Create(revision).Error
 }
 
-func (d *TemplateDAO) GetRandom(ctx context.Context) (*model.Template, error) {
-	var tpl model.Template
-	err := d.DB(ctx).Where("status = 1").Order("RAND()").Limit(1).Find(&tpl).Error
-	if err != nil {
-		return nil, err
+// SetStatusTx 做条件状态迁移，供盲盒奖池的入池（1→2）和出池（2→1）使用。
+// 带上 from 是为了不覆盖并发改动：出池时若图纸已被下架（status=0），这里不命中，
+// 图纸就不会被意外重新上架。
+func (d *TemplateDAO) SetStatusTx(tx *gorm.DB, id uint64, from, to int8) (bool, error) {
+	result := tx.Model(&model.Template{}).Where("id = ? AND status = ?", id, from).
+		Updates(map[string]interface{}{"status": to, "updated_at": time.Now()})
+	if result.Error != nil {
+		return false, result.Error
 	}
-	if tpl.ID == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
-	return &tpl, nil
+	return result.RowsAffected > 0, nil
 }

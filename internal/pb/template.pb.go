@@ -130,8 +130,13 @@ type TemplateItem struct {
 	Height int32 `protobuf:"varint,16,opt,name=height,proto3" json:"height,omitempty"`
 	// 投稿人昵称，发布时的快照；官方自建图纸为空。
 	ContributorNickname string `protobuf:"bytes,17,opt,name=contributor_nickname,json=contributorNickname,proto3" json:"contributor_nickname,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// 所属分类 ID。客户端按它映射本地的图案与文案。
+	CategoryId int32 `protobuf:"varint,18,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	// 所属分类名称。盲盒专用分类不出现在 ListCategories 里，客户端无法自行用
+	// 分类导航的结果翻译 ID，所以名称随图纸一起下发，作为未内置分类的兜底展示。
+	CategoryName  string `protobuf:"bytes,19,opt,name=category_name,json=categoryName,proto3" json:"category_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TemplateItem) Reset() {
@@ -279,6 +284,20 @@ func (x *TemplateItem) GetHeight() int32 {
 func (x *TemplateItem) GetContributorNickname() string {
 	if x != nil {
 		return x.ContributorNickname
+	}
+	return ""
+}
+
+func (x *TemplateItem) GetCategoryId() int32 {
+	if x != nil {
+		return x.CategoryId
+	}
+	return 0
+}
+
+func (x *TemplateItem) GetCategoryName() string {
+	if x != nil {
+		return x.CategoryName
 	}
 	return ""
 }
@@ -1154,7 +1173,9 @@ type RandomTemplateResponse struct {
 	// 随机图纸信息。
 	Template *TemplateItem `protobuf:"bytes,2,opt,name=template,proto3" json:"template,omitempty"`
 	// 图纸数据。
-	PatternData   *PatternData `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	PatternData *PatternData `protobuf:"bytes,3,opt,name=pattern_data,json=patternData,proto3" json:"pattern_data,omitempty"`
+	// 抽取后的当日额度状况，客户端可直接刷新剩余次数，无需再调 GetBlindBoxQuota。
+	Quota         *BlindBoxQuota `protobuf:"bytes,4,opt,name=quota,proto3" json:"quota,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1210,6 +1231,186 @@ func (x *RandomTemplateResponse) GetPatternData() *PatternData {
 	return nil
 }
 
+func (x *RandomTemplateResponse) GetQuota() *BlindBoxQuota {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
+// BlindBoxQuota 描述用户当天的盲盒次数。次数用尽时抽取接口返回 2007
+// （CodeBlindBoxQuotaUsedUp），客户端应据此提示到次日恢复，而不是当普通错误重试。
+type BlindBoxQuota struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 今日总次数上限。
+	DailyLimit int32 `protobuf:"varint,1,opt,name=daily_limit,json=dailyLimit,proto3" json:"daily_limit,omitempty"`
+	// 今日已用次数。
+	Used int32 `protobuf:"varint,2,opt,name=used,proto3" json:"used,omitempty"`
+	// 今日剩余次数。
+	Remaining int32 `protobuf:"varint,3,opt,name=remaining,proto3" json:"remaining,omitempty"`
+	// 下次重置时间，Unix 秒。按固定的东八区零点计算。
+	ResetAt       int64 `protobuf:"varint,4,opt,name=reset_at,json=resetAt,proto3" json:"reset_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlindBoxQuota) Reset() {
+	*x = BlindBoxQuota{}
+	mi := &file_template_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlindBoxQuota) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlindBoxQuota) ProtoMessage() {}
+
+func (x *BlindBoxQuota) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlindBoxQuota.ProtoReflect.Descriptor instead.
+func (*BlindBoxQuota) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *BlindBoxQuota) GetDailyLimit() int32 {
+	if x != nil {
+		return x.DailyLimit
+	}
+	return 0
+}
+
+func (x *BlindBoxQuota) GetUsed() int32 {
+	if x != nil {
+		return x.Used
+	}
+	return 0
+}
+
+func (x *BlindBoxQuota) GetRemaining() int32 {
+	if x != nil {
+		return x.Remaining
+	}
+	return 0
+}
+
+func (x *BlindBoxQuota) GetResetAt() int64 {
+	if x != nil {
+		return x.ResetAt
+	}
+	return 0
+}
+
+type GetBlindBoxQuotaRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 请求公共头。
+	Header        *RequestHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlindBoxQuotaRequest) Reset() {
+	*x = GetBlindBoxQuotaRequest{}
+	mi := &file_template_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlindBoxQuotaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlindBoxQuotaRequest) ProtoMessage() {}
+
+func (x *GetBlindBoxQuotaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlindBoxQuotaRequest.ProtoReflect.Descriptor instead.
+func (*GetBlindBoxQuotaRequest) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetBlindBoxQuotaRequest) GetHeader() *RequestHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+type GetBlindBoxQuotaResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 响应公共头。
+	Header *ResponseHeader `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	// 当日额度状况。
+	Quota         *BlindBoxQuota `protobuf:"bytes,2,opt,name=quota,proto3" json:"quota,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlindBoxQuotaResponse) Reset() {
+	*x = GetBlindBoxQuotaResponse{}
+	mi := &file_template_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlindBoxQuotaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlindBoxQuotaResponse) ProtoMessage() {}
+
+func (x *GetBlindBoxQuotaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_template_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlindBoxQuotaResponse.ProtoReflect.Descriptor instead.
+func (*GetBlindBoxQuotaResponse) Descriptor() ([]byte, []int) {
+	return file_template_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetBlindBoxQuotaResponse) GetHeader() *ResponseHeader {
+	if x != nil {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *GetBlindBoxQuotaResponse) GetQuota() *BlindBoxQuota {
+	if x != nil {
+		return x.Quota
+	}
+	return nil
+}
+
 type ListBlindBoxRecordsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// 请求公共头。
@@ -1222,7 +1423,7 @@ type ListBlindBoxRecordsRequest struct {
 
 func (x *ListBlindBoxRecordsRequest) Reset() {
 	*x = ListBlindBoxRecordsRequest{}
-	mi := &file_template_proto_msgTypes[18]
+	mi := &file_template_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1234,7 +1435,7 @@ func (x *ListBlindBoxRecordsRequest) String() string {
 func (*ListBlindBoxRecordsRequest) ProtoMessage() {}
 
 func (x *ListBlindBoxRecordsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_template_proto_msgTypes[18]
+	mi := &file_template_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1247,7 +1448,7 @@ func (x *ListBlindBoxRecordsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlindBoxRecordsRequest.ProtoReflect.Descriptor instead.
 func (*ListBlindBoxRecordsRequest) Descriptor() ([]byte, []int) {
-	return file_template_proto_rawDescGZIP(), []int{18}
+	return file_template_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListBlindBoxRecordsRequest) GetHeader() *RequestHeader {
@@ -1278,7 +1479,7 @@ type ListBlindBoxRecordsResponse struct {
 
 func (x *ListBlindBoxRecordsResponse) Reset() {
 	*x = ListBlindBoxRecordsResponse{}
-	mi := &file_template_proto_msgTypes[19]
+	mi := &file_template_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1290,7 +1491,7 @@ func (x *ListBlindBoxRecordsResponse) String() string {
 func (*ListBlindBoxRecordsResponse) ProtoMessage() {}
 
 func (x *ListBlindBoxRecordsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_template_proto_msgTypes[19]
+	mi := &file_template_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1303,7 +1504,7 @@ func (x *ListBlindBoxRecordsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlindBoxRecordsResponse.ProtoReflect.Descriptor instead.
 func (*ListBlindBoxRecordsResponse) Descriptor() ([]byte, []int) {
-	return file_template_proto_rawDescGZIP(), []int{19}
+	return file_template_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListBlindBoxRecordsResponse) GetHeader() *ResponseHeader {
@@ -1338,7 +1539,7 @@ const file_template_proto_rawDesc = "" +
 	"categoryId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
 	"\bicon_url\x18\x03 \x01(\tR\aiconUrl\x12%\n" +
-	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\xad\x04\n" +
+	"\x0etemplate_count\x18\x04 \x01(\x05R\rtemplateCount\"\xf3\x04\n" +
 	"\fTemplateItem\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -1364,7 +1565,10 @@ const file_template_proto_rawDesc = "" +
 	"\fis_favorited\x18\x0e \x01(\bR\visFavorited\x12\x14\n" +
 	"\x05width\x18\x0f \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x10 \x01(\x05R\x06height\x121\n" +
-	"\x14contributor_nickname\x18\x11 \x01(\tR\x13contributorNickname\"L\n" +
+	"\x14contributor_nickname\x18\x11 \x01(\tR\x13contributorNickname\x12\x1f\n" +
+	"\vcategory_id\x18\x12 \x01(\x05R\n" +
+	"categoryId\x12#\n" +
+	"\rcategory_name\x18\x13 \x01(\tR\fcategoryName\"L\n" +
 	"\x15ListCategoriesRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\x8a\x01\n" +
 	"\x16ListCategoriesResponse\x124\n" +
@@ -1424,19 +1628,30 @@ const file_template_proto_rawDesc = "" +
 	"categories\x18\x02 \x03(\v2\x1a.bobobeads.v1.CategoryItemR\n" +
 	"categories\"L\n" +
 	"\x15RandomTemplateRequest\x123\n" +
-	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\xc4\x01\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\xf7\x01\n" +
 	"\x16RandomTemplateResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x126\n" +
 	"\btemplate\x18\x02 \x01(\v2\x1a.bobobeads.v1.TemplateItemR\btemplate\x12<\n" +
-	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\"\x80\x01\n" +
+	"\fpattern_data\x18\x03 \x01(\v2\x19.bobobeads.v1.PatternDataR\vpatternData\x121\n" +
+	"\x05quota\x18\x04 \x01(\v2\x1b.bobobeads.v1.BlindBoxQuotaR\x05quota\"}\n" +
+	"\rBlindBoxQuota\x12\x1f\n" +
+	"\vdaily_limit\x18\x01 \x01(\x05R\n" +
+	"dailyLimit\x12\x12\n" +
+	"\x04used\x18\x02 \x01(\x05R\x04used\x12\x1c\n" +
+	"\tremaining\x18\x03 \x01(\x05R\tremaining\x12\x19\n" +
+	"\breset_at\x18\x04 \x01(\x03R\aresetAt\"N\n" +
+	"\x17GetBlindBoxQuotaRequest\x123\n" +
+	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\"\x83\x01\n" +
+	"\x18GetBlindBoxQuotaResponse\x124\n" +
+	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x121\n" +
+	"\x05quota\x18\x02 \x01(\v2\x1b.bobobeads.v1.BlindBoxQuotaR\x05quota\"\x80\x01\n" +
 	"\x1aListBlindBoxRecordsRequest\x123\n" +
 	"\x06header\x18\x01 \x01(\v2\x1b.bobobeads.v1.RequestHeaderR\x06header\x12-\n" +
 	"\x04page\x18\x02 \x01(\v2\x19.bobobeads.v1.PageRequestR\x04page\"\xbd\x01\n" +
 	"\x1bListBlindBoxRecordsResponse\x124\n" +
 	"\x06header\x18\x01 \x01(\v2\x1c.bobobeads.v1.ResponseHeaderR\x06header\x128\n" +
 	"\ttemplates\x18\x02 \x03(\v2\x1a.bobobeads.v1.TemplateItemR\ttemplates\x12.\n" +
-	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\x90\n" +
-	"\n" +
+	"\x04page\x18\x03 \x01(\v2\x1a.bobobeads.v1.PageResponseR\x04page2\x9c\v\n" +
 	"\x0fTemplateService\x12{\n" +
 	"\vGetTemplate\x12 .bobobeads.v1.GetTemplateRequest\x1a!.bobobeads.v1.GetTemplateResponse\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/templates/{template_id}\x12s\n" +
 	"\rListTemplates\x12\".bobobeads.v1.ListTemplatesRequest\x1a#.bobobeads.v1.ListTemplatesResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v1/templates\x12\x81\x01\n" +
@@ -1446,7 +1661,8 @@ const file_template_proto_rawDesc = "" +
 	"\x10FavoriteTemplate\x12%.bobobeads.v1.FavoriteTemplateRequest\x1a&.bobobeads.v1.FavoriteTemplateResponse\"3\x82\xd3\xe4\x93\x02-:\x01*\"(/api/v1/templates/{template_id}/favorite\x12\x99\x01\n" +
 	"\x12UnfavoriteTemplate\x12'.bobobeads.v1.UnfavoriteTemplateRequest\x1a(.bobobeads.v1.UnfavoriteTemplateResponse\"0\x82\xd3\xe4\x93\x02**(/api/v1/templates/{template_id}/favorite\x12}\n" +
 	"\x0eRandomTemplate\x12#.bobobeads.v1.RandomTemplateRequest\x1a$.bobobeads.v1.RandomTemplateResponse\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/templates/random\x12\x94\x01\n" +
-	"\x13ListBlindBoxRecords\x12(.bobobeads.v1.ListBlindBoxRecordsRequest\x1a).bobobeads.v1.ListBlindBoxRecordsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /api/v1/templates/random/historyB\xa5\x01\n" +
+	"\x13ListBlindBoxRecords\x12(.bobobeads.v1.ListBlindBoxRecordsRequest\x1a).bobobeads.v1.ListBlindBoxRecordsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /api/v1/templates/random/history\x12\x89\x01\n" +
+	"\x10GetBlindBoxQuota\x12%.bobobeads.v1.GetBlindBoxQuotaRequest\x1a&.bobobeads.v1.GetBlindBoxQuotaResponse\"&\x82\xd3\xe4\x93\x02 \x12\x1e/api/v1/templates/random/quotaB\xa5\x01\n" +
 	"\x10com.bobobeads.v1B\rTemplateProtoP\x01Z1github.com/zhaojiabo/bobobeads_server/internal/pb\xa2\x02\x03BXX\xaa\x02\fBobobeads.V1\xca\x02\fBobobeads\\V1\xe2\x02\x18Bobobeads\\V1\\GPBMetadata\xea\x02\rBobobeads::V1b\x06proto3"
 
 var (
@@ -1461,7 +1677,7 @@ func file_template_proto_rawDescGZIP() []byte {
 	return file_template_proto_rawDescData
 }
 
-var file_template_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_template_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_template_proto_goTypes = []any{
 	(*CategoryItem)(nil),                   // 0: bobobeads.v1.CategoryItem
 	(*TemplateItem)(nil),                   // 1: bobobeads.v1.TemplateItem
@@ -1481,71 +1697,80 @@ var file_template_proto_goTypes = []any{
 	(*ListFavoriteCategoriesResponse)(nil), // 15: bobobeads.v1.ListFavoriteCategoriesResponse
 	(*RandomTemplateRequest)(nil),          // 16: bobobeads.v1.RandomTemplateRequest
 	(*RandomTemplateResponse)(nil),         // 17: bobobeads.v1.RandomTemplateResponse
-	(*ListBlindBoxRecordsRequest)(nil),     // 18: bobobeads.v1.ListBlindBoxRecordsRequest
-	(*ListBlindBoxRecordsResponse)(nil),    // 19: bobobeads.v1.ListBlindBoxRecordsResponse
-	(*RequestHeader)(nil),                  // 20: bobobeads.v1.RequestHeader
-	(*ResponseHeader)(nil),                 // 21: bobobeads.v1.ResponseHeader
-	(*PageRequest)(nil),                    // 22: bobobeads.v1.PageRequest
-	(*PageResponse)(nil),                   // 23: bobobeads.v1.PageResponse
-	(*PatternData)(nil),                    // 24: bobobeads.v1.PatternData
+	(*BlindBoxQuota)(nil),                  // 18: bobobeads.v1.BlindBoxQuota
+	(*GetBlindBoxQuotaRequest)(nil),        // 19: bobobeads.v1.GetBlindBoxQuotaRequest
+	(*GetBlindBoxQuotaResponse)(nil),       // 20: bobobeads.v1.GetBlindBoxQuotaResponse
+	(*ListBlindBoxRecordsRequest)(nil),     // 21: bobobeads.v1.ListBlindBoxRecordsRequest
+	(*ListBlindBoxRecordsResponse)(nil),    // 22: bobobeads.v1.ListBlindBoxRecordsResponse
+	(*RequestHeader)(nil),                  // 23: bobobeads.v1.RequestHeader
+	(*ResponseHeader)(nil),                 // 24: bobobeads.v1.ResponseHeader
+	(*PageRequest)(nil),                    // 25: bobobeads.v1.PageRequest
+	(*PageResponse)(nil),                   // 26: bobobeads.v1.PageResponse
+	(*PatternData)(nil),                    // 27: bobobeads.v1.PatternData
 }
 var file_template_proto_depIdxs = []int32{
-	20, // 0: bobobeads.v1.ListCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 1: bobobeads.v1.ListCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	23, // 0: bobobeads.v1.ListCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 1: bobobeads.v1.ListCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	0,  // 2: bobobeads.v1.ListCategoriesResponse.categories:type_name -> bobobeads.v1.CategoryItem
-	20, // 3: bobobeads.v1.ListTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	22, // 4: bobobeads.v1.ListTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
-	21, // 5: bobobeads.v1.ListTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	23, // 3: bobobeads.v1.ListTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	25, // 4: bobobeads.v1.ListTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
+	24, // 5: bobobeads.v1.ListTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 6: bobobeads.v1.ListTemplatesResponse.templates:type_name -> bobobeads.v1.TemplateItem
-	23, // 7: bobobeads.v1.ListTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
-	20, // 8: bobobeads.v1.GetTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 9: bobobeads.v1.GetTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	26, // 7: bobobeads.v1.ListTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
+	23, // 8: bobobeads.v1.GetTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 9: bobobeads.v1.GetTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 10: bobobeads.v1.GetTemplateResponse.template:type_name -> bobobeads.v1.TemplateItem
-	24, // 11: bobobeads.v1.GetTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
-	20, // 12: bobobeads.v1.FavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 13: bobobeads.v1.FavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	20, // 14: bobobeads.v1.UnfavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 15: bobobeads.v1.UnfavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	20, // 16: bobobeads.v1.ListFavoriteTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	22, // 17: bobobeads.v1.ListFavoriteTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
-	21, // 18: bobobeads.v1.ListFavoriteTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	27, // 11: bobobeads.v1.GetTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
+	23, // 12: bobobeads.v1.FavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 13: bobobeads.v1.FavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	23, // 14: bobobeads.v1.UnfavoriteTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 15: bobobeads.v1.UnfavoriteTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	23, // 16: bobobeads.v1.ListFavoriteTemplatesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	25, // 17: bobobeads.v1.ListFavoriteTemplatesRequest.page:type_name -> bobobeads.v1.PageRequest
+	24, // 18: bobobeads.v1.ListFavoriteTemplatesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 19: bobobeads.v1.ListFavoriteTemplatesResponse.templates:type_name -> bobobeads.v1.TemplateItem
-	23, // 20: bobobeads.v1.ListFavoriteTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
-	20, // 21: bobobeads.v1.ListFavoriteCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 22: bobobeads.v1.ListFavoriteCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	26, // 20: bobobeads.v1.ListFavoriteTemplatesResponse.page:type_name -> bobobeads.v1.PageResponse
+	23, // 21: bobobeads.v1.ListFavoriteCategoriesRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 22: bobobeads.v1.ListFavoriteCategoriesResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	0,  // 23: bobobeads.v1.ListFavoriteCategoriesResponse.categories:type_name -> bobobeads.v1.CategoryItem
-	20, // 24: bobobeads.v1.RandomTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
-	21, // 25: bobobeads.v1.RandomTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	23, // 24: bobobeads.v1.RandomTemplateRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 25: bobobeads.v1.RandomTemplateResponse.header:type_name -> bobobeads.v1.ResponseHeader
 	1,  // 26: bobobeads.v1.RandomTemplateResponse.template:type_name -> bobobeads.v1.TemplateItem
-	24, // 27: bobobeads.v1.RandomTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
-	20, // 28: bobobeads.v1.ListBlindBoxRecordsRequest.header:type_name -> bobobeads.v1.RequestHeader
-	22, // 29: bobobeads.v1.ListBlindBoxRecordsRequest.page:type_name -> bobobeads.v1.PageRequest
-	21, // 30: bobobeads.v1.ListBlindBoxRecordsResponse.header:type_name -> bobobeads.v1.ResponseHeader
-	1,  // 31: bobobeads.v1.ListBlindBoxRecordsResponse.templates:type_name -> bobobeads.v1.TemplateItem
-	23, // 32: bobobeads.v1.ListBlindBoxRecordsResponse.page:type_name -> bobobeads.v1.PageResponse
-	6,  // 33: bobobeads.v1.TemplateService.GetTemplate:input_type -> bobobeads.v1.GetTemplateRequest
-	4,  // 34: bobobeads.v1.TemplateService.ListTemplates:input_type -> bobobeads.v1.ListTemplatesRequest
-	2,  // 35: bobobeads.v1.TemplateService.ListCategories:input_type -> bobobeads.v1.ListCategoriesRequest
-	12, // 36: bobobeads.v1.TemplateService.ListFavoriteTemplates:input_type -> bobobeads.v1.ListFavoriteTemplatesRequest
-	14, // 37: bobobeads.v1.TemplateService.ListFavoriteCategories:input_type -> bobobeads.v1.ListFavoriteCategoriesRequest
-	8,  // 38: bobobeads.v1.TemplateService.FavoriteTemplate:input_type -> bobobeads.v1.FavoriteTemplateRequest
-	10, // 39: bobobeads.v1.TemplateService.UnfavoriteTemplate:input_type -> bobobeads.v1.UnfavoriteTemplateRequest
-	16, // 40: bobobeads.v1.TemplateService.RandomTemplate:input_type -> bobobeads.v1.RandomTemplateRequest
-	18, // 41: bobobeads.v1.TemplateService.ListBlindBoxRecords:input_type -> bobobeads.v1.ListBlindBoxRecordsRequest
-	7,  // 42: bobobeads.v1.TemplateService.GetTemplate:output_type -> bobobeads.v1.GetTemplateResponse
-	5,  // 43: bobobeads.v1.TemplateService.ListTemplates:output_type -> bobobeads.v1.ListTemplatesResponse
-	3,  // 44: bobobeads.v1.TemplateService.ListCategories:output_type -> bobobeads.v1.ListCategoriesResponse
-	13, // 45: bobobeads.v1.TemplateService.ListFavoriteTemplates:output_type -> bobobeads.v1.ListFavoriteTemplatesResponse
-	15, // 46: bobobeads.v1.TemplateService.ListFavoriteCategories:output_type -> bobobeads.v1.ListFavoriteCategoriesResponse
-	9,  // 47: bobobeads.v1.TemplateService.FavoriteTemplate:output_type -> bobobeads.v1.FavoriteTemplateResponse
-	11, // 48: bobobeads.v1.TemplateService.UnfavoriteTemplate:output_type -> bobobeads.v1.UnfavoriteTemplateResponse
-	17, // 49: bobobeads.v1.TemplateService.RandomTemplate:output_type -> bobobeads.v1.RandomTemplateResponse
-	19, // 50: bobobeads.v1.TemplateService.ListBlindBoxRecords:output_type -> bobobeads.v1.ListBlindBoxRecordsResponse
-	42, // [42:51] is the sub-list for method output_type
-	33, // [33:42] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	27, // 27: bobobeads.v1.RandomTemplateResponse.pattern_data:type_name -> bobobeads.v1.PatternData
+	18, // 28: bobobeads.v1.RandomTemplateResponse.quota:type_name -> bobobeads.v1.BlindBoxQuota
+	23, // 29: bobobeads.v1.GetBlindBoxQuotaRequest.header:type_name -> bobobeads.v1.RequestHeader
+	24, // 30: bobobeads.v1.GetBlindBoxQuotaResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	18, // 31: bobobeads.v1.GetBlindBoxQuotaResponse.quota:type_name -> bobobeads.v1.BlindBoxQuota
+	23, // 32: bobobeads.v1.ListBlindBoxRecordsRequest.header:type_name -> bobobeads.v1.RequestHeader
+	25, // 33: bobobeads.v1.ListBlindBoxRecordsRequest.page:type_name -> bobobeads.v1.PageRequest
+	24, // 34: bobobeads.v1.ListBlindBoxRecordsResponse.header:type_name -> bobobeads.v1.ResponseHeader
+	1,  // 35: bobobeads.v1.ListBlindBoxRecordsResponse.templates:type_name -> bobobeads.v1.TemplateItem
+	26, // 36: bobobeads.v1.ListBlindBoxRecordsResponse.page:type_name -> bobobeads.v1.PageResponse
+	6,  // 37: bobobeads.v1.TemplateService.GetTemplate:input_type -> bobobeads.v1.GetTemplateRequest
+	4,  // 38: bobobeads.v1.TemplateService.ListTemplates:input_type -> bobobeads.v1.ListTemplatesRequest
+	2,  // 39: bobobeads.v1.TemplateService.ListCategories:input_type -> bobobeads.v1.ListCategoriesRequest
+	12, // 40: bobobeads.v1.TemplateService.ListFavoriteTemplates:input_type -> bobobeads.v1.ListFavoriteTemplatesRequest
+	14, // 41: bobobeads.v1.TemplateService.ListFavoriteCategories:input_type -> bobobeads.v1.ListFavoriteCategoriesRequest
+	8,  // 42: bobobeads.v1.TemplateService.FavoriteTemplate:input_type -> bobobeads.v1.FavoriteTemplateRequest
+	10, // 43: bobobeads.v1.TemplateService.UnfavoriteTemplate:input_type -> bobobeads.v1.UnfavoriteTemplateRequest
+	16, // 44: bobobeads.v1.TemplateService.RandomTemplate:input_type -> bobobeads.v1.RandomTemplateRequest
+	21, // 45: bobobeads.v1.TemplateService.ListBlindBoxRecords:input_type -> bobobeads.v1.ListBlindBoxRecordsRequest
+	19, // 46: bobobeads.v1.TemplateService.GetBlindBoxQuota:input_type -> bobobeads.v1.GetBlindBoxQuotaRequest
+	7,  // 47: bobobeads.v1.TemplateService.GetTemplate:output_type -> bobobeads.v1.GetTemplateResponse
+	5,  // 48: bobobeads.v1.TemplateService.ListTemplates:output_type -> bobobeads.v1.ListTemplatesResponse
+	3,  // 49: bobobeads.v1.TemplateService.ListCategories:output_type -> bobobeads.v1.ListCategoriesResponse
+	13, // 50: bobobeads.v1.TemplateService.ListFavoriteTemplates:output_type -> bobobeads.v1.ListFavoriteTemplatesResponse
+	15, // 51: bobobeads.v1.TemplateService.ListFavoriteCategories:output_type -> bobobeads.v1.ListFavoriteCategoriesResponse
+	9,  // 52: bobobeads.v1.TemplateService.FavoriteTemplate:output_type -> bobobeads.v1.FavoriteTemplateResponse
+	11, // 53: bobobeads.v1.TemplateService.UnfavoriteTemplate:output_type -> bobobeads.v1.UnfavoriteTemplateResponse
+	17, // 54: bobobeads.v1.TemplateService.RandomTemplate:output_type -> bobobeads.v1.RandomTemplateResponse
+	22, // 55: bobobeads.v1.TemplateService.ListBlindBoxRecords:output_type -> bobobeads.v1.ListBlindBoxRecordsResponse
+	20, // 56: bobobeads.v1.TemplateService.GetBlindBoxQuota:output_type -> bobobeads.v1.GetBlindBoxQuotaResponse
+	47, // [47:57] is the sub-list for method output_type
+	37, // [37:47] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_template_proto_init() }
@@ -1561,7 +1786,7 @@ func file_template_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_template_proto_rawDesc), len(file_template_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

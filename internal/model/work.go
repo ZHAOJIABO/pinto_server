@@ -136,12 +136,15 @@ type TemplateFavorite struct {
 func (TemplateFavorite) TableName() string { return "bb_template_favorite" }
 
 type TemplateCategory struct {
-	ID        int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name      string    `gorm:"type:varchar(64);uniqueIndex:uk_template_category_name" json:"name"`
-	IconURL   string    `gorm:"type:varchar(512)" json:"icon_url"`
-	SortOrder int       `gorm:"default:0" json:"sort_order"`
-	Status    int8      `gorm:"type:tinyint;default:1" json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	ID      int    `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name    string `gorm:"type:varchar(64);uniqueIndex:uk_template_category_name" json:"name"`
+	IconURL string `gorm:"type:varchar(512)" json:"icon_url"`
+	// IsBlindBox 标记盲盒专用分类：不出现在 C 端分类导航，但仍参与收藏分类聚合，
+	// 让抽到并收藏的盲盒图纸有分组归属。
+	IsBlindBox bool      `gorm:"not null;default:false" json:"is_blind_box"`
+	SortOrder  int       `gorm:"default:0" json:"sort_order"`
+	Status     int8      `gorm:"type:tinyint;default:1" json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func (TemplateCategory) TableName() string { return "bb_template_category" }

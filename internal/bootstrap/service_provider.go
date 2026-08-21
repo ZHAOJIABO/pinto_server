@@ -33,6 +33,8 @@ type ServiceProvider struct {
 	CommunityDAO       *dao.CommunityDAO
 	TemplateDAO        *dao.TemplateDAO
 	BlindBoxRecordDAO  *dao.BlindBoxRecordDAO
+	BlindBoxPoolDAO    *dao.BlindBoxPoolDAO
+	BlindBoxQuotaDAO   *dao.BlindBoxQuotaDAO
 	OrderDAO           *dao.OrderDAO
 	ProductDAO         *dao.ProductDAO
 	SubscriptionDAO    *dao.SubscriptionDAO
@@ -104,6 +106,8 @@ func (sp *ServiceProvider) initDAOs() {
 	sp.CommunityDAO = dao.NewCommunityDAO()
 	sp.TemplateDAO = dao.NewTemplateDAO()
 	sp.BlindBoxRecordDAO = dao.NewBlindBoxRecordDAO()
+	sp.BlindBoxPoolDAO = dao.NewBlindBoxPoolDAO()
+	sp.BlindBoxQuotaDAO = dao.NewBlindBoxQuotaDAO()
 	sp.OrderDAO = dao.NewOrderDAO()
 	sp.ProductDAO = dao.NewProductDAO()
 	sp.SubscriptionDAO = dao.NewSubscriptionDAO()
@@ -126,8 +130,8 @@ func (sp *ServiceProvider) initServices() {
 	sp.WorkService = work.NewService(sp.WorkDAO, sp.MediaService, sp.SubmissionDAO)
 	sp.FinishedProductService = finishedproduct.NewService(sp.FinishedProductDAO, sp.MediaService)
 	sp.CommunityService = community.NewService(sp.CommunityDAO)
-	sp.TemplateService = template.NewService(sp.TemplateDAO, sp.BlindBoxRecordDAO)
-	sp.TemplateAdminService = template.NewAdminService(sp.TemplateDAO)
+	sp.TemplateService = template.NewService(sp.TemplateDAO, sp.BlindBoxRecordDAO, sp.BlindBoxPoolDAO, sp.BlindBoxQuotaDAO)
+	sp.TemplateAdminService = template.NewAdminService(sp.TemplateDAO, sp.BlindBoxPoolDAO)
 	sp.SubmissionService = templatesubmission.NewService(
 		sp.SubmissionDAO, sp.WorkDAO, sp.UserDAO, sp.MediaService, sp.TemplateAdminService,
 		conf.GlobalConfig.TemplateSubmission.DailyLimit,

@@ -23,7 +23,7 @@ func NewTemplateHandler(templateService *template.Service) *TemplateHandler {
 
 // templateItemProto is shared by every route that returns a template so a newly
 // added field cannot be wired into some responses and forgotten in others.
-func (h *TemplateHandler) templateItemProto(t *model.Template, isFavorited bool) *pb.TemplateItem {
+func (h *TemplateHandler) templateItemProto(t *model.Template, isFavorited bool, categoryNames map[int]string) *pb.TemplateItem {
 	thumbnailURL := t.ThumbnailURL
 	if thumbnailURL == "" {
 		thumbnailURL = t.PreviewURL
@@ -46,7 +46,34 @@ func (h *TemplateHandler) templateItemProto(t *model.Template, isFavorited bool)
 		FavoriteCount:       int32(t.FavoriteCount),
 		IsFavorited:         isFavorited,
 		ContributorNickname: t.ContributorNickname,
+		CategoryId:          int32(t.CategoryID),
+		CategoryName:        categoryNames[t.CategoryID],
 	}
+}
+
+// categoryNamesFor 批量翻译图纸的分类名。盲盒专用分类不在 ListCategories 的结果里，
+// 客户端拿不到 id → 名称的映射，所以名称必须随图纸一起下发。
+//
+// 查不到时返回 nil 让名称留空，与 BatchGetFavorited 的处理一致：分类名只是展示兜底，
+// 不值得为它整个响应失败。
+func (h *TemplateHandler) categoryNamesFor(ctx context.Context, templates ...*model.Template) map[int]string {
+	ids := make([]int, 0, len(templates))
+	seen := make(map[int]struct{}, len(templates))
+	for _, t := range templates {
+		if _, ok := seen[t.CategoryID]; ok {
+			continue
+		}
+		seen[t.CategoryID] = struct{}{}
+		ids = append(ids, t.CategoryID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	names, err := h.templateService.ListActiveCategoryNames(ctx, ids)
+	if err != nil {
+		return nil
+	}
+	return names
 }
 
 func (h *TemplateHandler) ListCategories(ctx context.Context, req *pb.ListCategoriesRequest) (*pb.ListCategoriesResponse, error) {
@@ -108,10 +135,11 @@ func (h *TemplateHandler) ListTemplates(ctx context.Context, req *pb.ListTemplat
 		templateIDs = append(templateIDs, t.ID)
 	}
 	favMap, _ := h.templateService.BatchGetFavorited(ctx, userID, templateIDs)
+	categoryNames := h.categoryNamesFor(ctx, templates...)
 
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		items = append(items, h.templateItemProto(t, favMap[t.ID]))
+		items = append(items, h.templateItemProto(t, favMap[t.ID], categoryNames))
 	}
 	return &pb.ListTemplatesResponse{
 		Header:    okHeaderCtx(ctx),
@@ -144,7 +172,7 @@ func (h *TemplateHandler) GetTemplate(ctx context.Context, req *pb.GetTemplateRe
 
 	return &pb.GetTemplateResponse{
 		Header:      okHeaderCtx(ctx),
-		Template:    h.templateItemProto(tpl, favMap[templateID]),
+		Template:    h.templateItemProto(tpl, favMap[templateID], h.categoryNamesFor(ctx, tpl)),
 		PatternData: patternData,
 	}, nil
 }
@@ -188,12 +216,10 @@ func (h *TemplateHandler) UnfavoriteTemplate(ctx context.Context, req *pb.Unfavo
 func (h *TemplateHandler) RandomTemplate(ctx context.Context, req *pb.RandomTemplateRequest) (*pb.RandomTemplateResponse, error) {
 	userID := middleware.GetUserID(ctx)
 
-	tpl, err := h.templateService.GetRandomTemplate(ctx)
+	tpl, quota, err := h.templateService.DrawBlindBox(ctx, userID)
 	if err != nil {
 		return &pb.RandomTemplateResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
-
-	h.templateService.RecordBlindBox(ctx, userID, tpl.ID)
 
 	favMap, _ := h.templateService.BatchGetFavorited(ctx, userID, []uint64{tpl.ID})
 
@@ -207,9 +233,30 @@ func (h *TemplateHandler) RandomTemplate(ctx context.Context, req *pb.RandomTemp
 
 	return &pb.RandomTemplateResponse{
 		Header:      okHeaderCtx(ctx),
-		Template:    h.templateItemProto(tpl, favMap[tpl.ID]),
+		Template:    h.templateItemProto(tpl, favMap[tpl.ID], h.categoryNamesFor(ctx, tpl)),
 		PatternData: patternData,
+		Quota:       blindBoxQuotaProto(quota),
 	}, nil
+}
+
+func (h *TemplateHandler) GetBlindBoxQuota(ctx context.Context, req *pb.GetBlindBoxQuotaRequest) (*pb.GetBlindBoxQuotaResponse, error) {
+	quota, err := h.templateService.GetDailyDrawQuota(ctx, middleware.GetUserID(ctx))
+	if err != nil {
+		return &pb.GetBlindBoxQuotaResponse{Header: errHeaderCtx(ctx, err)}, nil
+	}
+	return &pb.GetBlindBoxQuotaResponse{
+		Header: okHeaderCtx(ctx),
+		Quota:  blindBoxQuotaProto(quota),
+	}, nil
+}
+
+func blindBoxQuotaProto(quota *template.DailyDrawQuota) *pb.BlindBoxQuota {
+	return &pb.BlindBoxQuota{
+		DailyLimit: int32(quota.Limit),
+		Used:       int32(quota.Used),
+		Remaining:  int32(quota.Remaining),
+		ResetAt:    quota.ResetAt.Unix(),
+	}
 }
 
 func (h *TemplateHandler) ListBlindBoxRecords(ctx context.Context, req *pb.ListBlindBoxRecordsRequest) (*pb.ListBlindBoxRecordsResponse, error) {
@@ -226,10 +273,11 @@ func (h *TemplateHandler) ListBlindBoxRecords(ctx context.Context, req *pb.ListB
 		templateIDs = append(templateIDs, t.ID)
 	}
 	favMap, _ := h.templateService.BatchGetFavorited(ctx, userID, templateIDs)
+	categoryNames := h.categoryNamesFor(ctx, templates...)
 
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		items = append(items, h.templateItemProto(t, favMap[t.ID]))
+		items = append(items, h.templateItemProto(t, favMap[t.ID], categoryNames))
 	}
 	return &pb.ListBlindBoxRecordsResponse{
 		Header:    okHeaderCtx(ctx),
@@ -247,9 +295,11 @@ func (h *TemplateHandler) ListFavoriteTemplates(ctx context.Context, req *pb.Lis
 		return &pb.ListFavoriteTemplatesResponse{Header: errHeaderCtx(ctx, err)}, nil
 	}
 
+	categoryNames := h.categoryNamesFor(ctx, templates...)
+
 	var items []*pb.TemplateItem
 	for _, t := range templates {
-		items = append(items, h.templateItemProto(t, true))
+		items = append(items, h.templateItemProto(t, true, categoryNames))
 	}
 	return &pb.ListFavoriteTemplatesResponse{
 		Header:    okHeaderCtx(ctx),

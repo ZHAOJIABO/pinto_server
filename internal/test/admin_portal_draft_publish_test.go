@@ -511,7 +511,7 @@ func TestClientTemplateListOmitsDraftAnnotations(t *testing.T) {
 	live := portal.seedLiveTemplate(t)
 	portal.createPublishableDraft(t, "draft-leak", &live.ID)
 
-	handler := api.NewTemplateHandler(templateservice.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO()))
+	handler := api.NewTemplateHandler(templateservice.NewService(dao.NewTemplateDAO(), dao.NewBlindBoxRecordDAO(), dao.NewBlindBoxPoolDAO(), dao.NewBlindBoxQuotaDAO()))
 	clientResponse, err := handler.ListTemplates(context.Background(), &pb.ListTemplatesRequest{
 		CategoryId: int32(portal.category.ID),
 		Page:       &pb.PageRequest{Page: 1, PageSize: 10},

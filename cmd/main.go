@@ -76,6 +76,8 @@ func main() {
 		&model.AIGeneration{},
 		&model.TemplatePublishRecord{},
 		&model.BlindBoxRecord{},
+		&model.BlindBoxPoolItem{},
+		&model.BlindBoxDailyQuota{},
 		&model.FinishedProduct{},
 		&model.TemplateSubmission{},
 		&model.TemplateDraft{},

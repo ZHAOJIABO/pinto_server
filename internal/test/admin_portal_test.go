@@ -279,7 +279,10 @@ func TestAdminPortalListsPublishedTemplates(t *testing.T) {
 	if len(item.Tags) == 0 {
 		t.Fatalf("expected tags array, got %#v", item.Tags)
 	}
-	summaries, _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).ListPublishedTemplates(context.Background(), 1, 1)
+	// 走后台列表实际用的那个投影：adminTemplateListColumns 比 C 端多一个 status 列，
+	// 加列时最容易顺手把 pattern_data 也带上，那会在大图纸上撞 MySQL 的 filesort 上限。
+	summaries, _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO(), dao.NewBlindBoxPoolDAO(), dao.NewBlindBoxQuotaDAO()).
+		ListPublishedTemplatesForAdmin(context.Background(), 1, 1)
 	if err != nil || len(summaries) != 1 || summaries[0].PatternData != nil {
 		t.Fatalf("template list must not load pattern data, summaries=%#v err=%v", summaries, err)
 	}
@@ -357,10 +360,10 @@ func TestAdminPortalUnpublishValidatesReasonAndIsIdempotent(t *testing.T) {
 	if err := db.DB.First(template, template.ID).Error; err != nil || template.Status != 0 {
 		t.Fatalf("expected template to be unpublished, template=%#v err=%v", template, err)
 	}
-	if _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).GetTemplate(context.Background(), template.ID); err == nil {
+	if _, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO(), dao.NewBlindBoxPoolDAO(), dao.NewBlindBoxQuotaDAO()).GetTemplate(context.Background(), template.ID); err == nil {
 		t.Fatal("unpublished template must not be visible through client template service")
 	}
-	published, total, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()).ListTemplates(context.Background(), templateservice.ListInput{
+	published, total, err := templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO(), dao.NewBlindBoxPoolDAO(), dao.NewBlindBoxQuotaDAO()).ListTemplates(context.Background(), templateservice.ListInput{
 		Scene: "home", Page: 1, PageSize: 20,
 	})
 	if err != nil || total != 0 || len(published) != 0 {
@@ -630,7 +633,7 @@ func newTestPortalHandler(
 	submissions *templatesubmission.Service,
 ) *api.AdminPortalHTTPHandler {
 	mediaSvc := media.NewServiceWithStorage(dao.NewMediaDAO(), storage)
-	templateAdmin := templateservice.NewAdminService(templateDAO)
+	templateAdmin := templateservice.NewAdminService(templateDAO, dao.NewBlindBoxPoolDAO())
 	// 部分测试压根不设 conf.GlobalConfig（它们只打登录路由）。
 	maxDrafts := 0
 	if conf.GlobalConfig != nil {
@@ -639,7 +642,7 @@ func newTestPortalHandler(
 	return api.NewAdminPortalHTTPHandler(
 		adminauth.NewAuthService(adminConf),
 		mediaSvc,
-		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO()),
+		templateservice.NewService(templateDAO, dao.NewBlindBoxRecordDAO(), dao.NewBlindBoxPoolDAO(), dao.NewBlindBoxQuotaDAO()),
 		templateAdmin,
 		submissions,
 		templateservice.NewDraftService(

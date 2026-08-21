@@ -28,6 +28,7 @@ const (
 	TemplateService_UnfavoriteTemplate_FullMethodName     = "/bobobeads.v1.TemplateService/UnfavoriteTemplate"
 	TemplateService_RandomTemplate_FullMethodName         = "/bobobeads.v1.TemplateService/RandomTemplate"
 	TemplateService_ListBlindBoxRecords_FullMethodName    = "/bobobeads.v1.TemplateService/ListBlindBoxRecords"
+	TemplateService_GetBlindBoxQuota_FullMethodName       = "/bobobeads.v1.TemplateService/GetBlindBoxQuota"
 )
 
 // TemplateServiceClient is the client API for TemplateService service.
@@ -54,6 +55,8 @@ type TemplateServiceClient interface {
 	RandomTemplate(ctx context.Context, in *RandomTemplateRequest, opts ...grpc.CallOption) (*RandomTemplateResponse, error)
 	// 盲盒历史：获取用户的开盒记录。
 	ListBlindBoxRecords(ctx context.Context, in *ListBlindBoxRecordsRequest, opts ...grpc.CallOption) (*ListBlindBoxRecordsResponse, error)
+	// 盲盒额度：进入盲盒页时查询今日剩余次数，用于展示与禁用抽取按钮。
+	GetBlindBoxQuota(ctx context.Context, in *GetBlindBoxQuotaRequest, opts ...grpc.CallOption) (*GetBlindBoxQuotaResponse, error)
 }
 
 type templateServiceClient struct {
@@ -154,6 +157,16 @@ func (c *templateServiceClient) ListBlindBoxRecords(ctx context.Context, in *Lis
 	return out, nil
 }
 
+func (c *templateServiceClient) GetBlindBoxQuota(ctx context.Context, in *GetBlindBoxQuotaRequest, opts ...grpc.CallOption) (*GetBlindBoxQuotaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBlindBoxQuotaResponse)
+	err := c.cc.Invoke(ctx, TemplateService_GetBlindBoxQuota_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TemplateServiceServer is the server API for TemplateService service.
 // All implementations must embed UnimplementedTemplateServiceServer
 // for forward compatibility.
@@ -178,6 +191,8 @@ type TemplateServiceServer interface {
 	RandomTemplate(context.Context, *RandomTemplateRequest) (*RandomTemplateResponse, error)
 	// 盲盒历史：获取用户的开盒记录。
 	ListBlindBoxRecords(context.Context, *ListBlindBoxRecordsRequest) (*ListBlindBoxRecordsResponse, error)
+	// 盲盒额度：进入盲盒页时查询今日剩余次数，用于展示与禁用抽取按钮。
+	GetBlindBoxQuota(context.Context, *GetBlindBoxQuotaRequest) (*GetBlindBoxQuotaResponse, error)
 	mustEmbedUnimplementedTemplateServiceServer()
 }
 
@@ -214,6 +229,9 @@ func (UnimplementedTemplateServiceServer) RandomTemplate(context.Context, *Rando
 }
 func (UnimplementedTemplateServiceServer) ListBlindBoxRecords(context.Context, *ListBlindBoxRecordsRequest) (*ListBlindBoxRecordsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListBlindBoxRecords not implemented")
+}
+func (UnimplementedTemplateServiceServer) GetBlindBoxQuota(context.Context, *GetBlindBoxQuotaRequest) (*GetBlindBoxQuotaResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBlindBoxQuota not implemented")
 }
 func (UnimplementedTemplateServiceServer) mustEmbedUnimplementedTemplateServiceServer() {}
 func (UnimplementedTemplateServiceServer) testEmbeddedByValue()                         {}
@@ -398,6 +416,24 @@ func _TemplateService_ListBlindBoxRecords_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TemplateService_GetBlindBoxQuota_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBlindBoxQuotaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TemplateServiceServer).GetBlindBoxQuota(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TemplateService_GetBlindBoxQuota_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TemplateServiceServer).GetBlindBoxQuota(ctx, req.(*GetBlindBoxQuotaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TemplateService_ServiceDesc is the grpc.ServiceDesc for TemplateService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -440,6 +476,10 @@ var TemplateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListBlindBoxRecords",
 			Handler:    _TemplateService_ListBlindBoxRecords_Handler,
+		},
+		{
+			MethodName: "GetBlindBoxQuota",
+			Handler:    _TemplateService_GetBlindBoxQuota_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

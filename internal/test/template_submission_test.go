@@ -31,7 +31,7 @@ func newSubmissionService(t *testing.T, dailyLimit int) (*templatesubmission.Ser
 	templateDAO := dao.NewTemplateDAO()
 	service := templatesubmission.NewService(
 		dao.NewTemplateSubmissionDAO(), dao.NewWorkDAO(), dao.NewUserDAO(),
-		mediaSvc, templateservice.NewAdminService(templateDAO), dailyLimit,
+		mediaSvc, templateservice.NewAdminService(templateDAO, dao.NewBlindBoxPoolDAO()), dailyLimit,
 	)
 	return service, mediaSvc, storage
 }

@@ -106,6 +106,16 @@ func (h *AdminPortalHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		h.withAdmin(w, r, h.rejectSubmission)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/admin/template-submissions/"):
 		h.withAdmin(w, r, h.getSubmission)
+	// 盲盒奖池。blind-box-pool 与 templates / template- 两个前缀都不冲突，块内顺序
+	// 仍按精确匹配先于 HasPrefix 排。
+	case r.Method == http.MethodGet && r.URL.Path == "/api/v1/admin/blind-box-pool":
+		h.withAdmin(w, r, h.listPool)
+	case r.Method == http.MethodPost && r.URL.Path == "/api/v1/admin/blind-box-pool":
+		h.withAdmin(w, r, h.addPoolItem)
+	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v1/admin/blind-box-pool/"):
+		h.withAdmin(w, r, h.updatePoolItem)
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/admin/blind-box-pool/"):
+		h.withAdmin(w, r, h.removePoolItem)
 	default:
 		h.writeError(w, http.StatusNotFound, "route not found")
 	}
@@ -200,7 +210,7 @@ func (h *AdminPortalHTTPHandler) uploadPreview(w http.ResponseWriter, r *http.Re
 }
 
 func (h *AdminPortalHTTPHandler) listCategories(w http.ResponseWriter, r *http.Request, _ string) {
-	categories, counts, err := h.templates.ListCategories(r.Context())
+	categories, counts, err := h.templates.ListCategoriesForAdmin(r.Context())
 	if err != nil {
 		h.writeServiceError(w, err)
 		return
@@ -210,6 +220,7 @@ func (h *AdminPortalHTTPHandler) listCategories(w http.ResponseWriter, r *http.R
 		items = append(items, map[string]interface{}{
 			"categoryId":    category.ID,
 			"name":          category.Name,
+			"isBlindBox":    category.IsBlindBox,
 			"templateCount": counts[index],
 		})
 	}
@@ -218,14 +229,15 @@ func (h *AdminPortalHTTPHandler) listCategories(w http.ResponseWriter, r *http.R
 
 func (h *AdminPortalHTTPHandler) createCategory(w http.ResponseWriter, r *http.Request, actor string) {
 	var request struct {
-		Name string `json:"name"`
+		Name       string `json:"name"`
+		IsBlindBox bool   `json:"isBlindBox"`
 	}
 	if err := decodeJSON(w, r, &request); err != nil {
 		h.writeError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
-	category, err := h.templateAdmin.CreateCategory(r.Context(), request.Name)
+	category, err := h.templateAdmin.CreateCategory(r.Context(), request.Name, request.IsBlindBox)
 	if err != nil {
 		h.writeServiceError(w, err)
 		return
@@ -235,6 +247,7 @@ func (h *AdminPortalHTTPHandler) createCategory(w http.ResponseWriter, r *http.R
 		"category": map[string]interface{}{
 			"categoryId":    category.ID,
 			"name":          category.Name,
+			"isBlindBox":    category.IsBlindBox,
 			"templateCount": 0,
 		},
 	})
@@ -247,7 +260,7 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	templates, total, err := h.templates.ListPublishedTemplates(r.Context(), page, pageSize)
+	templates, total, err := h.templates.ListPublishedTemplatesForAdmin(r.Context(), page, pageSize)
 	if err != nil {
 		h.writeServiceError(w, err)
 		return
@@ -296,6 +309,9 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 		if hasDraft {
 			draftIDValue = fmt.Sprintf("%d", draftID)
 		}
+		// visibility 而不是裸 status：C 端的模板 API 从不返回 status，这里也不想把
+		// 数字状态码写进后台契约，前端按字符串加筛选 tab 即可。
+		visibility := h.templates.TemplateVisibility(template)
 		items = append(items, map[string]interface{}{
 			"templateId":   fmt.Sprintf("%d", template.ID),
 			"title":        template.Title,
@@ -309,6 +325,7 @@ func (h *AdminPortalHTTPHandler) listTemplates(w http.ResponseWriter, r *http.Re
 			"width":        template.Width,
 			"height":       template.Height,
 			"colorCount":   template.ColorCount,
+			"visibility":   visibility,
 			"hasDraft":     hasDraft,
 			"draftId":      draftIDValue,
 		})
@@ -429,6 +446,133 @@ func (h *AdminPortalHTTPHandler) unpublishTemplate(w http.ResponseWriter, r *htt
 		zap.Uint64("template_id", templateID),
 		zap.String("reason", strings.TrimSpace(request.Reason)),
 	)
+	h.writeSuccess(w, http.StatusOK, map[string]interface{}{})
+}
+
+func (h *AdminPortalHTTPHandler) listPool(w http.ResponseWriter, r *http.Request, _ string) {
+	page, pageSize, err := adminPage(r)
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	entries, total, err := h.templateAdmin.ListPool(r.Context(), page, pageSize)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+
+	items := make([]map[string]interface{}, 0, len(entries))
+	for _, entry := range entries {
+		previewURL, thumbnailURL := browserPreviewURLs(entry.PreviewURL, entry.ThumbnailURL)
+		items = append(items, map[string]interface{}{
+			"itemId":       fmt.Sprintf("%d", entry.Item.ID),
+			"templateId":   fmt.Sprintf("%d", entry.Item.TemplateID),
+			"title":        entry.Title,
+			"previewUrl":   previewURL,
+			"thumbnailUrl": thumbnailURL,
+			"categoryId":   entry.CategoryID,
+			"categoryName": entry.CategoryName,
+			"weight":       entry.Item.Weight,
+			"sortOrder":    entry.Item.SortOrder,
+			"status":       entry.Item.Status,
+		})
+	}
+
+	h.writeSuccess(w, http.StatusOK, map[string]interface{}{
+		"items": items,
+		"page": map[string]interface{}{
+			"total":    total,
+			"page":     page,
+			"pageSize": pageSize,
+			"hasMore":  int64(page)*int64(pageSize) < total,
+		},
+	})
+}
+
+func (h *AdminPortalHTTPHandler) addPoolItem(w http.ResponseWriter, r *http.Request, actor string) {
+	var request struct {
+		TemplateID string `json:"templateId"`
+		Weight     int    `json:"weight"`
+		SortOrder  int    `json:"sortOrder"`
+	}
+	if err := decodeJSON(w, r, &request); err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+	templateID, err := strconv.ParseUint(strings.TrimSpace(request.TemplateID), 10, 64)
+	if err != nil || templateID == 0 {
+		h.writeError(w, http.StatusBadRequest, "invalid templateId")
+		return
+	}
+	// weight 省略时默认 1，而不是让 0 撞上服务层的下界校验：新增条目最常见的意图就是
+	// "等权重加进去"。
+	if request.Weight == 0 {
+		request.Weight = 1
+	}
+
+	item, err := h.templateAdmin.AddToPool(r.Context(), templateID, request.Weight, request.SortOrder)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	zap.L().Info("admin blind box pool item added",
+		zap.String("actor", actor),
+		zap.Uint64("template_id", templateID),
+		zap.Int("weight", item.Weight))
+	h.writeSuccess(w, http.StatusOK, map[string]interface{}{
+		"item": map[string]interface{}{
+			"itemId":     fmt.Sprintf("%d", item.ID),
+			"templateId": fmt.Sprintf("%d", item.TemplateID),
+			"weight":     item.Weight,
+			"sortOrder":  item.SortOrder,
+			"status":     item.Status,
+		},
+	})
+}
+
+func (h *AdminPortalHTTPHandler) updatePoolItem(w http.ResponseWriter, r *http.Request, actor string) {
+	itemID, err := adminPathID(r.URL.Path, "/api/v1/admin/blind-box-pool/", "")
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid itemId")
+		return
+	}
+
+	// 指针字段：区分"传了 0"和"没传"，否则一次只改 weight 的请求会把 sortOrder 清零。
+	var request struct {
+		Weight    *int  `json:"weight"`
+		SortOrder *int  `json:"sortOrder"`
+		Status    *int8 `json:"status"`
+	}
+	if err := decodeJSON(w, r, &request); err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+
+	if err := h.templateAdmin.UpdatePoolItem(r.Context(), itemID, templateservice.PoolItemPatch{
+		Weight:    request.Weight,
+		SortOrder: request.SortOrder,
+		Status:    request.Status,
+	}); err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	zap.L().Info("admin blind box pool item updated", zap.String("actor", actor), zap.Uint64("item_id", itemID))
+	h.writeSuccess(w, http.StatusOK, map[string]interface{}{})
+}
+
+func (h *AdminPortalHTTPHandler) removePoolItem(w http.ResponseWriter, r *http.Request, actor string) {
+	itemID, err := adminPathID(r.URL.Path, "/api/v1/admin/blind-box-pool/", "")
+	if err != nil {
+		h.writeError(w, http.StatusBadRequest, "invalid itemId")
+		return
+	}
+
+	if err := h.templateAdmin.RemoveFromPool(r.Context(), itemID); err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	zap.L().Info("admin blind box pool item removed", zap.String("actor", actor), zap.Uint64("item_id", itemID))
 	h.writeSuccess(w, http.StatusOK, map[string]interface{}{})
 }
 
